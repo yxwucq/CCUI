@@ -1,18 +1,24 @@
 import * as pty from 'node-pty';
+import { createRequire } from 'module';
 import type { SessionActivity } from '@ccui/shared';
+
+const require = createRequire(import.meta.url);
+const { Terminal: HeadlessTerminal } = require('@xterm/headless') as { Terminal: any };
 
 type OutputListener = (sessionId: string, data: string) => void;
 type ExitListener = (sessionId: string, code: number) => void;
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
+type MessageCaptureListener = (sessionId: string, userMsg: string, assistantMsg: string) => void;
 
 interface TerminalProcess {
   pty: pty.IPty;
   cwd: string;
+  cols: number;
 }
 
 // Strip ANSI escape sequences for pattern matching
 function stripAnsi(s: string): string {
-  return s.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?(?:\x07|\x1b\\)|\x1b[()][0-9A-B]|\x1b\[[\?]?[0-9;]*[hlm]/g, '');
+  return s.replace(/\x1b\[[\x3c-\x3f]?[0-9;]*[a-zA-Z]|\x1b\].*?(?:\x07|\x1b\\)|\x1b[()][0-9A-B]/g, '');
 }
 
 // Detect Claude CLI permission/input prompts
@@ -36,6 +42,7 @@ class TerminalManager {
   private outputListeners: OutputListener[] = [];
   private exitListeners: ExitListener[] = [];
   private activityListeners: ActivityListener[] = [];
+  private messageListeners: MessageCaptureListener[] = [];
 
   // Activity tracking per session
   private idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -43,6 +50,11 @@ class TerminalManager {
   private recentOutput = new Map<string, string>(); // rolling buffer of recent output per session
   private waitingInputFlag = new Map<string, boolean>(); // sticky: once detected, stays until Enter
   private resizeSuppressUntil = new Map<string, number>(); // suppress activity after resize
+
+  // Message capture state
+  private inputBuffer = new Map<string, string>();    // accumulates raw user keystrokes
+  private outputBuffer = new Map<string, string>();   // accumulates Claude's response (post-stripAnsi)
+  private pendingUserMsg = new Map<string, string>(); // user message waiting to be paired
 
   onOutput(listener: OutputListener) {
     this.outputListeners.push(listener);
@@ -56,6 +68,10 @@ class TerminalManager {
     this.activityListeners.push(listener);
   }
 
+  onMessage(listener: MessageCaptureListener) {
+    this.messageListeners.push(listener);
+  }
+
   private emitActivity(sessionId: string, activity: SessionActivity) {
     // Skip duplicate emissions
     const key = activity.state;
@@ -63,6 +79,70 @@ class TerminalManager {
     this.currentState.set(sessionId, key);
 
     for (const l of this.activityListeners) l(sessionId, activity);
+  }
+
+  /**
+   * Use @xterm/headless to properly render raw PTY output into clean text.
+   * This correctly handles \r overwriting, cursor movements, and all ANSI codes
+   * — exactly as a real terminal would display it.
+   */
+  private static async renderWithHeadless(raw: string, cols: number): Promise<string> {
+    const term = new HeadlessTerminal({ cols, rows: 200, scrollback: 0, allowProposedApi: true });
+    await new Promise<void>((resolve) => term.write(raw, resolve));
+
+    const buf = term.buffer.active;
+    const lines: string[] = [];
+    for (let i = 0; i < buf.length; i++) {
+      const line = buf.getLine(i);
+      if (line) lines.push(line.translateToString(true));
+    }
+    term.dispose();
+
+    // Trim trailing empty lines
+    while (lines.length > 0 && !lines[lines.length - 1].trim()) lines.pop();
+    return lines.join('\n');
+  }
+
+  /** Extract assistant response from rendered terminal output */
+  private static extractResponse(rendered: string, userMsg: string): string {
+    const lines = rendered.split('\n').map((l) => l.trim()).filter(Boolean);
+
+    // Claude CLI marks response lines with ⏺ — use those first
+    const responseLines = lines
+      .filter((l) => l.startsWith('⏺'))
+      .map((l) => l.slice(1).trim());
+
+    if (responseLines.length > 0) {
+      return responseLines.join('\n').trim();
+    }
+
+    // Fallback: filter known non-content lines
+    return lines
+      .filter((line) => {
+        if (line.includes(userMsg)) return false;
+        if (line.startsWith('●') || line.startsWith('✓') || line.startsWith('✗')) return false;
+        if (line.startsWith('❯') || line.startsWith('?')) return false;
+        if (/^[─═\-]+$/.test(line)) return false;
+        if (/esc\s*to\s*interrupt/i.test(line)) return false;
+        return true;
+      })
+      .join('\n')
+      .trim();
+  }
+
+  private async flushCapturedMessage(sessionId: string) {
+    if (!this.pendingUserMsg.has(sessionId)) return;
+    const userMsg = this.pendingUserMsg.get(sessionId)!;
+    const raw = this.outputBuffer.get(sessionId) || '';
+    this.pendingUserMsg.delete(sessionId);
+    this.outputBuffer.delete(sessionId);
+
+    const cols = this.terminals.get(sessionId)?.cols ?? 120;
+    const rendered = await TerminalManager.renderWithHeadless(raw, cols);
+    const assistantMsg = TerminalManager.extractResponse(rendered, userMsg);
+    if (assistantMsg) {
+      for (const l of this.messageListeners) l(sessionId, userMsg, assistantMsg);
+    }
   }
 
   private appendOutput(sessionId: string, data: string) {
@@ -88,6 +168,9 @@ class TerminalManager {
         this.emitActivity(sessionId, { state: 'waiting_input' });
       } else {
         this.emitActivity(sessionId, { state: 'idle' });
+        this.flushCapturedMessage(sessionId).catch((err) =>
+          console.error(`[terminal:${sessionId.slice(0, 8)}] message capture error:`, err)
+        );
       }
     }, 2000));
   }
@@ -100,6 +183,9 @@ class TerminalManager {
     this.recentOutput.delete(sessionId);
     this.waitingInputFlag.delete(sessionId);
     this.resizeSuppressUntil.delete(sessionId);
+    this.inputBuffer.delete(sessionId);
+    this.outputBuffer.delete(sessionId);
+    this.pendingUserMsg.delete(sessionId);
   }
 
   /**
@@ -134,7 +220,7 @@ class TerminalManager {
         env,
       });
 
-      const entry: TerminalProcess = { pty: shell, cwd };
+      const entry: TerminalProcess = { pty: shell, cwd, cols };
       this.terminals.set(sessionId, entry);
 
       // Guard callbacks: only emit if this shell is still the current one for this session.
@@ -148,6 +234,12 @@ class TerminalManager {
 
         // Buffer output for input detection
         this.appendOutput(sessionId, data);
+
+        // Capture raw PTY output for message history (headless terminal needs raw ANSI data)
+        if (this.pendingUserMsg.has(sessionId)) {
+          const prev = this.outputBuffer.get(sessionId) || '';
+          this.outputBuffer.set(sessionId, prev + data);
+        }
 
         // Suppress activity emission during resize window or waiting_input
         const suppressUntil = this.resizeSuppressUntil.get(sessionId) || 0;
@@ -183,12 +275,34 @@ class TerminalManager {
     if (term) {
       term.pty.write(data);
 
-      // Enter/Return = user submitted a choice → clear sticky flag and buffer
       if (data.includes('\r') || data.includes('\n')) {
+        // Flush input buffer as pending user message
+        const beforeEnter = data.split(/[\r\n]/)[0].replace(/[\x00-\x1f\x7f-\x9f]/g, '');
+        const accumulated = (this.inputBuffer.get(sessionId) || '') + beforeEnter;
+        const userMsg = accumulated.trim();
+        if (userMsg) {
+          this.pendingUserMsg.set(sessionId, userMsg);
+          this.outputBuffer.set(sessionId, '');
+        }
+        this.inputBuffer.delete(sessionId);
+
+        // Clear sticky flag and buffer, emit thinking
         this.waitingInputFlag.delete(sessionId);
         this.recentOutput.delete(sessionId);
         this.emitActivity(sessionId, { state: 'thinking', preview: '' });
         this.resetIdleTimer(sessionId);
+      } else if (data === '\x7f') {
+        // Backspace — remove last char from input buffer
+        const buf = this.inputBuffer.get(sessionId) || '';
+        if (buf.length > 0) this.inputBuffer.set(sessionId, buf.slice(0, -1));
+      } else {
+        // Accumulate printable characters — strip full ANSI sequences first,
+        // then remove any remaining control chars
+        const printable = stripAnsi(data).replace(/[\x00-\x1f\x7f-\x9f]/g, '');
+        if (printable) {
+          const buf = this.inputBuffer.get(sessionId) || '';
+          this.inputBuffer.set(sessionId, buf + printable);
+        }
       }
       // Arrow keys / other navigation: don't clear waiting state
     }

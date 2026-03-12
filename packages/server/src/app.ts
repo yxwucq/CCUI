@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors';
 import { join, dirname } from 'path';
 import { existsSync } from 'fs';
@@ -9,7 +9,7 @@ import usageRouter from './routes/usage.js';
 import filesRouter from './routes/files.js';
 import { createConfigRouter } from './routes/config.js';
 
-export function createApp(projectPath: string) {
+export function createApp(projectPath: string): Express {
   const app = express();
   app.use(cors());
   app.use(express.json());

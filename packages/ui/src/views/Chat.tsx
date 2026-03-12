@@ -26,6 +26,7 @@ export default function Chat() {
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const viewModeBeforeFocusRef = useRef<'list' | 'grid' | null>(null);
   const [layoutMode, setLayoutMode] = useState<'accordion' | 'scroll'>('accordion');
   const [search, setSearch] = useState('');
   const [highlightIds, setHighlightIds] = useState<ReadonlySet<string>>(new Set());
@@ -73,6 +74,22 @@ export default function Chat() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [sessions, focusedSessionId, toggleFocus]);
+
+  // Restore viewMode when exiting focus (so grid users return to grid)
+  const prevFocusedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const wasFocused = prevFocusedRef.current;
+    prevFocusedRef.current = focusedSessionId;
+    // Entering focus → save current viewMode
+    if (!wasFocused && focusedSessionId) {
+      viewModeBeforeFocusRef.current = viewMode;
+    }
+    // Exiting focus → restore saved viewMode
+    if (wasFocused && !focusedSessionId && viewModeBeforeFocusRef.current) {
+      setViewMode(viewModeBeforeFocusRef.current);
+      viewModeBeforeFocusRef.current = null;
+    }
+  }, [focusedSessionId, viewMode]);
 
   // Fetch branches when opening new session form
   useEffect(() => {
@@ -360,7 +377,7 @@ export default function Chat() {
                 <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
                 <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {activeSessions.map((s) => (
-                    <SessionOverviewCard key={s.id} session={s} onClick={() => { setViewMode('list'); toggleFocus(s.id); }} />
+                    <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />
                   ))}
                 </div>
               </>
@@ -370,7 +387,7 @@ export default function Chat() {
                 <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
                 <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {terminatedSessions.map((s) => (
-                    <SessionOverviewCard key={s.id} session={s} onClick={() => { setViewMode('list'); toggleFocus(s.id); }} />
+                    <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />
                   ))}
                 </div>
               </>

@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import { usageTracker } from '../core/usage-tracker.js';
 
-const router = Router();
+const router: IRouter = Router();
 
 router.get('/summary', (req, res) => {
   const range = req.query.range as string;

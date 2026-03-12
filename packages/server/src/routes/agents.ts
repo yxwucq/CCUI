@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import { agentEngine } from '../core/agent-engine.js';
 
-const router = Router();
+const router: IRouter = Router();
 
 router.get('/', (_req, res) => {
   res.json(agentEngine.listAgents());

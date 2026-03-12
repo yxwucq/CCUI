@@ -64,6 +64,23 @@ export function setupWebSocket(server: Server) {
     broadcast(record.sessionId, { type: 'usage:update', record });
   });
 
+  // Save terminal conversation turns to DB and broadcast to clients
+  terminalManager.onMessage((sessionId, userMsg, assistantMsg) => {
+    const db = getDB();
+    const now = new Date().toISOString();
+    db.prepare('UPDATE sessions SET last_active_at = ? WHERE id = ?').run(now, sessionId);
+
+    const userId = uuid();
+    const asstId = uuid();
+    db.prepare('INSERT INTO messages (id, session_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)')
+      .run(userId, sessionId, 'user', userMsg, now);
+    db.prepare('INSERT INTO messages (id, session_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)')
+      .run(asstId, sessionId, 'assistant', assistantMsg, now);
+
+    broadcast(sessionId, { type: 'chat:saved_message', sessionId, role: 'user', content: userMsg, id: userId, timestamp: now });
+    broadcast(sessionId, { type: 'chat:saved_message', sessionId, role: 'assistant', content: assistantMsg, id: asstId, timestamp: now });
+  });
+
   // Wire up terminal events
   terminalManager.onOutput((sessionId, data) => {
     console.log(`[ws] terminal:output for ${sessionId.slice(0, 8)} (${data.length} bytes)`);

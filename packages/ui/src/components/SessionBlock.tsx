@@ -226,9 +226,10 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
   }, []);
 
   // Once expanded, keep terminal mounted forever (avoid PTY re-creation)
+  // But don't mount for terminated sessions — require explicit resume first
   useEffect(() => {
-    if (isExpanded && !terminalMounted) setTerminalMounted(true);
-  }, [isExpanded, terminalMounted]);
+    if (isExpanded && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
+  }, [isExpanded, terminalMounted, session.status]);
 
   // Esc to exit focus mode
   useEffect(() => {
@@ -454,11 +455,23 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
           >
             {/* Terminal pane */}
             <div className="min-h-0 overflow-hidden" style={{ width: `${splitRatio * 100}%` }}>
-              {terminalMounted && (
+              {terminalMounted ? (
                 <Suspense fallback={<div className="h-full flex items-center justify-center text-gray-600 text-sm">Starting Claude CLI...</div>}>
                   <XTerminal sessionId={session.id} />
                 </Suspense>
-              )}
+              ) : session.status === 'terminated' ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-500">
+                  <Unplug size={24} />
+                  <p className="text-sm">Session terminated</p>
+                  <button
+                    onClick={() => resumeSession(session.id).catch((e: any) => alert(e.message))}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Play size={13} />
+                    Resume
+                  </button>
+                </div>
+              ) : null}
             </div>
             {/* Drag handle */}
             <div

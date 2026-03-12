@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ccui/shared": "workspace:*",
+    "@xterm/headless": "^6.0.0",
     "better-sqlite3": "^11.7.0",
     "chokidar": "^4.0.0",
     "cors": "^2.8.5",
