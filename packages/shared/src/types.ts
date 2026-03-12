@@ -45,6 +45,7 @@ export interface UsageRecord {
   cost: number;
   model: string;
   timestamp: string;
+  pricingUnknown: boolean;
 }
 
 export interface UsageSummary {

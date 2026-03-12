@@ -2,19 +2,21 @@ import { v4 as uuid } from 'uuid';
 import { getDB } from '../db/database.js';
 import type { UsageRecord, UsageSummary } from '@ccui/shared';
 
-// Model pricing per million tokens (USD)
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  'claude-opus-4-20250514': { input: 15, output: 75 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15 },
-  'claude-haiku-3-5-20241022': { input: 0.8, output: 4 },
-};
+// Model pricing per million tokens (USD), matched by prefix after stripping date suffix
+const MODEL_PRICING = [
+  { prefix: 'claude-opus-4',     price: { input: 15,  output: 75 } },
+  { prefix: 'claude-sonnet-4',   price: { input: 3,   output: 15 } },
+  { prefix: 'claude-sonnet-3-5', price: { input: 3,   output: 15 } },
+  { prefix: 'claude-haiku-4',    price: { input: 0.8, output: 4  } },
+  { prefix: 'claude-haiku-3-5',  price: { input: 0.8, output: 4  } },
+];
 
-function getPrice(model: string) {
-  for (const [key, price] of Object.entries(MODEL_PRICING)) {
-    if (model.includes(key) || key.includes(model)) return price;
+function getPrice(model: string): { input: number; output: number } | null {
+  const normalized = model.replace(/-\d{8}$/, '');
+  for (const { prefix, price } of MODEL_PRICING) {
+    if (normalized.startsWith(prefix)) return price;
   }
-  // Default to sonnet pricing
-  return { input: 3, output: 15 };
+  return null;
 }
 
 type UsageListener = (record: UsageRecord) => void;
@@ -27,17 +29,18 @@ class UsageTracker {
   }
 
   recordFromClaude(sessionId: string, usage: any, model: string) {
-    const price = getPrice(model);
     const inputTokens = usage.input_tokens || 0;
     const outputTokens = usage.output_tokens || 0;
     const cacheRead = usage.cache_read_input_tokens || 0;
     const cacheWrite = usage.cache_creation_input_tokens || 0;
-    const cost =
-      (inputTokens * price.input +
-        cacheWrite * price.input * 1.25 +
-        cacheRead * price.input * 0.1 +
-        outputTokens * price.output) /
-      1_000_000;
+    const price = getPrice(model);
+    const cost = price
+      ? (inputTokens * price.input +
+          cacheWrite * price.input * 1.25 +
+          cacheRead * price.input * 0.1 +
+          outputTokens * price.output) /
+        1_000_000
+      : 0;
 
     const record: UsageRecord = {
       id: uuid(),
@@ -49,6 +52,7 @@ class UsageTracker {
       cost,
       model,
       timestamp: new Date().toISOString(),
+      pricingUnknown: price === null,
     };
 
     const db = getDB();
@@ -162,6 +166,7 @@ class UsageTracker {
               (SELECT model FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestModel
        FROM usage_records WHERE session_id = ?`
     ).get(sessionId, sessionId, sessionId) as any;
+    const model = (row.latestModel as string) || '';
     return {
       totalCost: row.totalCost as number,
       totalInput: row.totalInput as number,
@@ -170,7 +175,8 @@ class UsageTracker {
       totalCacheWrite: row.totalCacheWrite as number,
       callCount: row.callCount as number,
       latestInputTokens: (row.latestInput as number) || 0,
-      model: (row.latestModel as string) || '',
+      model,
+      pricingUnknown: model ? getPrice(model) === null : false,
     };
   }
 }

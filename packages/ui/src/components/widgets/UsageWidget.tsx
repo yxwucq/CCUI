@@ -60,6 +60,13 @@ export default function UsageWidget({ sessionId, size }: Props) {
         <span>Usage</span>
       </div>
 
+      {/* Pricing unknown warning */}
+      {usage.pricingUnknown && (
+        <div className="text-[10px] text-yellow-600 mb-1">
+          Unknown pricing: {usage.model}
+        </div>
+      )}
+
       {/* Cost row */}
       <div className={`flex items-baseline justify-between ${renderSize === 'sm' ? 'mb-0' : 'mb-2'}`}>
         <div
