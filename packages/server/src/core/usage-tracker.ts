@@ -33,7 +33,11 @@ class UsageTracker {
     const cacheRead = usage.cache_read_input_tokens || 0;
     const cacheWrite = usage.cache_creation_input_tokens || 0;
     const cost =
-      (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
+      (inputTokens * price.input +
+        cacheWrite * price.input * 1.25 +
+        cacheRead * price.input * 0.1 +
+        outputTokens * price.output) /
+      1_000_000;
 
     const record: UsageRecord = {
       id: uuid(),
@@ -151,8 +155,10 @@ class UsageTracker {
       `SELECT COALESCE(SUM(cost), 0) as totalCost,
               COALESCE(SUM(input_tokens), 0) as totalInput,
               COALESCE(SUM(output_tokens), 0) as totalOutput,
+              COALESCE(SUM(cache_read), 0) as totalCacheRead,
+              COALESCE(SUM(cache_write), 0) as totalCacheWrite,
               COUNT(*) as callCount,
-              (SELECT input_tokens FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestInput,
+              (SELECT input_tokens + cache_read + cache_write FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestInput,
               (SELECT model FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestModel
        FROM usage_records WHERE session_id = ?`
     ).get(sessionId, sessionId, sessionId) as any;
@@ -160,6 +166,8 @@ class UsageTracker {
       totalCost: row.totalCost as number,
       totalInput: row.totalInput as number,
       totalOutput: row.totalOutput as number,
+      totalCacheRead: row.totalCacheRead as number,
+      totalCacheWrite: row.totalCacheWrite as number,
       callCount: row.callCount as number,
       latestInputTokens: (row.latestInput as number) || 0,
       model: (row.latestModel as string) || '',

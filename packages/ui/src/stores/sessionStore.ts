@@ -6,6 +6,8 @@ export interface SessionUsageSummary {
   totalCost: number;
   totalInput: number;
   totalOutput: number;
+  totalCacheRead: number;
+  totalCacheWrite: number;
   callCount: number;
   model: string;
 }
@@ -220,10 +222,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         sessionUsage: {
           ...s.sessionUsage,
           [sessionId]: {
-            latestInputTokens: record.inputTokens,
+            latestInputTokens: record.inputTokens + record.cacheRead + record.cacheWrite,
             totalCost: (prev?.totalCost ?? 0) + record.cost,
             totalInput: (prev?.totalInput ?? 0) + record.inputTokens,
             totalOutput: (prev?.totalOutput ?? 0) + record.outputTokens,
+            totalCacheRead: (prev?.totalCacheRead ?? 0) + record.cacheRead,
+            totalCacheWrite: (prev?.totalCacheWrite ?? 0) + record.cacheWrite,
             callCount: (prev?.callCount ?? 0) + 1,
             model: record.model || prev?.model || '',
           },
