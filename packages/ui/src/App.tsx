@@ -5,7 +5,6 @@ import Dashboard from './views/Dashboard';
 import Projects from './views/Projects';
 import Agents from './views/Agents';
 import AgentEditor from './views/AgentEditor';
-import Usage from './views/Usage';
 import Files from './views/Files';
 
 export default function App() {
@@ -18,7 +17,6 @@ export default function App() {
         <Route path="/agents" element={<Agents />} />
         <Route path="/agents/new" element={<AgentEditor />} />
         <Route path="/agents/:id/edit" element={<AgentEditor />} />
-        <Route path="/usage" element={<Usage />} />
         <Route path="/files" element={<Files />} />
       </Route>
     </Routes>

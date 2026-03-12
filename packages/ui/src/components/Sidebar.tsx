@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useSessionStore } from '../stores/sessionStore';
 import {
   LayoutDashboard, MessageSquare, FolderOpen, Bot,
-  BarChart3, FileCode, GitBranch,
+  FileCode, GitBranch,
 } from 'lucide-react';
 
 const navItems = [
@@ -10,7 +10,6 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/projects', icon: FolderOpen, label: 'Projects' },
   { to: '/agents', icon: Bot, label: 'Agents' },
-  { to: '/usage', icon: BarChart3, label: 'Usage' },
   { to: '/files', icon: FileCode, label: 'Files' },
 ];
 
