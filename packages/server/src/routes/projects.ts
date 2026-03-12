@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import { scanProject, getFileTree } from '../core/project-scanner.js';
 import { execSync } from 'child_process';
 import { listBranches, getCurrentBranch } from '../core/worktree-manager.js';
 
-export function createProjectRouter(projectPath: string) {
+export function createProjectRouter(projectPath: string): IRouter {
   const router = Router();
 
   router.get('/info', (_req, res) => {

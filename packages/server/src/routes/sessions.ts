@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -7,7 +7,7 @@ import { getDB } from '../db/database.js';
 import { getFileTree } from '../core/project-scanner.js';
 import { readFile, writeFile } from '../core/file-manager.js';
 
-const router = Router();
+const router: IRouter = Router();
 
 router.get('/', (_req, res) => {
   const sessions = sessionManager.listSessions();

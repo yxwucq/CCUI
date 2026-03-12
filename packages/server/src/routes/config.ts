@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-export function createConfigRouter(projectPath: string) {
+export function createConfigRouter(projectPath: string): IRouter {
   const router = Router();
   const configDir = join(projectPath, '.ccui');
   const configFile = join(configDir, 'ui-config.json');

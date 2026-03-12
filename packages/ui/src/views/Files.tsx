@@ -3,8 +3,9 @@ import { useSessionStore } from '../stores/sessionStore';
 import FileTree from '../components/FileTree';
 import {
   Save, GitBranch, FolderOpen, FileEdit, FilePlus, FileMinus,
-  FileQuestion, ChevronDown, ChevronRight, RefreshCw,
+  FileQuestion, ChevronDown, ChevronRight, RefreshCw, Pencil, Eye,
 } from 'lucide-react';
+import CodeViewer from '../components/CodeViewer';
 
 interface GitChange {
   file: string;
@@ -55,6 +56,7 @@ export default function Files() {
 
   // View mode: 'tree' (file browser) or 'changes' (git status + diff)
   const [viewMode, setViewMode] = useState<'tree' | 'changes'>('changes');
+  const [editing, setEditing] = useState(false);
 
   const sessionId = selectedSession?.id;
 
@@ -149,6 +151,7 @@ export default function Files() {
       setBinary(data.binary);
       setContent(data.content || '');
       setModified(false);
+      setEditing(false);
     } catch { /* ignore */ }
   };
 
@@ -340,20 +343,32 @@ export default function Files() {
                     <span className="text-sm text-gray-400 truncate">{selectedFile}</span>
                     <div className="flex items-center gap-2">
                       {modified && <span className="text-xs text-yellow-400">Modified</span>}
-                      <button
-                        onClick={saveFile}
-                        disabled={!modified}
-                        className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-2 py-1 rounded transition-colors"
-                      >
-                        <Save size={12} /> Save
-                      </button>
+                      {!binary && (
+                        <button
+                          onClick={() => setEditing((v) => !v)}
+                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${
+                            editing ? 'bg-amber-700 hover:bg-amber-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                          }`}
+                        >
+                          {editing ? <><Eye size={12} /> View</> : <><Pencil size={12} /> Edit</>}
+                        </button>
+                      )}
+                      {editing && (
+                        <button
+                          onClick={saveFile}
+                          disabled={!modified}
+                          className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-2 py-1 rounded transition-colors"
+                        >
+                          <Save size={12} /> Save
+                        </button>
+                      )}
                     </div>
                   </div>
                   {binary ? (
                     <div className="flex-1 flex items-center justify-center text-gray-600">
                       Binary file — cannot display
                     </div>
-                  ) : (
+                  ) : editing ? (
                     <textarea
                       value={content}
                       onChange={(e) => {
@@ -363,6 +378,10 @@ export default function Files() {
                       className="flex-1 bg-transparent p-4 font-mono text-sm resize-none focus:outline-none"
                       spellCheck={false}
                     />
+                  ) : (
+                    <div className="flex-1 overflow-auto">
+                      <CodeViewer content={content} filePath={selectedFile} />
+                    </div>
                   )}
                 </>
               ) : (
@@ -378,29 +397,54 @@ export default function Files() {
   );
 }
 
-/** Syntax-highlighted diff viewer */
+/** Diff viewer with line-level coloring and line numbers */
 function DiffView({ diff }: { diff: string }) {
   if (!diff || diff.startsWith('(')) {
     return <div className="p-4 text-sm text-gray-600">{diff}</div>;
   }
 
   const lines = diff.split('\n');
+  let oldLine = 0;
+  let newLine = 0;
+
   return (
     <div className="text-xs font-mono leading-relaxed">
       {lines.map((line, i) => {
         let cls = 'text-gray-500';
-        if (line.startsWith('+') && !line.startsWith('+++')) {
+        let oldNum = '';
+        let newNum = '';
+
+        // Parse @@ hunk header for line numbers
+        const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)/);
+        if (hunkMatch) {
+          oldLine = parseInt(hunkMatch[1]);
+          newLine = parseInt(hunkMatch[2]);
+          cls = 'text-cyan-400 bg-cyan-900/10';
+        } else if (line.startsWith('+') && !line.startsWith('+++')) {
           cls = 'text-green-400 bg-green-900/15';
+          newNum = String(newLine++);
         } else if (line.startsWith('-') && !line.startsWith('---')) {
           cls = 'text-red-400 bg-red-900/15';
-        } else if (line.startsWith('@@')) {
-          cls = 'text-cyan-400 bg-cyan-900/10';
+          oldNum = String(oldLine++);
         } else if (line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++')) {
           cls = 'text-gray-600';
+        } else if (!hunkMatch) {
+          // Context line
+          oldNum = String(oldLine++);
+          newNum = String(newLine++);
         }
+
         return (
-          <div key={i} className={`px-4 py-px whitespace-pre ${cls}`}>
-            {line || ' '}
+          <div key={i} className={`flex ${cls}`}>
+            {hunkMatch || line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++') ? (
+              <span className="px-4 py-px whitespace-pre flex-1">{line || ' '}</span>
+            ) : (
+              <>
+                <span className="w-10 shrink-0 text-right pr-1 text-gray-700 select-none">{oldNum}</span>
+                <span className="w-10 shrink-0 text-right pr-1 text-gray-700 select-none border-r border-gray-800/50">{newNum}</span>
+                <span className="px-3 py-px whitespace-pre flex-1">{line || ' '}</span>
+              </>
+            )}
           </div>
         );
       })}

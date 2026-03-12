@@ -64,6 +64,23 @@ export function setupWebSocket(server: Server) {
     broadcast(record.sessionId, { type: 'usage:update', record });
   });
 
+  // Save terminal conversation turns to DB and broadcast to clients
+  terminalManager.onMessage((sessionId, userMsg, assistantMsg) => {
+    const db = getDB();
+    const now = new Date().toISOString();
+    db.prepare('UPDATE sessions SET last_active_at = ? WHERE id = ?').run(now, sessionId);
+
+    const userId = uuid();
+    const asstId = uuid();
+    db.prepare('INSERT INTO messages (id, session_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)')
+      .run(userId, sessionId, 'user', userMsg, now);
+    db.prepare('INSERT INTO messages (id, session_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)')
+      .run(asstId, sessionId, 'assistant', assistantMsg, now);
+
+    broadcast(sessionId, { type: 'chat:saved_message', sessionId, role: 'user', content: userMsg, id: userId, timestamp: now });
+    broadcast(sessionId, { type: 'chat:saved_message', sessionId, role: 'assistant', content: assistantMsg, id: asstId, timestamp: now });
+  });
+
   // Wire up terminal events
   terminalManager.onOutput((sessionId, data) => {
     console.log(`[ws] terminal:output for ${sessionId.slice(0, 8)} (${data.length} bytes)`);
@@ -98,6 +115,7 @@ export function setupWebSocket(server: Server) {
             agentId: msg.agentId,
             branch: msg.branch,
             name: msg.name,
+            skipPermissions: msg.skipPermissions,
           });
           ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
         } else if (msg.type === 'session:resume') {
@@ -124,12 +142,12 @@ export function setupWebSocket(server: Server) {
               let ok: boolean;
               if (claudeSessionId) {
                 // Resume existing Claude conversation
-                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, claudeSessionId);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, claudeSessionId, undefined, session.skipPermissions);
               } else {
                 // First run — assign a new session ID so we can resume later
                 const newId = uuid();
                 db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(newId, msg.sessionId);
-                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId, session.skipPermissions);
               }
               if (!ok) {
                 ws.send(JSON.stringify({ type: 'chat:error', sessionId: msg.sessionId, error: 'Failed to create terminal' }));

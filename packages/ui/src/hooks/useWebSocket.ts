@@ -63,6 +63,15 @@ function handleMessage(msg: WSMessage) {
     case 'session:branch':
       s.updateSessionBranch(msg.sessionId, msg.branch);
       break;
+    case 'chat:saved_message':
+      s.appendMessage(msg.sessionId, {
+        id: msg.id,
+        sessionId: msg.sessionId,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+      });
+      break;
     case 'terminal:output':
       window.dispatchEvent(new CustomEvent('terminal:output', {
         detail: { sessionId: msg.sessionId, data: msg.data },

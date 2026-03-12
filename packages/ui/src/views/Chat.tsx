@@ -4,7 +4,40 @@ import { useAgentStore } from '../stores/agentStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, AlertTriangle } from 'lucide-react';
+import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Session } from '@ccui/shared/types';
+
+function TerminatedSection({ sessions, layoutMode, onToggleExpanded }: {
+  sessions: Session[];
+  layoutMode: 'accordion' | 'scroll';
+  onToggleExpanded: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 w-full px-1 py-1 text-[10px] text-gray-600 uppercase tracking-wider hover:text-gray-500 transition-colors select-none"
+      >
+        <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        Terminated ({sessions.length})
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1.5 mt-0.5">
+          {sessions.map((s) => (
+            <ErrorBoundary key={s.id}>
+              <SessionBlock
+                session={s}
+                scrollMode={layoutMode === 'scroll'}
+                onToggleExpanded={onToggleExpanded}
+              />
+            </ErrorBoundary>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Chat() {
   const sessions = useSessionStore((s) => s.sessions);
@@ -26,6 +59,7 @@ export default function Chat() {
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const viewModeBeforeFocusRef = useRef<'list' | 'grid' | null>(null);
   const [layoutMode, setLayoutMode] = useState<'accordion' | 'scroll'>('accordion');
   const [search, setSearch] = useState('');
   const [highlightIds, setHighlightIds] = useState<ReadonlySet<string>>(new Set());
@@ -73,6 +107,22 @@ export default function Chat() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [sessions, focusedSessionId, toggleFocus]);
+
+  // Restore viewMode when exiting focus (so grid users return to grid)
+  const prevFocusedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const wasFocused = prevFocusedRef.current;
+    prevFocusedRef.current = focusedSessionId;
+    // Entering focus → save current viewMode
+    if (!wasFocused && focusedSessionId) {
+      viewModeBeforeFocusRef.current = viewMode;
+    }
+    // Exiting focus → restore saved viewMode
+    if (wasFocused && !focusedSessionId && viewModeBeforeFocusRef.current) {
+      setViewMode(viewModeBeforeFocusRef.current);
+      viewModeBeforeFocusRef.current = null;
+    }
+  }, [focusedSessionId, viewMode]);
 
   // Fetch branches when opening new session form
   useEffect(() => {
@@ -360,7 +410,7 @@ export default function Chat() {
                 <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
                 <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {activeSessions.map((s) => (
-                    <SessionOverviewCard key={s.id} session={s} onClick={() => { setViewMode('list'); toggleFocus(s.id); }} />
+                    <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />
                   ))}
                 </div>
               </>
@@ -370,7 +420,7 @@ export default function Chat() {
                 <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
                 <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {terminatedSessions.map((s) => (
-                    <SessionOverviewCard key={s.id} session={s} onClick={() => { setViewMode('list'); toggleFocus(s.id); }} />
+                    <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />
                   ))}
                 </div>
               </>
@@ -393,20 +443,11 @@ export default function Chat() {
             ))}
 
             {terminatedSessions.length > 0 && (
-              <>
-                {activeSessions.length > 0 && (
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider pt-0.5 px-1 shrink-0">Terminated</p>
-                )}
-                {terminatedSessions.map((s) => (
-                  <ErrorBoundary key={s.id}>
-                    <SessionBlock
-                      session={s}
-                      scrollMode={layoutMode === 'scroll'}
-                      onToggleExpanded={handleToggleExpanded}
-                    />
-                  </ErrorBoundary>
-                ))}
-              </>
+              <TerminatedSection
+                sessions={terminatedSessions}
+                layoutMode={layoutMode}
+                onToggleExpanded={handleToggleExpanded}
+              />
             )}
           </>
         )}

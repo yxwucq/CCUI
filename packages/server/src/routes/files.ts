@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import { readFile, writeFile } from '../core/file-manager.js';
 
-const router = Router();
+const router: IRouter = Router();
 
 router.get('/', (req, res) => {
   const path = req.query.path as string;

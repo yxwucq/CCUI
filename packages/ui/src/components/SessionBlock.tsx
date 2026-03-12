@@ -44,7 +44,7 @@ type ViewMode = 'terminal' | 'chat';
 // Derive a unified display status from session + activity
 type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writing' | 'done' | 'waiting_input';
 
-function useDisplayStatus(session: Session, activity: SessionActivity | undefined): DisplayStatus {
+function useDisplayStatus(session: Session, activity: SessionActivity | undefined): [DisplayStatus, () => void] {
   const [justDone, setJustDone] = useState(false);
   const prevActivityRef = useRef<string | undefined>(undefined);
 
@@ -58,8 +58,6 @@ function useDisplayStatus(session: Session, activity: SessionActivity | undefine
     // Detect transition: was running → now idle (not waiting_input, which is a distinct state)
     if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
       setJustDone(true);
-      const timer = setTimeout(() => setJustDone(false), 3000);
-      return () => clearTimeout(timer);
     }
     // Clear done state when entering waiting_input
     if (activityState === 'waiting_input') {
@@ -67,11 +65,15 @@ function useDisplayStatus(session: Session, activity: SessionActivity | undefine
     }
   }, [activityState, session.status]);
 
-  if (session.status === 'terminated') return 'disconnected';
-  if (activityState === 'waiting_input') return 'waiting_input';
-  if (isRunning) return activity!.state as DisplayStatus;
-  if (justDone) return 'done';
-  return 'idle';
+  let displayStatus: DisplayStatus;
+  if (session.status === 'terminated') displayStatus = 'disconnected';
+  else if (activityState === 'waiting_input') displayStatus = 'waiting_input';
+  else if (isRunning) displayStatus = activity!.state as DisplayStatus;
+  else if (justDone) displayStatus = 'done';
+  else displayStatus = 'idle';
+
+  const clearDone = useCallback(() => setJustDone(false), []);
+  return [displayStatus, clearDone];
 }
 
 // Status config: icon, colors, label, border
@@ -88,28 +90,28 @@ const STATUS_CONFIG: Record<DisplayStatus, {
   tintOpacity: number;
 }> = {
   disconnected: {
-    dot: 'bg-red-500',
+    dot: 'bg-gray-600',
     dotPulse: false,
-    label: 'disconnected',
-    labelColor: 'text-red-400',
-    labelBg: 'bg-red-900/30',
-    border: 'border-gray-800',
+    label: 'terminated',
+    labelColor: 'text-gray-600',
+    labelBg: 'bg-gray-800/50',
+    border: 'border-gray-800/60',
     icon: Unplug,
-    iconColor: 'text-red-400',
-    tintColor: 'rgb(239,68,68)',
-    tintOpacity: 0.10,
+    iconColor: 'text-gray-600',
+    tintColor: 'rgb(75,85,99)',
+    tintOpacity: 0.04,
   },
   idle: {
-    dot: 'bg-green-500',
+    dot: 'bg-green-700',
     dotPulse: false,
     label: 'idle',
-    labelColor: 'text-green-400',
+    labelColor: 'text-green-700',
     labelBg: 'bg-green-900/30',
-    border: 'border-green-900/50',
+    border: 'border-green-900/40',
     icon: Circle,
-    iconColor: 'text-green-400',
-    tintColor: 'rgb(34,197,94)',
-    tintOpacity: 0.07,
+    iconColor: 'text-green-700',
+    tintColor: 'rgb(21,128,61)',
+    tintOpacity: 0.06,
   },
   thinking: {
     dot: 'bg-amber-500',
@@ -148,16 +150,16 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     tintOpacity: 0.12,
   },
   done: {
-    dot: 'bg-emerald-400',
+    dot: 'bg-green-300',
     dotPulse: false,
     label: 'done',
-    labelColor: 'text-emerald-400',
-    labelBg: 'bg-emerald-900/30',
-    border: 'border-emerald-900/50',
+    labelColor: 'text-green-300',
+    labelBg: 'bg-green-800/30',
+    border: 'border-green-300/60',
     icon: CircleCheck,
-    iconColor: 'text-emerald-400',
-    tintColor: 'rgb(52,211,153)',
-    tintOpacity: 0.14,
+    iconColor: 'text-green-300',
+    tintColor: 'rgb(134,239,172)',
+    tintOpacity: 0.12,
   },
   waiting_input: {
     dot: 'bg-orange-400',
@@ -226,9 +228,10 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
   }, []);
 
   // Once expanded, keep terminal mounted forever (avoid PTY re-creation)
+  // But don't mount for terminated sessions — require explicit resume first
   useEffect(() => {
-    if (isExpanded && !terminalMounted) setTerminalMounted(true);
-  }, [isExpanded, terminalMounted]);
+    if (isExpanded && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
+  }, [isExpanded, terminalMounted, session.status]);
 
   // Esc to exit focus mode
   useEffect(() => {
@@ -240,7 +243,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
     return () => window.removeEventListener('keydown', handler);
   }, [isFocused, session.id, toggleFocus]);
 
-  const displayStatus = useDisplayStatus(session, activity);
+  const [displayStatus, clearDone] = useDisplayStatus(session, activity);
   const sc = STATUS_CONFIG[displayStatus];
 
   useEffect(() => {
@@ -264,6 +267,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
 
   const handleSend = () => {
     if (!input.trim()) return;
+    clearDone();
     useSessionStore.getState().appendMessage(session.id, {
       id: crypto.randomUUID(),
       sessionId: session.id,
@@ -287,13 +291,13 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
   const StatusIcon = sc.icon;
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? (scrollMode ? 'min-h-[480px]' : 'flex-1 min-h-[200px]') : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''} ${highlighted ? 'session-activated' : ''}`}
+    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? (scrollMode ? 'min-h-[480px]' : 'flex-1 min-h-[200px]') : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''} ${displayStatus === 'done' ? 'session-done-glow' : ''} ${highlighted ? 'session-activated' : ''} ${session.status === 'terminated' ? 'opacity-60' : ''}`}
       style={isRunning ? { '--glow-color': sc.dot.includes('amber') ? 'rgba(251,191,36,0.15)' : sc.dot.includes('cyan') ? 'rgba(34,211,238,0.15)' : 'rgba(96,165,250,0.15)' } as React.CSSProperties : undefined}
     >
       {/* Header — click to expand, double-click to focus */}
       <div
         className="relative flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
-        onClick={() => (onToggleExpanded ?? toggleExpanded)(session.id)}
+        onClick={() => { (onToggleExpanded ?? toggleExpanded)(session.id); if (!isExpanded) clearDone(); }}
       >
         {/* Status tint overlay */}
         <div
@@ -311,7 +315,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
         }
 
         {/* Status dot */}
-        <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-300 ${sc.dot} ${sc.dotPulse ? 'animate-pulse' : ''}`} />
+        <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-300 ${sc.dot} ${sc.dotPulse ? 'animate-pulse' : ''} ${displayStatus === 'done' ? 'done-blink' : ''}`} />
 
         {/* Session name */}
         <span className="font-medium text-sm text-gray-200 truncate">
@@ -454,11 +458,23 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
           >
             {/* Terminal pane */}
             <div className="min-h-0 overflow-hidden" style={{ width: `${splitRatio * 100}%` }}>
-              {terminalMounted && (
+              {terminalMounted ? (
                 <Suspense fallback={<div className="h-full flex items-center justify-center text-gray-600 text-sm">Starting Claude CLI...</div>}>
                   <XTerminal sessionId={session.id} />
                 </Suspense>
-              )}
+              ) : session.status === 'terminated' ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-500">
+                  <Unplug size={24} />
+                  <p className="text-sm">Session terminated</p>
+                  <button
+                    onClick={() => resumeSession(session.id).catch((e: any) => alert(e.message))}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Play size={13} />
+                    Resume
+                  </button>
+                </div>
+              ) : null}
             </div>
             {/* Drag handle */}
             <div
