@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { FileText, FilePen, Terminal, Activity } from 'lucide-react';
 import type { FileActivity } from '@ccui/shared';
@@ -27,6 +28,11 @@ function timeLabel(iso: string): string {
 
 export default function FileActivityWidget({ sessionId }: Props) {
   const fileActivities = useSessionStore((s) => s.fileActivities[sessionId] ?? EMPTY);
+  const prevLengthRef = useRef(fileActivities.length);
+  const isGrowing = fileActivities.length > prevLengthRef.current;
+  prevLengthRef.current = fileActivities.length;
+
+  const reversed = [...fileActivities].reverse();
 
   return (
     <div className="h-full flex flex-col">
@@ -39,22 +45,29 @@ export default function FileActivityWidget({ sessionId }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-        {fileActivities.length === 0 ? (
+        {reversed.length === 0 ? (
           <div className="text-[10px] text-gray-600 text-center pt-4">
             No file activity yet
           </div>
         ) : (
-          [...fileActivities].reverse().map((a, i) => (
-            <div key={i} className="flex items-start gap-1.5 group">
-              <OpIcon op={a.op} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] text-gray-300 font-mono truncate" title={a.path}>
-                  {shortPath(a.path)}
+          reversed.map((a, revIdx) => {
+            // The first item (newest) gets the slide-in animation when a new entry was added
+            const isNewest = revIdx === 0 && isGrowing;
+            return (
+              <div
+                key={a.timestamp}
+                className={`flex items-start gap-1.5 group ${isNewest ? 'slide-in-top' : ''}`}
+              >
+                <OpIcon op={a.op} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-gray-300 font-mono truncate" title={a.path}>
+                    {shortPath(a.path)}
+                  </div>
+                  <div className="text-[9px] text-gray-600">{a.tool} · {timeLabel(a.timestamp)}</div>
                 </div>
-                <div className="text-[9px] text-gray-600">{a.tool} · {timeLabel(a.timestamp)}</div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

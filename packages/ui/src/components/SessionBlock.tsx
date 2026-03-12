@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
-import { timeAgo } from '../utils';
+import LiveTimeAgo from './LiveTimeAgo';
 import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
 import { sendWsMessage } from '../hooks/useWebSocket';
@@ -22,6 +22,9 @@ const XTerminal = lazy(() => import('./XTerminal'));
 
 interface Props {
   session: Session;
+  highlighted?: boolean;
+  scrollMode?: boolean;
+  onToggleExpanded?: (id: string) => void;
 }
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -137,7 +140,7 @@ const STATUS_CONFIG: Record<DisplayStatus, {
   },
 };
 
-export default function SessionBlock({ session }: Props) {
+export default function SessionBlock({ session, highlighted, scrollMode, onToggleExpanded }: Props) {
   const isExpanded = useSessionStore((s) => !!s.expandedSessions[session.id]);
   const isFocused = useSessionStore((s) => s.focusedSessionId === session.id);
   const toggleExpanded = useSessionStore((s) => s.toggleExpanded);
@@ -236,13 +239,13 @@ export default function SessionBlock({ session }: Props) {
   const StatusIcon = sc.icon;
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? 'flex-1 min-h-[200px]' : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''}`}
+    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? (scrollMode ? 'min-h-[480px]' : 'flex-1 min-h-[200px]') : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''} ${highlighted ? 'session-activated' : ''}`}
       style={isRunning ? { '--glow-color': sc.dot.includes('amber') ? 'rgba(251,191,36,0.15)' : sc.dot.includes('cyan') ? 'rgba(34,211,238,0.15)' : 'rgba(96,165,250,0.15)' } as React.CSSProperties : undefined}
     >
       {/* Header — click to expand, double-click to focus */}
       <div
         className="flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
-        onClick={() => toggleExpanded(session.id)}
+        onClick={() => (onToggleExpanded ?? toggleExpanded)(session.id)}
         onDoubleClick={(e) => { e.stopPropagation(); toggleFocus(session.id); }}
       >
         {isExpanded
@@ -281,9 +284,7 @@ export default function SessionBlock({ session }: Props) {
 
         {/* Time — when not running */}
         {!isRunning && (
-          <span className="text-xs text-gray-600 shrink-0 ml-auto">
-            {timeAgo(session.lastActiveAt)}
-          </span>
+          <LiveTimeAgo iso={session.lastActiveAt} className="text-xs text-gray-600 shrink-0 ml-auto" />
         )}
 
         {/* Status badge */}

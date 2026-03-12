@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useAgentStore } from '../stores/agentStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X } from 'lucide-react';
+import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop } from 'lucide-react';
 
 export default function Chat() {
   const sessions = useSessionStore((s) => s.sessions);
@@ -24,7 +24,10 @@ export default function Chat() {
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [layoutMode, setLayoutMode] = useState<'accordion' | 'scroll'>('accordion');
   const [search, setSearch] = useState('');
+  const [highlightIds, setHighlightIds] = useState<ReadonlySet<string>>(new Set());
+  const prevStatusesRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     fetchAgents();
@@ -34,6 +37,19 @@ export default function Chat() {
       .then((info) => setProjectPath(info.path || ''))
       .catch(() => {});
   }, []);
+
+  // Highlight sessions that just became active (status idle → active)
+  useEffect(() => {
+    const prev = prevStatusesRef.current;
+    const justActivated = sessions
+      .filter((s) => prev[s.id] === 'idle' && s.status === 'active')
+      .map((s) => s.id);
+    prevStatusesRef.current = Object.fromEntries(sessions.map((s) => [s.id, s.status]));
+    if (justActivated.length === 0) return;
+    setHighlightIds(new Set(justActivated));
+    const t = setTimeout(() => setHighlightIds(new Set()), 1500);
+    return () => clearTimeout(t);
+  }, [sessions]);
 
   // Keyboard shortcuts: Cmd+1-9 to focus session, Esc to unfocus
   useEffect(() => {
@@ -93,6 +109,22 @@ export default function Chat() {
     }
   };
 
+  // Accordion mode: collapse all others before expanding the clicked session
+  const handleToggleExpanded = useCallback((id: string) => {
+    if (layoutMode === 'accordion') {
+      const { expandedSessions, setExpanded, toggleExpanded } = useSessionStore.getState();
+      const wasExpanded = expandedSessions[id];
+      if (!wasExpanded) {
+        Object.entries(expandedSessions).forEach(([sid, open]) => {
+          if (open && sid !== id) setExpanded(sid, false);
+        });
+      }
+      toggleExpanded(id);
+    } else {
+      useSessionStore.getState().toggleExpanded(id);
+    }
+  }, [layoutMode]);
+
   const q = search.toLowerCase().trim();
   const filtered = q
     ? sessions.filter((s) => s.name.toLowerCase().includes(q) || (s.branch || '').toLowerCase().includes(q))
@@ -126,6 +158,24 @@ export default function Chat() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Layout mode: accordion vs scroll */}
+            <div className="flex bg-gray-800 rounded p-0.5">
+              <button
+                onClick={() => setLayoutMode('accordion')}
+                className={`p-1 rounded transition-colors ${layoutMode === 'accordion' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                title="Accordion — one session expanded at a time"
+              >
+                <PanelTop size={13} />
+              </button>
+              <button
+                onClick={() => setLayoutMode('scroll')}
+                className={`p-1 rounded transition-colors ${layoutMode === 'scroll' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                title="Scroll — multiple sessions open, scroll to view"
+              >
+                <Layers size={13} />
+              </button>
+            </div>
+            {/* View mode: list vs grid */}
             <div className="flex bg-gray-800 rounded p-0.5">
               <button
                 onClick={() => setViewMode('list')}
@@ -240,8 +290,12 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Main area — flex column, expanded sessions share space */}
-      <div className="flex-1 flex flex-col min-h-0 p-2 gap-1.5">
+      {/* Main area — accordion: flex column fills viewport; scroll: overflow-y-auto */}
+      <div className={`flex-1 p-2 gap-1.5 ${
+        layoutMode === 'scroll'
+          ? 'overflow-y-auto flex flex-col'
+          : 'flex flex-col min-h-0'
+      }`}>
         {sessions.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-gray-600">
             <div className="text-center">
@@ -291,7 +345,14 @@ export default function Chat() {
         {!isFocused && viewMode === 'list' && (
           <>
             {activeSessions.map((s) => (
-              <ErrorBoundary key={s.id}><SessionBlock session={s} /></ErrorBoundary>
+              <ErrorBoundary key={s.id}>
+                <SessionBlock
+                  session={s}
+                  highlighted={highlightIds.has(s.id)}
+                  scrollMode={layoutMode === 'scroll'}
+                  onToggleExpanded={handleToggleExpanded}
+                />
+              </ErrorBoundary>
             ))}
 
             {terminatedSessions.length > 0 && (
@@ -300,7 +361,13 @@ export default function Chat() {
                   <p className="text-[10px] text-gray-600 uppercase tracking-wider pt-0.5 px-1 shrink-0">Terminated</p>
                 )}
                 {terminatedSessions.map((s) => (
-                  <ErrorBoundary key={s.id}><SessionBlock session={s} /></ErrorBoundary>
+                  <ErrorBoundary key={s.id}>
+                    <SessionBlock
+                      session={s}
+                      scrollMode={layoutMode === 'scroll'}
+                      onToggleExpanded={handleToggleExpanded}
+                    />
+                  </ErrorBoundary>
                 ))}
               </>
             )}

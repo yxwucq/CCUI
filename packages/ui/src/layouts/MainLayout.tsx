@@ -8,6 +8,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import QuotaGauge from '../components/QuotaGauge';
+import ToastContainer from '../components/ToastContainer';
 
 export default function MainLayout() {
   const { status } = useWebSocket();
@@ -64,6 +65,7 @@ export default function MainLayout() {
           </main>
         )}
       </div>
+      <ToastContainer />
     </div>
   );
 }

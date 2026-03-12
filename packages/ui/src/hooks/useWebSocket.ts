@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
+import { useToastStore } from '../stores/toastStore';
 import type { WSMessage } from '@ccui/shared';
 
 // Module-level singleton WebSocket
@@ -24,7 +25,9 @@ function handleMessage(msg: WSMessage) {
         s.appendStreamChunk(msg.sessionId, msg.content);
       }
       break;
-    case 'chat:error':
+    case 'chat:error': {
+      const errSession = s.sessions.find((sess) => sess.id === msg.sessionId);
+      useToastStore.getState().addToast('error', errSession?.name ?? 'Session error', msg.error);
       s.appendMessage(msg.sessionId, {
         id: crypto.randomUUID(),
         sessionId: msg.sessionId,
@@ -33,9 +36,21 @@ function handleMessage(msg: WSMessage) {
         timestamp: new Date().toISOString(),
       });
       break;
-    case 'session:status':
+    }
+    case 'session:status': {
+      const prevStatus = s.sessions.find((sess) => sess.id === msg.sessionId)?.status;
       s.updateSessionStatus(msg.sessionId, msg.status);
+      if (prevStatus === 'active' && msg.status === 'idle') {
+        const doneSession = s.sessions.find((sess) => sess.id === msg.sessionId);
+        const usage = s.sessionUsage[msg.sessionId];
+        useToastStore.getState().addToast(
+          'success',
+          `${doneSession?.name ?? 'Session'} completed`,
+          usage ? `Cost: $${usage.totalCost.toFixed(4)}` : undefined,
+        );
+      }
       break;
+    }
     case 'session:activity':
       s.updateActivity(msg.sessionId, msg.activity);
       break;

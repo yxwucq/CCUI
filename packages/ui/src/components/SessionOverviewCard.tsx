@@ -1,7 +1,8 @@
 import { useSessionStore } from '../stores/sessionStore';
 import { GitBranch, Brain, Wrench, Pen, Circle, Unplug, Loader } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
-import { pctBarColor, timeAgo } from '../utils';
+import { pctBarColor } from '../utils';
+import LiveTimeAgo from './LiveTimeAgo';
 
 interface Props {
   session: Session;
@@ -80,7 +81,7 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
         <span className="text-green-600 font-mono">
           {usage ? `$${usage.totalCost.toFixed(4)}` : '–'}
         </span>
-        <span className="text-gray-600">{timeAgo(session.lastActiveAt)}</span>
+        <LiveTimeAgo iso={session.lastActiveAt} className="text-gray-600" />
       </div>
     </button>
   );

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { DollarSign } from 'lucide-react';
 
@@ -14,6 +14,12 @@ export default function UsageWidget({ sessionId }: Props) {
     fetchSessionUsage(sessionId);
   }, [sessionId]);
 
+  // Track cost changes to drive the CSS flash animation via key-reset
+  const prevCostRef = useRef<string | undefined>(undefined);
+  const costKey = usage?.totalCost.toFixed(4) ?? '0';
+  const isNewCost = prevCostRef.current !== undefined && prevCostRef.current !== costKey;
+  prevCostRef.current = costKey;
+
   if (!usage) return <div className="text-xs text-gray-600">Loading...</div>;
 
   return (
@@ -25,7 +31,13 @@ export default function UsageWidget({ sessionId }: Props) {
 
       <div className="flex-1 flex flex-col gap-2">
         <div className="bg-gray-800/50 rounded p-3 text-center">
-          <div className="text-2xl font-mono text-green-400">${usage.totalCost.toFixed(4)}</div>
+          {/* key-reset on cost change triggers the CSS animation */}
+          <div
+            key={isNewCost ? costKey : undefined}
+            className={`text-2xl font-mono text-green-400 ${isNewCost ? 'cost-flash' : ''}`}
+          >
+            ${usage.totalCost.toFixed(4)}
+          </div>
           <div className="text-xs text-gray-500">Total cost</div>
         </div>
 
