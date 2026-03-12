@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
-import { mkdirSync, existsSync, rmSync } from 'fs';
+import { mkdirSync, existsSync, rmSync, appendFileSync } from 'fs';
 
 const WORKTREE_DIR = '.ccui/worktrees';
 
@@ -99,6 +99,17 @@ export function createWorktree(
       throw err;
     }
   }
+
+  // Create .claude/memory/ directory for per-session memory
+  const memoryDir = join(worktreePath, '.claude', 'memory');
+  mkdirSync(memoryDir, { recursive: true });
+
+  // Exclude memory dir from git via worktree-local exclude (never committed)
+  const infoDir = join(projectPath, '.git', 'worktrees', sessionId, 'info');
+  try {
+    mkdirSync(infoDir, { recursive: true });
+    appendFileSync(join(infoDir, 'exclude'), '\n.claude/memory/\n');
+  } catch { /* best effort */ }
 
   return worktreePath;
 }

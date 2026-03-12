@@ -34,6 +34,21 @@ function extractFileOp(tool: string, input: any): { op: FileActivity['op'] | nul
   }
 }
 
+function buildMemoryPrompt(worktreePath: string): string {
+  return `You have a persistent memory system at \`${worktreePath}/.claude/memory/\`. Use it to save important context about this session's work so it persists across conversations.
+
+Save memories as markdown files with frontmatter:
+\`\`\`
+---
+name: <name>
+type: <user|project|feedback|reference>
+---
+<content>
+\`\`\`
+
+Keep an index in \`MEMORY.md\` (one line per memory file with description). At the start of each conversation, check for relevant memories and load them. Save discoveries about the codebase, decisions made, progress, and any context that would help resume work later.`;
+}
+
 class SessionManager {
   private processes = new Map<string, SessionProcess>();
   private outputListeners: OutputListener[] = [];
@@ -228,6 +243,17 @@ class SessionManager {
         if (agent.max_turns) {
           args.push('--max-turns', String(agent.max_turns));
         }
+      }
+    }
+
+    // Per-session memory: inject instructions for worktree sessions
+    if (row.worktree_path) {
+      const memoryPrompt = buildMemoryPrompt(row.worktree_path);
+      const spIdx = args.indexOf('--system-prompt');
+      if (spIdx !== -1) {
+        args[spIdx + 1] += `\n\n${memoryPrompt}`;
+      } else {
+        args.push('--system-prompt', memoryPrompt);
       }
     }
 
