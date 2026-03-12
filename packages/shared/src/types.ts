@@ -119,4 +119,5 @@ export type WSMessage =
   | { type: 'terminal:output'; sessionId: string; data: string }
   | { type: 'terminal:clear'; sessionId: string }
   | { type: 'terminal:resize'; sessionId: string; cols: number; rows: number }
-  | { type: 'terminal:exit'; sessionId: string; code: number };
+  | { type: 'terminal:exit'; sessionId: string; code: number }
+  | { type: 'chat:saved_message'; sessionId: string; id: string; role: 'user' | 'assistant'; content: string; timestamp: string };

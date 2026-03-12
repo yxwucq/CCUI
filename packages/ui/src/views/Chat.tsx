@@ -5,7 +5,7 @@ import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, AlertTriangle, ChevronRight } from 'lucide-react';
-import { Session } from '@ccui/shared/types';
+import { Session } from '@ccui/shared';
 
 function TerminatedSection({ sessions, layoutMode, onToggleExpanded }: {
   sessions: Session[];
