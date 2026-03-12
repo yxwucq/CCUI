@@ -6,6 +6,7 @@ export interface Session {
   branch?: string;
   worktreePath?: string;
   agentId?: string;
+  skipPermissions?: boolean;
   status: 'active' | 'idle' | 'terminated';
   createdAt: string;
   lastActiveAt: string;
@@ -75,7 +76,8 @@ export type SessionActivity =
   | { state: 'idle' }
   | { state: 'thinking'; preview: string }
   | { state: 'writing'; preview: string }
-  | { state: 'tool_use'; tool: string; preview: string };
+  | { state: 'tool_use'; tool: string; preview: string }
+  | { state: 'waiting_input' };
 
 // File activity (emitted when Claude reads/writes a file)
 export interface FileActivity {
@@ -93,7 +95,7 @@ export type WSMessage =
   | { type: 'session:status'; sessionId: string; status: Session['status'] }
   | { type: 'session:activity'; sessionId: string; activity: SessionActivity }
   | { type: 'session:branch'; sessionId: string; branch: string }
-  | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string }
+  | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean }
   | { type: 'session:resume'; sessionId: string }
   | { type: 'session:terminate'; sessionId: string }
   | { type: 'usage:update'; record: UsageRecord }

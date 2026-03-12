@@ -4,7 +4,7 @@ import { useAgentStore } from '../stores/agentStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop } from 'lucide-react';
+import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, AlertTriangle } from 'lucide-react';
 
 export default function Chat() {
   const sessions = useSessionStore((s) => s.sessions);
@@ -19,6 +19,8 @@ export default function Chat() {
   const [newBranch, setNewBranch] = useState('');
   const [newName, setNewName] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('');
+  const [skipPermissions, setSkipPermissions] = useState(false);
+  const [isNewBranch, setIsNewBranch] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
   const [currentBranch, setCurrentBranch] = useState('');
   const [projectPath, setProjectPath] = useState('');
@@ -97,11 +99,14 @@ export default function Chat() {
         branch: newBranch || undefined,
         name: newName || undefined,
         agentId: selectedAgent || undefined,
+        skipPermissions: skipPermissions || undefined,
       });
       setShowNewSession(false);
       setNewBranch('');
       setNewName('');
       setSelectedAgent('');
+      setSkipPermissions(false);
+      setIsNewBranch(false);
     } catch (err: any) {
       alert(`Failed to create session: ${err.message}`);
     } finally {
@@ -236,25 +241,39 @@ export default function Chat() {
                 <GitBranch size={12} className="inline mr-1" />
                 Branch
               </label>
-              <div className="flex gap-1">
+              {isNewBranch ? (
+                <div className="flex gap-1">
+                  <input
+                    autoFocus
+                    value={newBranch}
+                    onChange={(e) => setNewBranch(e.target.value)}
+                    placeholder="new-branch-name"
+                    className="flex-1 bg-gray-800 border border-blue-600 rounded px-3 py-1.5 text-sm focus:outline-none"
+                  />
+                  <button
+                    onClick={() => { setIsNewBranch(false); setNewBranch(currentBranch); }}
+                    className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-300 bg-gray-800 border border-gray-700 rounded transition-colors"
+                  >✕</button>
+                </div>
+              ) : (
                 <select
                   value={newBranch}
-                  onChange={(e) => setNewBranch(e.target.value)}
-                  className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      setIsNewBranch(true);
+                      setNewBranch('');
+                    } else {
+                      setNewBranch(e.target.value);
+                    }
+                  }}
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
                 >
                   {branches.map((b) => (
-                    <option key={b} value={b}>
-                      {b}{b === currentBranch ? ' (current)' : ''}
-                    </option>
+                    <option key={b} value={b}>{b}{b === currentBranch ? ' (current)' : ''}</option>
                   ))}
+                  <option value="__new__">── Create new branch ──</option>
                 </select>
-                <input
-                  value={newBranch}
-                  onChange={(e) => setNewBranch(e.target.value)}
-                  placeholder="or type new branch..."
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              )}
             </div>
 
             <div className="min-w-[150px]">
@@ -269,6 +288,24 @@ export default function Chat() {
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="self-end pb-0.5">
+              <label className="block text-xs text-gray-500 mb-1">Permissions</label>
+              <label className={`flex items-center gap-2 cursor-pointer select-none rounded px-3 py-1.5 transition-colors ${
+                skipPermissions
+                  ? 'bg-yellow-900/30 border border-yellow-600/50'
+                  : 'bg-gray-800 border border-gray-700'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={skipPermissions}
+                  onChange={(e) => setSkipPermissions(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-yellow-500"
+                />
+                {skipPermissions && <AlertTriangle size={13} className="text-yellow-500 shrink-0" />}
+                <span className={`text-sm ${skipPermissions ? 'text-yellow-400' : 'text-gray-400'}`}>skip permissions</span>
+              </label>
             </div>
 
             <div className="flex gap-2">

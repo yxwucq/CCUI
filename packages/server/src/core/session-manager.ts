@@ -47,6 +47,7 @@ class SessionManager {
   private knownBranches = new Map<string, string>(); // sessionId → last known branch
   // key: `${sessionId}:${blockIndex}`, tracks tool_use input JSON as it streams in
   private toolInputBuffers = new Map<string, { name: string; json: string }>();
+  private lastModel = new Map<string, string>(); // sessionId → last known model
 
   onOutput(listener: OutputListener) {
     this.outputListeners.push(listener);
@@ -125,10 +126,10 @@ class SessionManager {
   }
 
   /** Create a new session (idle until first message is sent) */
-  createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string }): Session {
+  createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean }): Session {
     const id = uuid();
     const now = new Date().toISOString();
-    const { agentId, branch, name } = opts || {};
+    const { agentId, branch, name, skipPermissions } = opts || {};
 
     let worktreePath: string | undefined;
     const currentBranch = getCurrentBranch(projectPath);
@@ -145,6 +146,7 @@ class SessionManager {
       branch: branch || currentBranch,
       worktreePath,
       agentId,
+      skipPermissions: skipPermissions || false,
       status: 'idle',
       createdAt: now,
       lastActiveAt: now,
@@ -152,8 +154,8 @@ class SessionManager {
 
     const db = getDB();
     db.prepare(
-      'INSERT INTO sessions (id, name, project_path, branch, worktree_path, agent_id, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(id, sessionName, projectPath, session.branch || null, worktreePath || null, agentId || null, 'idle', null, now, now);
+      'INSERT INTO sessions (id, name, project_path, branch, worktree_path, agent_id, skip_permissions, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, sessionName, projectPath, session.branch || null, worktreePath || null, agentId || null, skipPermissions ? 1 : 0, 'idle', null, now, now);
 
     return session;
   }
@@ -205,6 +207,10 @@ class SessionManager {
 
     // Build args
     const args = ['-p', content, '--output-format', 'stream-json', '--verbose'];
+
+    if (row.skip_permissions) {
+      args.push('--dangerously-skip-permissions');
+    }
 
     // Resume from previous claude session if available
     const claudeSessionId = row.claude_session_id;
@@ -344,6 +350,10 @@ class SessionManager {
           } catch { /* malformed partial JSON, skip */ }
         }
       } else if (msg.type === 'assistant' && msg.message) {
+        // Capture model name from assistant message
+        if (msg.message.model) {
+          this.lastModel.set(sessionId, msg.message.model);
+        }
         // Save aggregated assistant message to DB for history (text already streamed via deltas)
         const textBlocks = Array.isArray(msg.message.content)
           ? msg.message.content.filter((b: any) => b.type === 'text')
@@ -361,7 +371,8 @@ class SessionManager {
         // Don't re-emit — content was already streamed via content_block_delta
       } else if (msg.type === 'result') {
         if (msg.usage) {
-          usageTracker.recordFromClaude(sessionId, msg.usage, msg.model || '');
+          const model = msg.model || this.lastModel.get(sessionId) || '';
+          usageTracker.recordFromClaude(sessionId, msg.usage, model);
         }
         // Signal stream completion (content already sent via deltas)
         this.emitOutput(sessionId, '', true);
@@ -382,6 +393,7 @@ class SessionManager {
     for (const key of this.toolInputBuffers.keys()) {
       if (key.startsWith(`${sessionId}:`)) this.toolInputBuffers.delete(key);
     }
+    this.lastModel.delete(sessionId);
   }
 
   terminateSession(sessionId: string) {
@@ -452,6 +464,7 @@ class SessionManager {
       branch: row.branch || undefined,
       worktreePath: row.worktree_path || undefined,
       agentId: row.agent_id || undefined,
+      skipPermissions: !!row.skip_permissions,
       status: row.status,
       createdAt: row.created_at,
       lastActiveAt: row.last_active_at,

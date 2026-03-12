@@ -1,5 +1,5 @@
 import { useSessionStore } from '../stores/sessionStore';
-import { GitBranch, Brain, Wrench, Pen, Circle, Unplug, Loader } from 'lucide-react';
+import { GitBranch, Brain, Wrench, Pen, Circle, Unplug, Loader, AlertTriangle, MessageCircleQuestion } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
 import { pctBarColor } from '../utils';
 import LiveTimeAgo from './LiveTimeAgo';
@@ -14,6 +14,7 @@ const MAX_CONTEXT = 200_000;
 function StatusDot({ session, activity }: { session: Session; activity: SessionActivity | undefined }) {
   if (session.status === 'terminated') return <Unplug size={11} className="text-gray-600" />;
   const state = activity?.state;
+  if (state === 'waiting_input') return <MessageCircleQuestion size={11} className="text-orange-400 animate-pulse" />;
   if (state === 'thinking') return <Brain size={11} className="text-purple-400 animate-pulse" />;
   if (state === 'tool_use') return <Wrench size={11} className="text-yellow-400 animate-pulse" />;
   if (state === 'writing') return <Pen size={11} className="text-blue-400 animate-pulse" />;
@@ -23,6 +24,7 @@ function StatusDot({ session, activity }: { session: Session; activity: SessionA
 
 function activityLabel(activity: SessionActivity | undefined): string {
   if (!activity || activity.state === 'idle') return '';
+  if (activity.state === 'waiting_input') return 'Waiting for input…';
   if (activity.state === 'thinking') return 'Thinking…';
   if (activity.state === 'writing') return 'Writing…';
   if (activity.state === 'tool_use') return activity.tool;
@@ -52,6 +54,11 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
       <div className="flex items-center gap-1.5 mb-2">
         <StatusDot session={session} activity={activity} />
         <span className="text-xs font-medium text-gray-200 truncate flex-1">{session.name}</span>
+        {session.skipPermissions && (
+          <span className="shrink-0" title="Skip permissions enabled">
+            <AlertTriangle size={11} className="text-yellow-500" />
+          </span>
+        )}
         {session.branch && (
           <span className="flex items-center gap-0.5 text-[10px] text-gray-500 shrink-0">
             <GitBranch size={9} />

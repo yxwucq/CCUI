@@ -14,7 +14,7 @@ export default function ChatMessage({ message, streaming }: Props) {
 
   if (isSystem) {
     return (
-      <div className="flex justify-center">
+      <div data-msg-id={message.id} className="flex justify-center">
         <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-900 rounded-lg px-3 py-1.5">
           <AlertCircle size={12} />
           {message.content}
@@ -24,7 +24,7 @@ export default function ChatMessage({ message, streaming }: Props) {
   }
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div data-msg-id={message.id} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
         isUser ? 'bg-blue-600' : 'bg-purple-600'
       }`}>

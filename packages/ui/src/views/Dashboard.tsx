@@ -18,7 +18,7 @@ export default function Dashboard() {
     fetchModelUsage();
   }, []);
 
-  const activeSessions = sessions.filter((s) => s.status === 'active');
+  const activeSessions = sessions.filter((s) => s.status !== 'terminated');
 
   const stats = [
     {
@@ -89,7 +89,7 @@ export default function Dashboard() {
                 nameKey="model"
                 cx="50%" cy="50%"
                 outerRadius={70}
-                label={({ model }) => model?.split('-').slice(1, 3).join('-') || ''}
+                label={({ model }) => model ? model.split('-').slice(0, 3).join('-') : 'unknown'}
               >
                 {modelUsage.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -108,33 +108,35 @@ export default function Dashboard() {
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-400">Recent Sessions</h3>
           <button
-            onClick={() => navigate('/chat')}
+            onClick={() => navigate('/')}
             className="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
           >
-            New Chat
+            View All
           </button>
         </div>
         <div className="divide-y divide-gray-800">
           {sessions.slice(0, 5).map((s) => (
-            <button
+            <div
               key={s.id}
-              onClick={() => navigate(`/chat/${s.id}`)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-800/50 transition-colors text-left"
+              className="px-4 py-3 flex items-center justify-between text-left"
             >
-              <div>
-                <span className="text-sm">{s.id.slice(0, 12)}...</span>
-                <span className="text-xs text-gray-500 ml-2">
-                  {new Date(s.createdAt).toLocaleString()}
+              <div className="min-w-0">
+                <span className="text-sm text-gray-200">{s.name}</span>
+                {s.branch && (
+                  <span className="text-xs text-purple-400 ml-2">{s.branch}</span>
+                )}
+                <span className="text-xs text-gray-600 ml-2">
+                  {new Date(s.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
+              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
                 s.status === 'active' ? 'bg-green-900/50 text-green-400' :
-                s.status === 'idle' ? 'bg-yellow-900/50 text-yellow-400' :
+                s.status === 'idle' ? 'bg-blue-900/50 text-blue-400' :
                 'bg-gray-800 text-gray-500'
               }`}>
                 {s.status}
               </span>
-            </button>
+            </div>
           ))}
           {sessions.length === 0 && (
             <p className="px-4 py-6 text-center text-gray-600 text-sm">No sessions yet</p>

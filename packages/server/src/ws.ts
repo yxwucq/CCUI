@@ -1,8 +1,10 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
+import { v4 as uuid } from 'uuid';
 import { sessionManager } from './core/session-manager.js';
 import { terminalManager } from './core/terminal-manager.js';
 import { usageTracker } from './core/usage-tracker.js';
+import { getDB } from './db/database.js';
 import type { WSMessage } from '@ccui/shared';
 
 export function setupWebSocket(server: Server) {
@@ -115,7 +117,20 @@ export function setupWebSocket(server: Server) {
             const session = sessionManager.getSession(msg.sessionId);
             if (session) {
               const cwd = session.worktreePath || session.projectPath;
-              const ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows);
+              const db = getDB();
+              const row = db.prepare('SELECT claude_session_id FROM sessions WHERE id = ?').get(msg.sessionId) as any;
+              const claudeSessionId = row?.claude_session_id;
+
+              let ok: boolean;
+              if (claudeSessionId) {
+                // Resume existing Claude conversation
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, claudeSessionId);
+              } else {
+                // First run — assign a new session ID so we can resume later
+                const newId = uuid();
+                db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(newId, msg.sessionId);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId);
+              }
               if (!ok) {
                 ws.send(JSON.stringify({ type: 'chat:error', sessionId: msg.sessionId, error: 'Failed to create terminal' }));
               }

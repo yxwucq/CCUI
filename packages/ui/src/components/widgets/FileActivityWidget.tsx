@@ -1,75 +1,111 @@
-import { useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
-import { FileText, FilePen, Terminal, Activity } from 'lucide-react';
-import type { FileActivity } from '@ccui/shared';
+import { Activity, Plus, Minus, FileCode } from 'lucide-react';
+import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
 
 interface Props {
   sessionId: string;
+  size: 'sm' | 'lg';
 }
 
-const EMPTY: never[] = [];
+interface DiffStat {
+  files: { file: string; added: number; deleted: number }[];
+  totalAdded: number;
+  totalDeleted: number;
+  totalFiles: number;
+}
 
-function OpIcon({ op }: { op: FileActivity['op'] }) {
-  if (op === 'write') return <FilePen size={10} className="text-yellow-500 shrink-0" />;
-  if (op === 'exec') return <Terminal size={10} className="text-blue-400 shrink-0" />;
-  return <FileText size={10} className="text-gray-400 shrink-0" />;
+const EMPTY_STAT: DiffStat = { files: [], totalAdded: 0, totalDeleted: 0, totalFiles: 0 };
+
+export default function FileActivityWidget({ sessionId, size }: Props) {
+  const [stat, setStat] = useState<DiffStat>(EMPTY_STAT);
+  const [containerRef, containerHeight] = useContainerHeight();
+  const renderSize = effectiveSize(size, containerHeight);
+
+  const fetchStat = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/git/diff-stat`);
+      if (res.ok) setStat(await res.json());
+    } catch { /* ignore */ }
+  }, [sessionId]);
+
+  // Fetch on mount
+  useEffect(() => { fetchStat(); }, [fetchStat]);
+
+  // Auto-refresh when session goes active → idle (run finished)
+  const sessionStatus = useSessionStore(
+    (s) => s.sessions.find((sess) => sess.id === sessionId)?.status
+  );
+  const prevStatusRef = useRef(sessionStatus);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = sessionStatus;
+    if (prev === 'active' && sessionStatus === 'idle') {
+      fetchStat();
+    }
+  }, [sessionStatus, fetchStat]);
+
+  const { totalAdded, totalDeleted, totalFiles, files } = stat;
+  const hasChanges = totalFiles > 0;
+
+  return (
+    <div ref={containerRef} className="h-full flex flex-col">
+      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+        <Activity size={12} />
+        <span>Impact</span>
+      </div>
+
+      {!hasChanges ? (
+        <div className="text-[10px] text-gray-600 text-center pt-1">No changes yet</div>
+      ) : (
+        <>
+          {/* Summary line */}
+          <div className="flex items-center gap-3 mb-2">
+            <span className="flex items-center gap-1 text-xs text-green-400">
+              <Plus size={10} />{totalAdded}
+            </span>
+            <span className="flex items-center gap-1 text-xs text-red-400">
+              <Minus size={10} />{totalDeleted}
+            </span>
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <FileCode size={10} />{totalFiles} file{totalFiles !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Per-file breakdown (lg only) */}
+          {renderSize === 'lg' && (
+            <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
+              {files.map((f) => (
+                <div key={f.file} className="flex items-center gap-1.5 text-[10px]">
+                  <span className="text-green-400 w-7 text-right shrink-0">+{f.added}</span>
+                  <span className="text-red-400 w-7 text-right shrink-0">-{f.deleted}</span>
+                  <span className="text-gray-400 truncate font-mono" title={f.file}>
+                    {shortPath(f.file)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* sm: just file list */}
+          {renderSize === 'sm' && files.length > 0 && (
+            <div className="text-[10px] text-gray-500 truncate">
+              {files.slice(0, 3).map((f) => shortName(f.file)).join(', ')}
+              {files.length > 3 && ` +${files.length - 3}`}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 function shortPath(path: string): string {
-  if (path.length <= 36) return path;
   const parts = path.split('/');
   if (parts.length > 3) return '…/' + parts.slice(-2).join('/');
-  return '…' + path.slice(-35);
+  return path;
 }
 
-function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-export default function FileActivityWidget({ sessionId }: Props) {
-  const fileActivities = useSessionStore((s) => s.fileActivities[sessionId] ?? EMPTY);
-  const prevLengthRef = useRef(fileActivities.length);
-  const isGrowing = fileActivities.length > prevLengthRef.current;
-  prevLengthRef.current = fileActivities.length;
-
-  const reversed = [...fileActivities].reverse();
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-        <Activity size={12} />
-        <span>File Activity</span>
-        {fileActivities.length > 0 && (
-          <span className="ml-auto text-gray-600 text-[10px]">{fileActivities.length}</span>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-        {reversed.length === 0 ? (
-          <div className="text-[10px] text-gray-600 text-center pt-4">
-            No file activity yet
-          </div>
-        ) : (
-          reversed.map((a, revIdx) => {
-            // The first item (newest) gets the slide-in animation when a new entry was added
-            const isNewest = revIdx === 0 && isGrowing;
-            return (
-              <div
-                key={a.timestamp}
-                className={`flex items-start gap-1.5 group ${isNewest ? 'slide-in-top' : ''}`}
-              >
-                <OpIcon op={a.op} />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-gray-300 font-mono truncate" title={a.path}>
-                    {shortPath(a.path)}
-                  </div>
-                  <div className="text-[9px] text-gray-600">{a.tool} · {timeLabel(a.timestamp)}</div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
+function shortName(path: string): string {
+  return path.split('/').pop() || path;
 }

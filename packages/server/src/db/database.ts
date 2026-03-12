@@ -67,6 +67,8 @@ export function initDB(projectPath: string): Database.Database {
   if (!colNames.has('branch')) db.exec('ALTER TABLE sessions ADD COLUMN branch TEXT');
   if (!colNames.has('worktree_path')) db.exec('ALTER TABLE sessions ADD COLUMN worktree_path TEXT');
   if (!colNames.has('claude_session_id')) db.exec('ALTER TABLE sessions ADD COLUMN claude_session_id TEXT');
+  if (!colNames.has('skip_permissions')) db.exec('ALTER TABLE sessions ADD COLUMN skip_permissions INTEGER DEFAULT 0');
+  if (!colNames.has('notes')) db.exec("ALTER TABLE sessions ADD COLUMN notes TEXT DEFAULT ''");
 
   return db;
 }

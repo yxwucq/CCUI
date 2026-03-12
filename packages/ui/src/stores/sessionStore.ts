@@ -20,10 +20,12 @@ interface SessionStore {
   activities: Record<string, SessionActivity>;
   sessionUsage: Record<string, SessionUsageSummary>;
   fileActivities: Record<string, FileActivity[]>;
+  usageCalls: Record<string, Array<{ cost: number }>>;
   usageRefreshKey: number;
+  chatJumpTarget: Record<string, string | null>;
 
   fetchSessions: () => Promise<void>;
-  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string }) => Promise<Session>;
+  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean }) => Promise<Session>;
   setActiveSession: (id: string | null) => void;
   toggleFocus: (id: string) => void;
   toggleExpanded: (id: string) => void;
@@ -40,6 +42,8 @@ interface SessionStore {
   updateSessionUsage: (sessionId: string, record: UsageRecord) => void;
   fetchSessionUsage: (sessionId: string) => Promise<void>;
   addFileActivity: (sessionId: string, activity: FileActivity) => void;
+  setChatJumpTarget: (sessionId: string, messageId: string) => void;
+  clearChatJumpTarget: (sessionId: string) => void;
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
@@ -52,7 +56,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   activities: {},
   sessionUsage: {},
   fileActivities: {},
+  usageCalls: {},
   usageRefreshKey: 0,
+  chatJumpTarget: {},
 
   fetchSessions: async () => {
     const res = await fetch('/api/sessions');
@@ -207,6 +213,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const prev = s.sessionUsage[sessionId];
       return {
         usageRefreshKey: s.usageRefreshKey + 1,
+        usageCalls: {
+          ...s.usageCalls,
+          [sessionId]: [...(s.usageCalls[sessionId] ?? []).slice(-49), { cost: record.cost }],
+        },
         sessionUsage: {
           ...s.sessionUsage,
           [sessionId]: {
@@ -233,6 +243,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       }
     } catch { /* ignore */ }
   },
+
+  setChatJumpTarget: (sessionId, messageId) =>
+    set((s) => ({ chatJumpTarget: { ...s.chatJumpTarget, [sessionId]: messageId } })),
+
+  clearChatJumpTarget: (sessionId) =>
+    set((s) => ({ chatJumpTarget: { ...s.chatJumpTarget, [sessionId]: null } })),
 
   addFileActivity: (sessionId, activity) => {
     set((s) => {

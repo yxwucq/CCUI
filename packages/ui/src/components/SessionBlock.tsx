@@ -10,11 +10,12 @@ import GitStatusWidget from './widgets/GitStatusWidget';
 import HistoryWidget from './widgets/HistoryWidget';
 import UsageWidget from './widgets/UsageWidget';
 import FileActivityWidget from './widgets/FileActivityWidget';
+import NotesWidget from './widgets/NotesWidget';
 import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Send, Trash2, Play, Brain, Wrench, Pen, SquareTerminal,
   MessageSquare, Unplug, CircleCheck, Loader, Circle,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, AlertTriangle, MessageCircleQuestion,
 } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
 
@@ -33,6 +34,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   history: HistoryWidget,
   usage: UsageWidget,
   'file-activity': FileActivityWidget,
+  notes: NotesWidget,
 };
 
 const EMPTY_MSGS: never[] = [];
@@ -40,29 +42,34 @@ const EMPTY_MSGS: never[] = [];
 type ViewMode = 'terminal' | 'chat';
 
 // Derive a unified display status from session + activity
-type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writing' | 'done';
+type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writing' | 'done' | 'waiting_input';
 
 function useDisplayStatus(session: Session, activity: SessionActivity | undefined): DisplayStatus {
   const [justDone, setJustDone] = useState(false);
   const prevActivityRef = useRef<string | undefined>(undefined);
 
-  const isRunning = activity && activity.state !== 'idle';
   const activityState = activity?.state;
+  const isRunning = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
 
   useEffect(() => {
     const prev = prevActivityRef.current;
     prevActivityRef.current = activityState;
 
-    // Detect transition: was running → now idle
-    if (prev && prev !== 'idle' && activityState === 'idle' && session.status !== 'terminated') {
+    // Detect transition: was running → now idle (not waiting_input, which is a distinct state)
+    if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
       setJustDone(true);
       const timer = setTimeout(() => setJustDone(false), 3000);
       return () => clearTimeout(timer);
     }
+    // Clear done state when entering waiting_input
+    if (activityState === 'waiting_input') {
+      setJustDone(false);
+    }
   }, [activityState, session.status]);
 
   if (session.status === 'terminated') return 'disconnected';
-  if (isRunning) return activity.state as DisplayStatus;
+  if (activityState === 'waiting_input') return 'waiting_input';
+  if (isRunning) return activity!.state as DisplayStatus;
   if (justDone) return 'done';
   return 'idle';
 }
@@ -77,6 +84,8 @@ const STATUS_CONFIG: Record<DisplayStatus, {
   border: string;
   icon: typeof Circle;
   iconColor: string;
+  tintColor: string;
+  tintOpacity: number;
 }> = {
   disconnected: {
     dot: 'bg-red-500',
@@ -87,6 +96,8 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     border: 'border-gray-800',
     icon: Unplug,
     iconColor: 'text-red-400',
+    tintColor: 'rgb(239,68,68)',
+    tintOpacity: 0.10,
   },
   idle: {
     dot: 'bg-green-500',
@@ -97,6 +108,8 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     border: 'border-green-900/50',
     icon: Circle,
     iconColor: 'text-green-400',
+    tintColor: 'rgb(34,197,94)',
+    tintOpacity: 0.07,
   },
   thinking: {
     dot: 'bg-amber-500',
@@ -107,6 +120,8 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     border: 'border-amber-900/50',
     icon: Brain,
     iconColor: 'text-amber-400',
+    tintColor: 'rgb(245,158,11)',
+    tintOpacity: 0.12,
   },
   tool_use: {
     dot: 'bg-cyan-500',
@@ -117,6 +132,8 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     border: 'border-cyan-900/50',
     icon: Wrench,
     iconColor: 'text-cyan-400',
+    tintColor: 'rgb(6,182,212)',
+    tintOpacity: 0.12,
   },
   writing: {
     dot: 'bg-blue-500',
@@ -127,6 +144,8 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     border: 'border-blue-900/50',
     icon: Pen,
     iconColor: 'text-blue-400',
+    tintColor: 'rgb(59,130,246)',
+    tintOpacity: 0.12,
   },
   done: {
     dot: 'bg-emerald-400',
@@ -137,6 +156,20 @@ const STATUS_CONFIG: Record<DisplayStatus, {
     border: 'border-emerald-900/50',
     icon: CircleCheck,
     iconColor: 'text-emerald-400',
+    tintColor: 'rgb(52,211,153)',
+    tintOpacity: 0.14,
+  },
+  waiting_input: {
+    dot: 'bg-orange-400',
+    dotPulse: true,
+    label: 'waiting',
+    labelColor: 'text-orange-400',
+    labelBg: 'bg-orange-900/30',
+    border: 'border-orange-900/50',
+    icon: MessageCircleQuestion,
+    iconColor: 'text-orange-400',
+    tintColor: 'rgb(251,146,60)',
+    tintOpacity: 0.12,
   },
 };
 
@@ -155,6 +188,8 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
     return sw ?? s.defaultWidgets;
   });
   const sendMessage = sendWsMessage;
+
+  const jumpTarget = useSessionStore((s) => s.chatJumpTarget[session.id]);
 
   const [input, setInput] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('terminal');
@@ -214,6 +249,19 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
     }
   }, [sessionMessages, streaming, isExpanded, viewMode]);
 
+  // Jump to a specific message from HistoryWidget
+  useEffect(() => {
+    if (!jumpTarget) return;
+    useSessionStore.getState().setExpanded(session.id, true);
+    setViewMode('chat');
+    const msgId = jumpTarget;
+    useSessionStore.getState().clearChatJumpTarget(session.id);
+    const t = setTimeout(() => {
+      document.querySelector(`[data-msg-id="${msgId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [jumpTarget, session.id]);
+
   const handleSend = () => {
     if (!input.trim()) return;
     useSessionStore.getState().appendMessage(session.id, {
@@ -244,10 +292,19 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
     >
       {/* Header — click to expand, double-click to focus */}
       <div
-        className="flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
+        className="relative flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
         onClick={() => (onToggleExpanded ?? toggleExpanded)(session.id)}
-        onDoubleClick={(e) => { e.stopPropagation(); toggleFocus(session.id); }}
       >
+        {/* Status tint overlay */}
+        <div
+          className={`absolute inset-0 pointer-events-none ${!isExpanded && isRunning ? 'status-breathe' : ''}`}
+          style={{
+            backgroundColor: sc.tintColor,
+            opacity: isExpanded ? 0.03 : (isRunning ? undefined : sc.tintOpacity),
+            transition: 'opacity 0.6s ease, background-color 0.8s ease',
+          }}
+        />
+
         {isExpanded
           ? <ChevronDown size={14} className="text-gray-500 shrink-0" />
           : <ChevronRight size={14} className="text-gray-500 shrink-0" />
@@ -260,6 +317,13 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
         <span className="font-medium text-sm text-gray-200 truncate">
           {session.name}
         </span>
+
+        {/* Skip permissions warning */}
+        {session.skipPermissions && (
+          <span className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-900/30 px-1.5 py-0.5 rounded-full shrink-0" title="Skip permissions enabled">
+            <AlertTriangle size={11} />
+          </span>
+        )}
 
         {/* Branch */}
         {session.branch && (
@@ -282,8 +346,16 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
           </span>
         )}
 
+        {/* Waiting for input indicator */}
+        {displayStatus === 'waiting_input' && (
+          <span className={`flex items-center gap-1.5 text-xs ml-auto ${sc.labelColor}`}>
+            <MessageCircleQuestion size={12} className="shrink-0 animate-pulse" />
+            <span className="opacity-70">Needs input</span>
+          </span>
+        )}
+
         {/* Time — when not running */}
-        {!isRunning && (
+        {!isRunning && displayStatus !== 'waiting_input' && (
           <LiveTimeAgo iso={session.lastActiveAt} className="text-xs text-gray-600 shrink-0 ml-auto" />
         )}
 
@@ -294,6 +366,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
           )}
           {displayStatus === 'done' && <CircleCheck size={11} />}
           {displayStatus === 'disconnected' && <Unplug size={11} />}
+          {displayStatus === 'waiting_input' && <MessageCircleQuestion size={11} />}
           {sc.label}
         </span>
 
@@ -396,18 +469,19 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
             </div>
             {/* Widget pane */}
             <div className="min-h-0 flex flex-col overflow-hidden bg-gray-950/30" style={{ width: `${(1 - splitRatio) * 100}%` }}>
-              {enabledWidgets.filter(Boolean).length > 0 ? (
-                enabledWidgets.filter(Boolean).map((widgetId, idx) => {
-                  const Widget = widgetId ? WIDGET_COMPONENTS[widgetId] : null;
+              {enabledWidgets.length > 0 ? (
+                enabledWidgets.map(({ id, size }, idx) => {
+                  const Widget = WIDGET_COMPONENTS[id];
                   if (!Widget) return null;
                   return (
                     <div
-                      key={widgetId}
-                      className={`flex-1 min-h-0 p-3 overflow-hidden ${
+                      key={id}
+                      style={{ flex: size === 'lg' ? 3 : 1 }}
+                      className={`min-h-0 p-3 overflow-hidden ${
                         idx > 0 ? 'border-t border-gray-800/60' : ''
                       }`}
                     >
-                      <Widget sessionId={session.id} session={session} />
+                      <Widget sessionId={session.id} session={session} size={size} />
                     </div>
                   );
                 })
@@ -471,19 +545,20 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
                   </div>
                 )}
               </div>
-              {enabledWidgets.filter(Boolean).length > 0 && (
+              {enabledWidgets.length > 0 && (
                 <div className="w-72 shrink-0 flex flex-col overflow-hidden bg-gray-950/30">
-                  {enabledWidgets.filter(Boolean).map((widgetId, idx) => {
-                    const Widget = widgetId ? WIDGET_COMPONENTS[widgetId] : null;
+                  {enabledWidgets.map(({ id, size }, idx) => {
+                    const Widget = WIDGET_COMPONENTS[id];
                     if (!Widget) return null;
                     return (
                       <div
-                        key={widgetId}
-                        className={`flex-1 min-h-0 p-3 overflow-hidden ${
+                        key={id}
+                        style={{ flex: size === 'lg' ? 3 : 1 }}
+                        className={`min-h-0 p-3 overflow-hidden ${
                           idx > 0 ? 'border-t border-gray-800/60' : ''
                         }`}
                       >
-                        <Widget sessionId={session.id} session={session} />
+                        <Widget sessionId={session.id} session={session} size={size} />
                       </div>
                     );
                   })}
