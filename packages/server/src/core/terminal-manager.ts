@@ -1,6 +1,10 @@
 import * as pty from 'node-pty';
+import * as fs from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import { createRequire } from 'module';
 import type { SessionActivity } from '@ccui/shared';
+import { usageTracker } from './usage-tracker.js';
 
 const require = createRequire(import.meta.url);
 const { Terminal: HeadlessTerminal } = require('@xterm/headless') as { Terminal: any };
@@ -14,6 +18,13 @@ interface TerminalProcess {
   pty: pty.IPty;
   cwd: string;
   cols: number;
+}
+
+interface JSONLState {
+  watcher: fs.FSWatcher | null;
+  filePath: string;
+  offset: number;
+  seenRequestIds: Set<string>;
 }
 
 // Strip ANSI escape sequences for pattern matching
@@ -50,6 +61,9 @@ class TerminalManager {
   private recentOutput = new Map<string, string>(); // rolling buffer of recent output per session
   private waitingInputFlag = new Map<string, boolean>(); // sticky: once detected, stays until Enter
   private resizeSuppressUntil = new Map<string, number>(); // suppress activity after resize
+
+  // JSONL usage tracking per session
+  private jsonlWatchers = new Map<string, JSONLState>();
 
   // Message capture state
   private inputBuffer = new Map<string, string>();    // accumulates raw user keystrokes
@@ -186,6 +200,51 @@ class TerminalManager {
     this.inputBuffer.delete(sessionId);
     this.outputBuffer.delete(sessionId);
     this.pendingUserMsg.delete(sessionId);
+    const jsonl = this.jsonlWatchers.get(sessionId);
+    if (jsonl) { jsonl.watcher?.close(); this.jsonlWatchers.delete(sessionId); }
+  }
+
+  /** Watch Claude Code's JSONL session file for new usage records */
+  private startJSONLWatch(ccuiSessionId: string, cwd: string, claudeSessionId: string) {
+    const slug = cwd.replace(/\//g, '-');
+    const filePath = join(homedir(), '.claude', 'projects', slug, `${claudeSessionId}.jsonl`);
+
+    // Skip existing content — only track new data from this point forward
+    let initialOffset = 0;
+    try { initialOffset = fs.statSync(filePath).size; } catch { /* file doesn't exist yet */ }
+
+    const state: JSONLState = { watcher: null, filePath, offset: initialOffset, seenRequestIds: new Set() };
+    this.jsonlWatchers.set(ccuiSessionId, state);
+
+    const processNewLines = () => {
+      try {
+        const { size } = fs.statSync(filePath);
+        if (size <= state.offset) return;
+        const buf = Buffer.allocUnsafe(size - state.offset);
+        const fd = fs.openSync(filePath, 'r');
+        fs.readSync(fd, buf, 0, buf.length, state.offset);
+        fs.closeSync(fd);
+        state.offset = size;
+        for (const line of buf.toString('utf8').split('\n')) {
+          if (!line.trim()) continue;
+          try {
+            const entry = JSON.parse(line);
+            if (entry.type !== 'assistant' || !entry.message?.usage) continue;
+            const reqId: string = entry.requestId || '';
+            // Deduplicate: parallel tool calls emit multiple lines with same requestId
+            if (reqId && state.seenRequestIds.has(reqId)) continue;
+            if (reqId) state.seenRequestIds.add(reqId);
+            usageTracker.recordFromClaude(ccuiSessionId, entry.message.usage, entry.message.model || '');
+          } catch { /* malformed JSON line */ }
+        }
+      } catch { /* file not accessible yet */ }
+    };
+
+    // Poll every 2s — fs.watch on macOS directories fires with null filename,
+    // making event-based detection unreliable for appended files.
+    const timer = setInterval(processNewLines, 2000);
+    state.watcher = { close: () => clearInterval(timer) } as unknown as fs.FSWatcher;
+    console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] polling JSONL: ${filePath}`);
   }
 
   /**
@@ -265,6 +324,10 @@ class TerminalManager {
         this.clearIdleTimer(sessionId);
         for (const l of this.exitListeners) l(sessionId, exitCode);
       });
+
+      // Start watching the JSONL file for usage data
+      const claudeId = resumeId || newSessionId;
+      if (claudeId) this.startJSONLWatch(sessionId, cwd, claudeId);
 
       return true;
     } catch (err: any) {
