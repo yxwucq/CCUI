@@ -1,6 +1,7 @@
 import { Router, type Router as IRouter } from 'express';
 import { execSync } from 'child_process';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'fs';
+import { homedir } from 'os';
 import { join } from 'path';
 import { sessionManager } from '../core/session-manager.js';
 import { getDB } from '../db/database.js';
@@ -59,6 +60,59 @@ router.put('/:id/notes', (req, res) => {
   const result = db.prepare('UPDATE sessions SET notes = ? WHERE id = ?').run(notes, req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Session not found' });
   res.json({ ok: true });
+});
+
+// Parse memory file frontmatter
+function parseMemoryFile(filename: string, rawContent: string) {
+  const match = rawContent.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (match) {
+    const fm = match[1];
+    const name = fm.match(/name:\s*(.+)/)?.[1]?.trim() || filename.replace('.md', '');
+    const description = fm.match(/description:\s*(.+)/)?.[1]?.trim() || '';
+    const type = fm.match(/type:\s*(.+)/)?.[1]?.trim() || 'user';
+    return { filename, name, description, type, rawContent };
+  }
+  return { filename, name: filename.replace('.md', ''), description: '', type: 'user', rawContent };
+}
+
+router.get('/:id/memory', (req, res) => {
+  const session = sessionManager.getSession(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const runDir = session.worktreePath || session.projectPath;
+  const slug = runDir.replace(/\//g, '-');
+  const memoryDir = join(homedir(), '.claude', 'projects', slug, 'memory');
+  try {
+    if (!existsSync(memoryDir)) return res.json([]);
+    const files = readdirSync(memoryDir).filter((f) => f.endsWith('.md')).sort();
+    const entries = files.map((filename) => {
+      const rawContent = readFileSync(join(memoryDir, filename), 'utf-8');
+      return parseMemoryFile(filename, rawContent);
+    });
+    res.json(entries);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/:id/memory/:filename', (req, res) => {
+  const session = sessionManager.getSession(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const { filename } = req.params;
+  if (!filename.endsWith('.md') || filename.includes('/') || filename.includes('..')) {
+    return res.status(400).json({ error: 'invalid filename' });
+  }
+  const { content } = req.body;
+  if (typeof content !== 'string') return res.status(400).json({ error: 'content must be a string' });
+  const runDir = session.worktreePath || session.projectPath;
+  const slug = runDir.replace(/\//g, '-');
+  const memoryDir = join(homedir(), '.claude', 'projects', slug, 'memory');
+  try {
+    mkdirSync(memoryDir, { recursive: true });
+    writeFileSync(join(memoryDir, filename), content, 'utf-8');
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.delete('/:id', (req, res) => {

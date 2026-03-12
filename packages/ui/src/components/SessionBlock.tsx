@@ -11,6 +11,7 @@ import HistoryWidget from './widgets/HistoryWidget';
 import UsageWidget from './widgets/UsageWidget';
 import FileActivityWidget from './widgets/FileActivityWidget';
 import NotesWidget from './widgets/NotesWidget';
+import MemoryWidget from './widgets/MemoryWidget';
 import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Send, Trash2, Play, Brain, Wrench, Pen, SquareTerminal,
@@ -35,6 +36,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   usage: UsageWidget,
   'file-activity': FileActivityWidget,
   notes: NotesWidget,
+  memory: MemoryWidget,
 };
 
 const EMPTY_MSGS: never[] = [];
