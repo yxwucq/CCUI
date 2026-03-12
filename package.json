@@ -1,0 +1,21 @@
+{
+  "name": "ccui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ccui": "./bin/cli.js"
+  },
+  "scripts": {
+    "dev": "npx concurrently --names server,ui -c blue,green \"PROJECT_PATH=$PWD/test-project pnpm --filter @ccui/server dev\" \"pnpm --filter @ccui/ui dev\"",
+    "build": "pnpm --filter @ccui/shared build && pnpm --filter @ccui/ui build && pnpm --filter @ccui/server build",
+    "start": "node bin/cli.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "open": "^11.0.0"
+  }
+}

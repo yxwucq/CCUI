@@ -1,0 +1,5 @@
+# CCUI data
+.ccui/
+*.db
+*.db-shm
+*.db-wal
