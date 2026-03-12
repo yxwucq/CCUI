@@ -5,12 +5,14 @@ const router: IRouter = Router();
 
 router.get('/summary', (req, res) => {
   const range = req.query.range as string;
-  res.json(usageTracker.getSummary(range));
+  const sessionId = req.query.sessionId as string | undefined;
+  res.json(usageTracker.getSummary(range, sessionId));
 });
 
 router.get('/daily', (req, res) => {
   const range = req.query.range as string;
-  res.json(usageTracker.getDailyUsage(range));
+  const sessionId = req.query.sessionId as string | undefined;
+  res.json(usageTracker.getDailyUsage(range, sessionId));
 });
 
 router.get('/sessions', (req, res) => {
@@ -32,8 +34,13 @@ router.get('/session-summary', (req, res) => {
   res.json(usageTracker.getSessionSummary(sessionId));
 });
 
-router.get('/models', (_req, res) => {
-  res.json(usageTracker.getModelUsage());
+router.get('/models', (req, res) => {
+  const sessionId = req.query.sessionId as string | undefined;
+  res.json(usageTracker.getModelUsage(sessionId));
+});
+
+router.get('/per-session', (_req, res) => {
+  res.json(usageTracker.getAllSessionsSummary());
 });
 
 export default router;

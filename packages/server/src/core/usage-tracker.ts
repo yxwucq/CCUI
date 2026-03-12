@@ -68,25 +68,26 @@ class UsageTracker {
     return record;
   }
 
-  getSummary(range?: string): UsageSummary {
+  getSummary(range?: string, sessionId?: string): UsageSummary {
     const db = getDB();
-    let dateFilter = '';
-    if (range === '7d') dateFilter = "AND timestamp >= datetime('now', '-7 days')";
-    else if (range === '30d') dateFilter = "AND timestamp >= datetime('now', '-30 days')";
+    let filters = '1=1';
+    if (range === '7d') filters += " AND timestamp >= datetime('now', '-7 days')";
+    else if (range === '30d') filters += " AND timestamp >= datetime('now', '-30 days')";
+    if (sessionId) filters += ` AND session_id = '${sessionId}'`;
 
     const totals = db.prepare(
       `SELECT COALESCE(SUM(cost), 0) as totalCost,
               COALESCE(SUM(input_tokens), 0) as totalInputTokens,
               COALESCE(SUM(output_tokens), 0) as totalOutputTokens,
               COUNT(DISTINCT session_id) as sessionCount
-       FROM usage_records WHERE 1=1 ${dateFilter}`
+       FROM usage_records WHERE ${filters}`
     ).get() as any;
 
     const daily = db.prepare(
       `SELECT DATE(timestamp) as date,
               COALESCE(SUM(cost), 0) as cost,
               COALESCE(SUM(input_tokens + output_tokens), 0) as tokens
-       FROM usage_records WHERE 1=1 ${dateFilter}
+       FROM usage_records WHERE ${filters}
        GROUP BY DATE(timestamp) ORDER BY date`
     ).all() as any[];
 
@@ -106,11 +107,12 @@ class UsageTracker {
     ).all(sessionId) as any[];
   }
 
-  getDailyUsage(range?: string) {
+  getDailyUsage(range?: string, sessionId?: string) {
     const db = getDB();
-    let dateFilter = '';
-    if (range === '7d') dateFilter = "AND timestamp >= datetime('now', '-7 days')";
-    else if (range === '30d') dateFilter = "AND timestamp >= datetime('now', '-30 days')";
+    let filters = '1=1';
+    if (range === '7d') filters += " AND timestamp >= datetime('now', '-7 days')";
+    else if (range === '30d') filters += " AND timestamp >= datetime('now', '-30 days')";
+    if (sessionId) filters += ` AND session_id = '${sessionId}'`;
 
     return db.prepare(
       `SELECT DATE(timestamp) as date,
@@ -118,19 +120,42 @@ class UsageTracker {
               SUM(input_tokens) as inputTokens,
               SUM(output_tokens) as outputTokens,
               COUNT(*) as requests
-       FROM usage_records WHERE 1=1 ${dateFilter}
+       FROM usage_records WHERE ${filters}
        GROUP BY DATE(timestamp) ORDER BY date`
     ).all();
   }
 
-  getModelUsage() {
+  getModelUsage(sessionId?: string) {
     const db = getDB();
+    const filter = sessionId ? `WHERE session_id = '${sessionId}'` : '';
     return db.prepare(
       `SELECT model, SUM(cost) as cost,
               SUM(input_tokens) as inputTokens,
               SUM(output_tokens) as outputTokens,
               COUNT(*) as requests
-       FROM usage_records GROUP BY model`
+       FROM usage_records ${filter} GROUP BY model`
+    ).all();
+  }
+
+  /** Per-session aggregated summary for all sessions, ordered by cost desc */
+  getAllSessionsSummary() {
+    const db = getDB();
+    return db.prepare(
+      `SELECT ur.session_id as sessionId,
+              COALESCE(s.name, ur.session_id) as sessionName,
+              s.status as sessionStatus,
+              s.last_active_at as lastActiveAt,
+              COALESCE(SUM(ur.cost), 0) as totalCost,
+              COALESCE(SUM(ur.input_tokens), 0) as totalInput,
+              COALESCE(SUM(ur.output_tokens), 0) as totalOutput,
+              COALESCE(SUM(ur.cache_read), 0) as totalCacheRead,
+              COALESCE(SUM(ur.cache_write), 0) as totalCacheWrite,
+              COUNT(*) as callCount,
+              (SELECT model FROM usage_records WHERE session_id = ur.session_id ORDER BY timestamp DESC LIMIT 1) as model
+       FROM usage_records ur
+       LEFT JOIN sessions s ON s.id = ur.session_id
+       GROUP BY ur.session_id
+       ORDER BY totalCost DESC`
     ).all();
   }
 
