@@ -41,8 +41,8 @@ export function setupWebSocket(server: Server) {
     broadcast(sessionId, { type: 'chat:error', sessionId, error });
   });
 
-  sessionManager.onStatus((sessionId, status) => {
-    broadcast(sessionId, { type: 'session:status', sessionId, status });
+  sessionManager.onStatus((sessionId, status, lastActiveAt) => {
+    broadcast(sessionId, { type: 'session:status', sessionId, status, lastActiveAt });
   });
 
   sessionManager.onActivity((sessionId, activity) => {

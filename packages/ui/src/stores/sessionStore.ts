@@ -37,7 +37,7 @@ interface SessionStore {
   appendStreamChunk: (sessionId: string, chunk: string) => void;
   finalizeStream: (sessionId: string) => void;
   fetchMessages: (sessionId: string) => Promise<void>;
-  updateSessionStatus: (sessionId: string, status: Session['status']) => void;
+  updateSessionStatus: (sessionId: string, status: Session['status'], lastActiveAt?: string) => void;
   updateActivity: (sessionId: string, activity: SessionActivity) => void;
   updateSessionBranch: (sessionId: string, branch: string) => void;
   resumeSession: (sessionId: string) => Promise<void>;
@@ -164,10 +164,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     } catch { /* ignore */ }
   },
 
-  updateSessionStatus: (sessionId, status) => {
+  updateSessionStatus: (sessionId, status, lastActiveAt) => {
     set((s) => ({
       sessions: s.sessions.map((sess) =>
-        sess.id === sessionId ? { ...sess, status } : sess
+        sess.id === sessionId
+          ? { ...sess, status, ...(lastActiveAt ? { lastActiveAt } : {}) }
+          : sess
       ),
     }));
   },
