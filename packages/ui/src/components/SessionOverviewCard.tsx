@@ -63,8 +63,11 @@ function useCardStatus(session: Session, activity: SessionActivity | undefined):
     const prev = prevRef.current;
     prevRef.current = activityState;
     if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
-      setJustDone(true);
-      const timer = setTimeout(() => setJustDone(false), 3000);
+      // Debounce: only show done if idle persists for 500ms (avoids flicker between tool calls)
+      const timer = setTimeout(() => {
+        setJustDone(true);
+        setTimeout(() => setJustDone(false), 3000);
+      }, 500);
       return () => clearTimeout(timer);
     }
     if (activityState === 'waiting_input') setJustDone(false);

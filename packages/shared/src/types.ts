@@ -93,7 +93,7 @@ export type WSMessage =
   | { type: 'chat:input'; sessionId: string; content: string }
   | { type: 'chat:output'; sessionId: string; content: string; done: boolean }
   | { type: 'chat:error'; sessionId: string; error: string }
-  | { type: 'session:status'; sessionId: string; status: Session['status'] }
+  | { type: 'session:status'; sessionId: string; status: Session['status']; lastActiveAt?: string }
   | { type: 'session:activity'; sessionId: string; activity: SessionActivity }
   | { type: 'session:branch'; sessionId: string; branch: string }
   | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean }

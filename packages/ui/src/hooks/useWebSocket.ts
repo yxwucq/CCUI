@@ -39,7 +39,7 @@ function handleMessage(msg: WSMessage) {
     }
     case 'session:status': {
       const prevStatus = s.sessions.find((sess) => sess.id === msg.sessionId)?.status;
-      s.updateSessionStatus(msg.sessionId, msg.status);
+      s.updateSessionStatus(msg.sessionId, msg.status, msg.lastActiveAt);
       if (prevStatus === 'active' && msg.status === 'idle') {
         const doneSession = s.sessions.find((sess) => sess.id === msg.sessionId);
         const usage = s.sessionUsage[msg.sessionId];

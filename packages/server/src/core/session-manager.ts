@@ -12,7 +12,7 @@ interface SessionProcess {
 
 type OutputListener = (sessionId: string, content: string, done: boolean) => void;
 type ErrorListener = (sessionId: string, error: string) => void;
-type StatusListener = (sessionId: string, status: Session['status']) => void;
+type StatusListener = (sessionId: string, status: Session['status'], lastActiveAt: string) => void;
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
 type BranchListener = (sessionId: string, branch: string) => void;
 type FileActivityListener = (sessionId: string, activity: FileActivity) => void;
@@ -102,8 +102,8 @@ class SessionManager {
   private emitError(sessionId: string, error: string) {
     for (const l of this.errorListeners) l(sessionId, error);
   }
-  private emitStatus(sessionId: string, status: Session['status']) {
-    for (const l of this.statusListeners) l(sessionId, status);
+  private emitStatus(sessionId: string, status: Session['status'], lastActiveAt: string) {
+    for (const l of this.statusListeners) l(sessionId, status, lastActiveAt);
   }
   private emitFileActivity(sessionId: string, activity: FileActivity) {
     for (const l of this.fileActivityListeners) l(sessionId, activity);
@@ -172,10 +172,11 @@ class SessionManager {
 
     const session = this.mapSession(row);
     session.status = 'idle';
+    const now = new Date().toISOString();
     db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?')
-      .run('idle', new Date().toISOString(), sessionId);
+      .run('idle', now, sessionId);
 
-    this.emitStatus(sessionId, 'idle');
+    this.emitStatus(sessionId, 'idle', now);
     return session;
   }
 
@@ -198,9 +199,10 @@ class SessionManager {
     ).run(msgId, sessionId, 'user', content, new Date().toISOString());
 
     // Update status to active
+    const activeNow = new Date().toISOString();
     db.prepare('UPDATE sessions SET last_active_at = ?, status = ? WHERE id = ?')
-      .run(new Date().toISOString(), 'active', sessionId);
-    this.emitStatus(sessionId, 'active');
+      .run(activeNow, 'active', sessionId);
+    this.emitStatus(sessionId, 'active', activeNow);
 
     // Determine CWD
     const cwd = row.worktree_path || row.project_path;
@@ -280,9 +282,10 @@ class SessionManager {
 
       const db = getDB();
       // Normal exit → idle (ready for next message). Error exit → still idle but show error
+      const idleNow = new Date().toISOString();
       db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?')
-        .run('idle', new Date().toISOString(), sessionId);
-      this.emitStatus(sessionId, 'idle');
+        .run('idle', idleNow, sessionId);
+      this.emitStatus(sessionId, 'idle', idleNow);
       this.emitActivity(sessionId, { state: 'idle' }, true);
     });
 
@@ -412,9 +415,10 @@ class SessionManager {
       } catch { /* best effort */ }
     }
 
+    const termNow = new Date().toISOString();
     db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?')
-      .run('terminated', new Date().toISOString(), sessionId);
-    this.emitStatus(sessionId, 'terminated');
+      .run('terminated', termNow, sessionId);
+    this.emitStatus(sessionId, 'terminated', termNow);
   }
 
   listSessions(): Session[] {

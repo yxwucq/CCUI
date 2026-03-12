@@ -44,7 +44,7 @@ type ViewMode = 'terminal' | 'chat';
 // Derive a unified display status from session + activity
 type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writing' | 'done' | 'waiting_input';
 
-function useDisplayStatus(session: Session, activity: SessionActivity | undefined): [DisplayStatus, () => void] {
+function useDisplayStatus(session: Session, activity: SessionActivity | undefined, isExpanded: boolean): [DisplayStatus, () => void] {
   const [justDone, setJustDone] = useState(false);
   const prevActivityRef = useRef<string | undefined>(undefined);
 
@@ -55,15 +55,15 @@ function useDisplayStatus(session: Session, activity: SessionActivity | undefine
     const prev = prevActivityRef.current;
     prevActivityRef.current = activityState;
 
-    // Detect transition: was running → now idle (not waiting_input, which is a distinct state)
     if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
-      setJustDone(true);
+      // Only flash done when collapsed — expanded view goes straight to idle
+      if (!isExpanded) {
+        const timer = setTimeout(() => setJustDone(true), 500);
+        return () => clearTimeout(timer);
+      }
     }
-    // Clear done state when entering waiting_input
-    if (activityState === 'waiting_input') {
-      setJustDone(false);
-    }
-  }, [activityState, session.status]);
+    if (activityState === 'waiting_input') setJustDone(false);
+  }, [activityState, session.status, isExpanded]);
 
   let displayStatus: DisplayStatus;
   if (session.status === 'terminated') displayStatus = 'disconnected';
@@ -243,7 +243,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
     return () => window.removeEventListener('keydown', handler);
   }, [isFocused, session.id, toggleFocus]);
 
-  const [displayStatus, clearDone] = useDisplayStatus(session, activity);
+  const [displayStatus, clearDone] = useDisplayStatus(session, activity, isExpanded);
   const sc = STATUS_CONFIG[displayStatus];
 
   useEffect(() => {
