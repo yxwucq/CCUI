@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { GitBranch, FileText, Clock, FolderOpen } from 'lucide-react';
+import { GitBranch, FileText, Clock, FolderOpen, GitCommitHorizontal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { ProjectInfo } from '@ccui/shared';
+import GitLog from '../components/GitLog';
 
 export default function Projects() {
   const [project, setProject] = useState<ProjectInfo | null>(null);
@@ -67,6 +68,17 @@ export default function Projects() {
           </div>
         </div>
       )}
+
+      {/* Git Log */}
+      <div className="bg-gray-900 rounded-lg border border-gray-800">
+        <div className="p-4 border-b border-gray-800 flex items-center gap-2">
+          <GitCommitHorizontal size={14} className="text-gray-500" />
+          <h3 className="text-sm font-medium text-gray-400">Git Log</h3>
+        </div>
+        <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
+          <GitLog />
+        </div>
+      </div>
 
       {/* CLAUDE.md */}
       {project.claudeMd && (

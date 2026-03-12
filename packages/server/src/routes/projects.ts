@@ -51,5 +51,30 @@ export function createProjectRouter(projectPath: string): IRouter {
     }
   });
 
+  router.get('/git/log', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    try {
+      const raw = execSync(
+        `git log --all --pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%ci%x1f%D%x1f%P -n ${limit}`,
+        { cwd: projectPath, encoding: 'utf-8' }
+      );
+      const commits = raw.split('\n').filter(Boolean).map((line) => {
+        const [hash, short, message, author, date, refsStr, parentsStr] = line.split('\x1f');
+        return {
+          hash: hash || '',
+          short: short || '',
+          message: message || '',
+          author: author || '',
+          date: date || '',
+          refs: refsStr ? refsStr.split(', ').filter(Boolean) : [],
+          parents: parentsStr ? parentsStr.trim().split(' ').filter(Boolean) : [],
+        };
+      });
+      res.json(commits);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   return router;
 }

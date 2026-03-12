@@ -88,6 +88,17 @@ export interface FileActivity {
   timestamp: string;
 }
 
+// Git log
+export interface GitCommit {
+  hash: string;
+  short: string;
+  message: string;
+  author: string;
+  date: string;
+  refs: string[];
+  parents: string[];
+}
+
 // WebSocket messages
 export type WSMessage =
   | { type: 'chat:input'; sessionId: string; content: string }
