@@ -60,38 +60,41 @@ export default function UsageWidget({ sessionId, size }: Props) {
         <span>Usage</span>
       </div>
 
-      {/* Cost — always shown */}
-      <div className={`bg-gray-800/50 rounded p-2 text-center ${renderSize === 'sm' ? 'mb-0' : 'mb-2'}`}>
+      {/* Pricing unknown warning */}
+      {usage.pricingUnknown && (
+        <div className="text-[10px] text-yellow-600 mb-1">
+          Unknown pricing: {usage.model}
+        </div>
+      )}
+
+      {/* Cost row */}
+      <div className={`flex items-baseline justify-between ${renderSize === 'sm' ? 'mb-0' : 'mb-2'}`}>
         <div
           key={isNewCost ? costKey : undefined}
-          className={`font-mono text-green-400 ${isNewCost ? 'cost-flash' : ''} ${renderSize === 'lg' ? 'text-2xl' : 'text-lg'}`}
+          className={`font-mono text-green-400 ${isNewCost ? 'cost-flash' : ''} ${renderSize === 'lg' ? 'text-xl' : 'text-lg'}`}
         >
           ${usage.totalCost.toFixed(4)}
         </div>
-        {renderSize === 'sm' && (
-          <div className="text-[10px] text-gray-600">{usage.callCount} calls</div>
-        )}
-        {renderSize === 'lg' && (
-          <div className="text-xs text-gray-500">Total cost</div>
-        )}
+        <div className="text-[10px] text-gray-600">
+          {usage.callCount} calls{usage.model ? ` · ${usage.model.split('-').slice(1, 3).join('-')}` : ''}
+        </div>
       </div>
 
       {/* lg only: token grid + chart */}
       {renderSize === 'lg' && (
         <>
-          <div className="grid grid-cols-2 gap-2 text-center mb-2">
-            <div className="bg-gray-800/50 rounded p-2">
-              <div className="text-sm font-mono text-gray-200">{formatTokens(usage.totalInput)}</div>
-              <div className="text-xs text-gray-500">Input</div>
-            </div>
-            <div className="bg-gray-800/50 rounded p-2">
-              <div className="text-sm font-mono text-gray-200">{formatTokens(usage.totalOutput)}</div>
-              <div className="text-xs text-gray-500">Output</div>
-            </div>
-          </div>
-
-          <div className="text-xs text-gray-500 mb-2">
-            {usage.callCount} calls{usage.model ? ` · ${usage.model.split('-').slice(1, 3).join('-')}` : ''}
+          <div className="grid grid-cols-4 gap-1 text-center mb-2">
+            {[
+              { label: 'In', value: usage.totalInput },
+              { label: 'Out', value: usage.totalOutput },
+              { label: 'Cache↓', value: usage.totalCacheRead ?? 0 },
+              { label: 'Cache↑', value: usage.totalCacheWrite ?? 0 },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-gray-800/50 rounded px-1 py-1.5">
+                <div className="text-xs font-mono text-gray-200">{formatTokens(value)}</div>
+                <div className="text-[10px] text-gray-600">{label}</div>
+              </div>
+            ))}
           </div>
 
           {/* Cumulative cost chart */}

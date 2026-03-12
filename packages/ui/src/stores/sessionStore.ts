@@ -6,8 +6,11 @@ export interface SessionUsageSummary {
   totalCost: number;
   totalInput: number;
   totalOutput: number;
+  totalCacheRead: number;
+  totalCacheWrite: number;
   callCount: number;
   model: string;
+  pricingUnknown: boolean;
 }
 
 interface SessionStore {
@@ -224,8 +227,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
             totalCost: (prev?.totalCost ?? 0) + record.cost,
             totalInput: (prev?.totalInput ?? 0) + record.inputTokens,
             totalOutput: (prev?.totalOutput ?? 0) + record.outputTokens,
+            totalCacheRead: (prev?.totalCacheRead ?? 0) + record.cacheRead,
+            totalCacheWrite: (prev?.totalCacheWrite ?? 0) + record.cacheWrite,
             callCount: (prev?.callCount ?? 0) + 1,
             model: record.model || prev?.model || '',
+            pricingUnknown: record.pricingUnknown || (prev?.pricingUnknown ?? false),
           },
         },
       };
