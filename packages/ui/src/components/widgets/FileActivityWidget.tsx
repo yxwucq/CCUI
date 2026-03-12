@@ -50,13 +50,13 @@ export default function FileActivityWidget({ sessionId, size }: Props) {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <Activity size={12} />
         <span>Impact</span>
       </div>
 
       {!hasChanges ? (
-        <div className="text-[10px] text-gray-600 text-center pt-1">No changes yet</div>
+        <div className="text-xs text-gray-600 text-center pt-1">No changes yet</div>
       ) : (
         <>
           {/* Summary line */}
@@ -76,7 +76,7 @@ export default function FileActivityWidget({ sessionId, size }: Props) {
           {renderSize === 'lg' && (
             <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
               {files.map((f) => (
-                <div key={f.file} className="flex items-center gap-1.5 text-[10px]">
+                <div key={f.file} className="flex items-center gap-1.5 text-xs">
                   <span className="text-green-400 w-7 text-right shrink-0">+{f.added}</span>
                   <span className="text-red-400 w-7 text-right shrink-0">-{f.deleted}</span>
                   <span className="text-gray-400 truncate font-mono" title={f.file}>
@@ -89,7 +89,7 @@ export default function FileActivityWidget({ sessionId, size }: Props) {
 
           {/* sm: just file list */}
           {renderSize === 'sm' && files.length > 0 && (
-            <div className="text-[10px] text-gray-500 truncate">
+            <div className="text-xs text-gray-500 truncate">
               {files.slice(0, 3).map((f) => shortName(f.file)).join(', ')}
               {files.length > 3 && ` +${files.length - 3}`}
             </div>

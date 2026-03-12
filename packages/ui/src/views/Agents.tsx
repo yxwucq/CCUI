@@ -63,12 +63,12 @@ export default function Agents() {
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1 flex-wrap">
                     {agent.allowedTools.slice(0, 4).map((tool) => (
-                      <span key={tool} className="text-[10px] bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">
+                      <span key={tool} className="text-xs bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">
                         {tool}
                       </span>
                     ))}
                     {agent.allowedTools.length > 4 && (
-                      <span className="text-[10px] text-gray-600">+{agent.allowedTools.length - 4}</span>
+                      <span className="text-xs text-gray-600">+{agent.allowedTools.length - 4}</span>
                     )}
                   </div>
                   <button

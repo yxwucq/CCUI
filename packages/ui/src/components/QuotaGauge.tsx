@@ -49,7 +49,7 @@ export default function QuotaGauge() {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`text-[10px] font-mono ${warn ? 'text-red-400' : 'text-gray-500'}`}>
+      <span className={`text-xs font-mono ${warn ? 'text-red-400' : 'text-gray-500'}`}>
         ${today.cost.toFixed(2)}
       </span>
     </div>

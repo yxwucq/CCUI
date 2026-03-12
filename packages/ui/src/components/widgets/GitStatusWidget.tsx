@@ -73,10 +73,10 @@ export default function GitStatusWidget({ sessionId, session, size }: Props) {
   return (
     <div ref={containerRef} className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <GitBranch size={12} />
         <span className="font-mono text-purple-400">{session.branch || '?'}</span>
-        {session.worktreePath && <span className="text-[10px] text-gray-600">worktree</span>}
+        {session.worktreePath && <span className="text-xs font-normal text-gray-600">worktree</span>}
         <button
           onClick={handleRefresh}
           className="ml-auto p-0.5 text-gray-600 hover:text-gray-400 transition-colors"
@@ -120,11 +120,11 @@ export default function GitStatusWidget({ sessionId, session, size }: Props) {
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Untracked</span>
-                <span className="text-[10px] text-gray-600">({untracked.length})</span>
+                <span className="text-xs text-gray-500 uppercase tracking-wider">Untracked</span>
+                <span className="text-xs text-gray-600">({untracked.length})</span>
               </div>
               {untracked.map((file) => (
-                <div key={file} className="flex items-center gap-1.5 text-[11px] py-px pl-3">
+                <div key={file} className="flex items-center gap-1.5 text-xs py-px pl-3">
                   <FileQuestion size={11} className="text-gray-500 shrink-0" />
                   <span className="text-gray-400 truncate font-mono">{file}</span>
                 </div>
@@ -147,14 +147,14 @@ function FileGroup({ label, labelColor, files, dot }: {
     <div>
       <div className="flex items-center gap-1.5 mb-1">
         <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
-        <span className={`text-[10px] uppercase tracking-wider ${labelColor}`}>{label}</span>
-        <span className="text-[10px] text-gray-600">({files.length})</span>
+        <span className={`text-xs uppercase tracking-wider ${labelColor}`}>{label}</span>
+        <span className="text-xs text-gray-600">({files.length})</span>
       </div>
       {files.map((f) => {
         const Icon = STATUS_ICON[f.status] || FileEdit;
         const color = STATUS_COLOR[f.status] || 'text-gray-400';
         return (
-          <div key={f.file + f.status} className="flex items-center gap-1.5 text-[11px] py-px pl-3">
+          <div key={f.file + f.status} className="flex items-center gap-1.5 text-xs py-px pl-3">
             <Icon size={11} className={`shrink-0 ${color}`} />
             <span className="text-gray-300 truncate font-mono">{f.file}</span>
           </div>

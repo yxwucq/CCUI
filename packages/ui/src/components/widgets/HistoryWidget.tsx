@@ -39,7 +39,7 @@ export default function HistoryWidget({ sessionId, session, size }: Props) {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 shrink-0">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2 shrink-0">
         <MessageSquare size={12} />
         <span>History</span>
       </div>
@@ -82,7 +82,7 @@ export default function HistoryWidget({ sessionId, session, size }: Props) {
           {/* Recent user messages — click to jump */}
           <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
             {userMsgs.length === 0 ? (
-              <div className="text-gray-700 text-[10px] text-center pt-2">
+              <div className="text-gray-700 text-xs text-center pt-2">
                 {callCount > 0 ? 'Using terminal mode' : 'No messages yet'}
               </div>
             ) : (
@@ -93,10 +93,10 @@ export default function HistoryWidget({ sessionId, session, size }: Props) {
                   className="w-full text-left flex items-start gap-1.5 px-2 py-1 rounded hover:bg-gray-800/50 group transition-colors"
                 >
                   <User size={9} className="text-blue-400 shrink-0 mt-0.5" />
-                  <span className="text-[10px] text-gray-400 group-hover:text-gray-300 truncate leading-relaxed flex-1">
+                  <span className="text-xs text-gray-400 group-hover:text-gray-300 truncate leading-relaxed flex-1">
                     {msg.content.replace(/\n/g, ' ')}
                   </span>
-                  <span className="text-[9px] text-gray-700 shrink-0 ml-1">
+                  <span className="text-[10px] text-gray-600 shrink-0 ml-1">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </button>
