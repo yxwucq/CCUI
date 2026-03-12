@@ -119,6 +119,8 @@ class UsageTracker {
               SUM(cost) as cost,
               SUM(input_tokens) as inputTokens,
               SUM(output_tokens) as outputTokens,
+              SUM(cache_read) as cacheRead,
+              SUM(cache_write) as cacheWrite,
               COUNT(*) as requests
        FROM usage_records WHERE ${filters}
        GROUP BY DATE(timestamp) ORDER BY date`
@@ -138,8 +140,12 @@ class UsageTracker {
   }
 
   /** Per-session aggregated summary for all sessions, ordered by cost desc */
-  getAllSessionsSummary() {
+  getAllSessionsSummary(range?: string) {
     const db = getDB();
+    let dateFilter = '';
+    if (range === '7d') dateFilter = "AND ur.timestamp >= datetime('now', '-7 days')";
+    else if (range === '30d') dateFilter = "AND ur.timestamp >= datetime('now', '-30 days')";
+
     return db.prepare(
       `SELECT ur.session_id as sessionId,
               COALESCE(s.name, ur.session_id) as sessionName,
@@ -154,6 +160,7 @@ class UsageTracker {
               (SELECT model FROM usage_records WHERE session_id = ur.session_id ORDER BY timestamp DESC LIMIT 1) as model
        FROM usage_records ur
        LEFT JOIN sessions s ON s.id = ur.session_id
+       WHERE 1=1 ${dateFilter}
        GROUP BY ur.session_id
        ORDER BY totalCost DESC`
     ).all();

@@ -29,7 +29,7 @@ interface UsageStore {
   fetchSummary: (range?: string, sessionId?: string | null) => Promise<void>;
   fetchDaily: (range?: string, sessionId?: string | null) => Promise<void>;
   fetchModelUsage: (sessionId?: string | null) => Promise<void>;
-  fetchPerSession: () => Promise<void>;
+  fetchPerSession: (range?: string) => Promise<void>;
 }
 
 export const useUsageStore = create<UsageStore>((set, get) => ({
@@ -45,6 +45,7 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
     const sid = get().selectedSessionId;
     get().fetchSummary(range, sid);
     get().fetchDaily(range, sid);
+    get().fetchPerSession(range);
   },
 
   setSelectedSession: (id) => {
@@ -93,8 +94,10 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
     set({ modelUsage });
   },
 
-  fetchPerSession: async () => {
-    const res = await fetch('/api/usage/per-session');
+  fetchPerSession: async (range) => {
+    const r = range ?? get().range;
+    const params = r ? `?range=${r}` : '';
+    const res = await fetch(`/api/usage/per-session${params}`);
     const perSession = await res.json();
     set({ perSession });
   },

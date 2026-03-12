@@ -39,8 +39,9 @@ router.get('/models', (req, res) => {
   res.json(usageTracker.getModelUsage(sessionId));
 });
 
-router.get('/per-session', (_req, res) => {
-  res.json(usageTracker.getAllSessionsSummary());
+router.get('/per-session', (req, res) => {
+  const range = req.query.range as string | undefined;
+  res.json(usageTracker.getAllSessionsSummary(range));
 });
 
 export default router;
