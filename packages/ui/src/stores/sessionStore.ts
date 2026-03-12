@@ -220,7 +220,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         sessionUsage: {
           ...s.sessionUsage,
           [sessionId]: {
-            latestInputTokens: record.inputTokens,
+            latestInputTokens: record.inputTokens + record.cacheRead + record.cacheWrite,
             totalCost: (prev?.totalCost ?? 0) + record.cost,
             totalInput: (prev?.totalInput ?? 0) + record.inputTokens,
             totalOutput: (prev?.totalOutput ?? 0) + record.outputTokens,

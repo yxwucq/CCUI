@@ -115,6 +115,7 @@ export function setupWebSocket(server: Server) {
             agentId: msg.agentId,
             branch: msg.branch,
             name: msg.name,
+            skipPermissions: msg.skipPermissions,
           });
           ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
         } else if (msg.type === 'session:resume') {
@@ -141,12 +142,12 @@ export function setupWebSocket(server: Server) {
               let ok: boolean;
               if (claudeSessionId) {
                 // Resume existing Claude conversation
-                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, claudeSessionId);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, claudeSessionId, undefined, session.skipPermissions);
               } else {
                 // First run — assign a new session ID so we can resume later
                 const newId = uuid();
                 db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(newId, msg.sessionId);
-                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId, session.skipPermissions);
               }
               if (!ok) {
                 ws.send(JSON.stringify({ type: 'chat:error', sessionId: msg.sessionId, error: 'Failed to create terminal' }));

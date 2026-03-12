@@ -118,11 +118,11 @@ export default function NotesWidget({ sessionId, size }: Props) {
           />
         ) : (
           <div
-            className={`flex-1 overflow-y-auto cursor-text select-text ${renderSize === 'sm' ? 'overflow-hidden' : ''}`}
+            className="flex-1 overflow-y-auto cursor-text select-text"
             title="Double-click to edit"
           >
             {notes ? (
-              <div className={renderSize === 'sm' ? 'line-clamp-4 text-[10px]' : 'text-xs'}>
+              <div className={renderSize === 'sm' ? 'text-[10px]' : 'text-xs'}>
                 {mdContent}
               </div>
             ) : (

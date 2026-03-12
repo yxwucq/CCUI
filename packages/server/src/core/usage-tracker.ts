@@ -152,7 +152,7 @@ class UsageTracker {
               COALESCE(SUM(input_tokens), 0) as totalInput,
               COALESCE(SUM(output_tokens), 0) as totalOutput,
               COUNT(*) as callCount,
-              (SELECT input_tokens FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestInput,
+              (SELECT input_tokens + cache_read + cache_write FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestInput,
               (SELECT model FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestModel
        FROM usage_records WHERE session_id = ?`
     ).get(sessionId, sessionId, sessionId) as any;

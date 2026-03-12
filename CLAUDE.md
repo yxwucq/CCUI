@@ -6,10 +6,11 @@ After making code changes, restart the dev servers so the user can see the effec
 
 ```bash
 lsof -ti:3456 | xargs kill -9 2>/dev/null; lsof -ti:5173 | xargs kill -9 2>/dev/null
-pnpm dev  # run in background
+PORT=3456 npx concurrently --names server,ui -c blue,green "PROJECT_PATH=$PWD/test-project PORT=3456 pnpm --filter @ccui/server dev" "pnpm --filter @ccui/ui dev"
 ```
 
 Always kill ports 3456 and 5173 first, then start fresh. This avoids stale processes.
+Use `PORT=3456` explicitly to override any shell `PORT` environment variable.
 
 - **Server** at `http://localhost:3456` — points to `test-project/` via `PROJECT_PATH`.
 - **UI** at `http://localhost:5173` — Vite dev server, proxies `/api` and `/ws` to the server.

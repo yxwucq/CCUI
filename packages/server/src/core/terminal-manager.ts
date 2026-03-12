@@ -193,7 +193,7 @@ class TerminalManager {
    * @param resumeId  — existing Claude session ID → pass --resume
    * @param newSessionId — new UUID to assign → pass --session-id (first run)
    */
-  create(sessionId: string, cwd: string, cols = 120, rows = 30, resumeId?: string, newSessionId?: string): boolean {
+  create(sessionId: string, cwd: string, cols = 120, rows = 30, resumeId?: string, newSessionId?: string, skipPermissions?: boolean): boolean {
     if (this.terminals.has(sessionId)) {
       return false; // already exists
     }
@@ -203,6 +203,9 @@ class TerminalManager {
     delete env.CLAUDECODE;
 
     const args: string[] = [];
+    if (skipPermissions) {
+      args.push('--dangerously-skip-permissions');
+    }
     if (resumeId) {
       args.push('--resume', resumeId);
     } else if (newSessionId) {
