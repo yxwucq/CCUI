@@ -47,6 +47,7 @@ type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writin
 function useDisplayStatus(session: Session, activity: SessionActivity | undefined, isExpanded: boolean): [DisplayStatus, () => void] {
   const [justDone, setJustDone] = useState(false);
   const prevActivityRef = useRef<string | undefined>(undefined);
+  const runStartedAtRef = useRef<number | null>(null);
 
   const activityState = activity?.state;
   const isRunning = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
@@ -55,9 +56,14 @@ function useDisplayStatus(session: Session, activity: SessionActivity | undefine
     const prev = prevActivityRef.current;
     prevActivityRef.current = activityState;
 
-    if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
-      // Only flash done when collapsed — expanded view goes straight to idle
-      if (!isExpanded) {
+    // Track when a run starts
+    const isActive = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
+    const wasActive = prev && prev !== 'idle' && prev !== 'waiting_input';
+    if (isActive && !wasActive) runStartedAtRef.current = Date.now();
+
+    if (wasActive && activityState === 'idle' && session.status !== 'terminated') {
+      const elapsed = runStartedAtRef.current ? Date.now() - runStartedAtRef.current : 0;
+      if (!isExpanded && elapsed >= 5000) {
         const timer = setTimeout(() => setJustDone(true), 500);
         return () => clearTimeout(timer);
       }

@@ -57,18 +57,26 @@ const CARD_STATUS: Record<CardStatus, {
 function useCardStatus(session: Session, activity: SessionActivity | undefined): CardStatus {
   const [justDone, setJustDone] = useState(false);
   const prevRef = useRef<string | undefined>(undefined);
+  const runStartedAtRef = useRef<number | null>(null);
   const activityState = activity?.state;
 
   useEffect(() => {
     const prev = prevRef.current;
     prevRef.current = activityState;
-    if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
-      // Debounce: only show done if idle persists for 500ms (avoids flicker between tool calls)
-      const timer = setTimeout(() => {
-        setJustDone(true);
-        setTimeout(() => setJustDone(false), 3000);
-      }, 500);
-      return () => clearTimeout(timer);
+
+    const isActive = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
+    const wasActive = prev && prev !== 'idle' && prev !== 'waiting_input';
+    if (isActive && !wasActive) runStartedAtRef.current = Date.now();
+
+    if (wasActive && activityState === 'idle' && session.status !== 'terminated') {
+      const elapsed = runStartedAtRef.current ? Date.now() - runStartedAtRef.current : 0;
+      if (elapsed >= 5000) {
+        const timer = setTimeout(() => {
+          setJustDone(true);
+          setTimeout(() => setJustDone(false), 3000);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
     }
     if (activityState === 'waiting_input') setJustDone(false);
   }, [activityState, session.status]);
