@@ -90,16 +90,16 @@ const STATUS_CONFIG: Record<DisplayStatus, {
   tintOpacity: number;
 }> = {
   disconnected: {
-    dot: 'bg-red-500',
+    dot: 'bg-gray-600',
     dotPulse: false,
-    label: 'disconnected',
-    labelColor: 'text-red-400',
-    labelBg: 'bg-red-900/30',
-    border: 'border-gray-800',
+    label: 'terminated',
+    labelColor: 'text-gray-600',
+    labelBg: 'bg-gray-800/50',
+    border: 'border-gray-800/60',
     icon: Unplug,
-    iconColor: 'text-red-400',
-    tintColor: 'rgb(239,68,68)',
-    tintOpacity: 0.10,
+    iconColor: 'text-gray-600',
+    tintColor: 'rgb(75,85,99)',
+    tintOpacity: 0.04,
   },
   idle: {
     dot: 'bg-green-700',
@@ -291,7 +291,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
   const StatusIcon = sc.icon;
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? (scrollMode ? 'min-h-[480px]' : 'flex-1 min-h-[200px]') : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''} ${displayStatus === 'done' ? 'session-done-glow' : ''} ${highlighted ? 'session-activated' : ''}`}
+    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? (scrollMode ? 'min-h-[480px]' : 'flex-1 min-h-[200px]') : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''} ${displayStatus === 'done' ? 'session-done-glow' : ''} ${highlighted ? 'session-activated' : ''} ${session.status === 'terminated' ? 'opacity-60' : ''}`}
       style={isRunning ? { '--glow-color': sc.dot.includes('amber') ? 'rgba(251,191,36,0.15)' : sc.dot.includes('cyan') ? 'rgba(34,211,238,0.15)' : 'rgba(96,165,250,0.15)' } as React.CSSProperties : undefined}
     >
       {/* Header — click to expand, double-click to focus */}
