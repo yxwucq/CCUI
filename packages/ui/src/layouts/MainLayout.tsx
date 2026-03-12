@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import QuotaGauge from '../components/QuotaGauge';
 
 export default function MainLayout() {
   const { status } = useWebSocket();
@@ -39,12 +40,15 @@ export default function MainLayout() {
             </button>
             <span className="text-xs font-semibold text-gray-400">CCUI</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              status === 'connected' ? 'bg-green-500' :
-              status === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-            }`} />
-            <span className="text-[10px] text-gray-500">{status}</span>
+          <div className="flex items-center gap-3">
+            <QuotaGauge />
+            <div className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                status === 'connected' ? 'bg-green-500' :
+                status === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+              }`} />
+              <span className="text-[10px] text-gray-500">{status}</span>
+            </div>
           </div>
         </header>
 

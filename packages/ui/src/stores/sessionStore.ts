@@ -1,5 +1,14 @@
 import { create } from 'zustand';
-import type { Session, ChatMessage, SessionActivity } from '@ccui/shared';
+import type { Session, ChatMessage, SessionActivity, UsageRecord, FileActivity } from '@ccui/shared';
+
+export interface SessionUsageSummary {
+  latestInputTokens: number;
+  totalCost: number;
+  totalInput: number;
+  totalOutput: number;
+  callCount: number;
+  model: string;
+}
 
 interface SessionStore {
   sessions: Session[];
@@ -9,6 +18,8 @@ interface SessionStore {
   messages: Record<string, ChatMessage[]>;
   streamingContent: Record<string, string>;
   activities: Record<string, SessionActivity>;
+  sessionUsage: Record<string, SessionUsageSummary>;
+  fileActivities: Record<string, FileActivity[]>;
 
   fetchSessions: () => Promise<void>;
   createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string }) => Promise<Session>;
@@ -25,6 +36,9 @@ interface SessionStore {
   updateSessionBranch: (sessionId: string, branch: string) => void;
   resumeSession: (sessionId: string) => Promise<void>;
   terminateSession: (sessionId: string) => Promise<void>;
+  updateSessionUsage: (sessionId: string, record: UsageRecord) => void;
+  fetchSessionUsage: (sessionId: string) => Promise<void>;
+  addFileActivity: (sessionId: string, activity: FileActivity) => void;
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
@@ -35,6 +49,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   messages: {},
   streamingContent: {},
   activities: {},
+  sessionUsage: {},
+  fileActivities: {},
 
   fetchSessions: async () => {
     const res = await fetch('/api/sessions');
@@ -182,5 +198,45 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         sess.id === sessionId ? { ...sess, status: 'terminated' as const } : sess
       ),
     }));
+  },
+
+  updateSessionUsage: (sessionId, record) => {
+    set((s) => {
+      const prev = s.sessionUsage[sessionId];
+      return {
+        sessionUsage: {
+          ...s.sessionUsage,
+          [sessionId]: {
+            latestInputTokens: record.inputTokens,
+            totalCost: (prev?.totalCost ?? 0) + record.cost,
+            totalInput: (prev?.totalInput ?? 0) + record.inputTokens,
+            totalOutput: (prev?.totalOutput ?? 0) + record.outputTokens,
+            callCount: (prev?.callCount ?? 0) + 1,
+            model: record.model || prev?.model || '',
+          },
+        },
+      };
+    });
+  },
+
+  fetchSessionUsage: async (sessionId) => {
+    try {
+      const res = await fetch(`/api/usage/session-summary?sessionId=${sessionId}`);
+      const data = await res.json();
+      if (!data.error) {
+        set((s) => ({
+          sessionUsage: { ...s.sessionUsage, [sessionId]: data },
+        }));
+      }
+    } catch { /* ignore */ }
+  },
+
+  addFileActivity: (sessionId, activity) => {
+    set((s) => {
+      const prev = s.fileActivities[sessionId] ?? [];
+      // Keep last 30 entries
+      const next = [...prev, activity].slice(-30);
+      return { fileActivities: { ...s.fileActivities, [sessionId]: next } };
+    });
   },
 }));

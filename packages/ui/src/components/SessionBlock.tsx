@@ -8,6 +8,7 @@ import ContextWidget from './widgets/ContextWidget';
 import GitStatusWidget from './widgets/GitStatusWidget';
 import HistoryWidget from './widgets/HistoryWidget';
 import UsageWidget from './widgets/UsageWidget';
+import FileActivityWidget from './widgets/FileActivityWidget';
 import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Send, Trash2, Play, Brain, Wrench, Pen, SquareTerminal,
@@ -27,6 +28,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'git-status': GitStatusWidget,
   history: HistoryWidget,
   usage: UsageWidget,
+  'file-activity': FileActivityWidget,
 };
 
 const EMPTY_MSGS: never[] = [];

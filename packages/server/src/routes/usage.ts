@@ -22,6 +22,16 @@ router.get('/sessions', (req, res) => {
   }
 });
 
+router.get('/today', (_req, res) => {
+  res.json(usageTracker.getTodaySummary());
+});
+
+router.get('/session-summary', (req, res) => {
+  const sessionId = req.query.sessionId as string;
+  if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+  res.json(usageTracker.getSessionSummary(sessionId));
+});
+
 router.get('/models', (_req, res) => {
   res.json(usageTracker.getModelUsage());
 });

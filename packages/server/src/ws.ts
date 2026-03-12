@@ -51,6 +51,10 @@ export function setupWebSocket(server: Server) {
     broadcast(sessionId, { type: 'session:branch', sessionId, branch });
   });
 
+  sessionManager.onFileActivity((sessionId, activity) => {
+    broadcast(sessionId, { type: 'file:activity', sessionId, ...activity });
+  });
+
   // Start polling git branches
   sessionManager.startBranchPolling();
 

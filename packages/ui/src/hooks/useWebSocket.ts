@@ -40,6 +40,10 @@ function handleMessage(msg: WSMessage) {
       s.updateActivity(msg.sessionId, msg.activity);
       break;
     case 'usage:update':
+      s.updateSessionUsage(msg.record.sessionId, msg.record);
+      break;
+    case 'file:activity':
+      s.addFileActivity(msg.sessionId, { op: msg.op, path: msg.path, tool: msg.tool, timestamp: msg.timestamp });
       break;
     case 'session:branch':
       s.updateSessionBranch(msg.sessionId, msg.branch);

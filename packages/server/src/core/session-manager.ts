@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { getDB } from '../db/database.js';
 import { usageTracker } from './usage-tracker.js';
 import { createWorktree, removeWorktree, getCurrentBranch } from './worktree-manager.js';
-import type { Session, ChatMessage, SessionActivity } from '@ccui/shared';
+import type { Session, ChatMessage, SessionActivity, FileActivity } from '@ccui/shared';
 
 interface SessionProcess {
   child: ChildProcess;
@@ -15,6 +15,24 @@ type ErrorListener = (sessionId: string, error: string) => void;
 type StatusListener = (sessionId: string, status: Session['status']) => void;
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
 type BranchListener = (sessionId: string, branch: string) => void;
+type FileActivityListener = (sessionId: string, activity: FileActivity) => void;
+
+function extractFileOp(tool: string, input: any): { op: FileActivity['op'] | null; path: string | null } {
+  switch (tool) {
+    case 'Read':
+      return { op: 'read', path: input.file_path || input.path || null };
+    case 'Write': case 'Edit': case 'MultiEdit':
+      return { op: 'write', path: input.file_path || input.path || null };
+    case 'LS': case 'Glob':
+      return { op: 'read', path: input.path || input.pattern || null };
+    case 'Grep':
+      return { op: 'read', path: input.path || input.pattern || null };
+    case 'Bash':
+      return { op: 'exec', path: ((input.command as string) || '').slice(0, 80) };
+    default:
+      return { op: null, path: null };
+  }
+}
 
 class SessionManager {
   private processes = new Map<string, SessionProcess>();
@@ -23,9 +41,12 @@ class SessionManager {
   private statusListeners: StatusListener[] = [];
   private activityListeners: ActivityListener[] = [];
   private branchListeners: BranchListener[] = [];
+  private fileActivityListeners: FileActivityListener[] = [];
   private sessionActivity = new Map<string, { activity: SessionActivity; timer: ReturnType<typeof setTimeout> | null }>();
   private branchPollTimer: ReturnType<typeof setInterval> | null = null;
   private knownBranches = new Map<string, string>(); // sessionId → last known branch
+  // key: `${sessionId}:${blockIndex}`, tracks tool_use input JSON as it streams in
+  private toolInputBuffers = new Map<string, { name: string; json: string }>();
 
   onOutput(listener: OutputListener) {
     this.outputListeners.push(listener);
@@ -41,6 +62,9 @@ class SessionManager {
   }
   onBranch(listener: BranchListener) {
     this.branchListeners.push(listener);
+  }
+  onFileActivity(listener: FileActivityListener) {
+    this.fileActivityListeners.push(listener);
   }
 
   /** Start polling git branches for active sessions every 5s */
@@ -80,6 +104,10 @@ class SessionManager {
   private emitStatus(sessionId: string, status: Session['status']) {
     for (const l of this.statusListeners) l(sessionId, status);
   }
+  private emitFileActivity(sessionId: string, activity: FileActivity) {
+    for (const l of this.fileActivityListeners) l(sessionId, activity);
+  }
+
   private emitActivity(sessionId: string, activity: SessionActivity, immediate = false) {
     const entry = this.sessionActivity.get(sessionId);
     if (entry?.timer) clearTimeout(entry.timer);
@@ -273,6 +301,8 @@ class SessionManager {
           this.emitActivity(sessionId, { state: 'thinking', preview: '' }, true);
         } else if (blockType === 'tool_use') {
           const toolName = msg.content_block?.name || 'tool';
+          const bufKey = `${sessionId}:${msg.index}`;
+          this.toolInputBuffers.set(bufKey, { name: toolName, json: '' });
           this.emitActivity(sessionId, { state: 'tool_use', tool: toolName, preview: '' }, true);
         } else if (blockType === 'text') {
           this.emitActivity(sessionId, { state: 'writing', preview: '' }, true);
@@ -284,6 +314,9 @@ class SessionManager {
           const preview = text.length > 80 ? '…' + text.slice(-80) : text;
           this.emitActivity(sessionId, { state: 'thinking', preview });
         } else if (deltaType === 'input_json_delta' && msg.delta?.partial_json) {
+          const bufKey = `${sessionId}:${msg.index}`;
+          const buf = this.toolInputBuffers.get(bufKey);
+          if (buf) buf.json += msg.delta.partial_json;
           const entry = this.sessionActivity.get(sessionId);
           const tool = (entry?.activity as any)?.tool || 'tool';
           const json = msg.delta.partial_json;
@@ -296,7 +329,19 @@ class SessionManager {
           this.emitActivity(sessionId, { state: 'writing', preview });
         }
       } else if (msg.type === 'content_block_stop') {
-        // Block finished
+        // Resolve tool_use input and emit file activity if applicable
+        const bufKey = `${sessionId}:${msg.index}`;
+        const buf = this.toolInputBuffers.get(bufKey);
+        if (buf) {
+          this.toolInputBuffers.delete(bufKey);
+          try {
+            const input = JSON.parse(buf.json || '{}');
+            const { op, path } = extractFileOp(buf.name, input);
+            if (op && path) {
+              this.emitFileActivity(sessionId, { op, path, tool: buf.name, timestamp: new Date().toISOString() });
+            }
+          } catch { /* malformed partial JSON, skip */ }
+        }
       } else if (msg.type === 'assistant' && msg.message) {
         // Save aggregated assistant message to DB for history (text already streamed via deltas)
         const textBlocks = Array.isArray(msg.message.content)

@@ -1,36 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useSessionStore } from '../../stores/sessionStore';
 import { DollarSign } from 'lucide-react';
 
 interface Props {
   sessionId: string;
 }
 
-interface SessionUsage {
-  totalCost: number;
-  inputTokens: number;
-  outputTokens: number;
-  requests: number;
-  model: string;
-}
-
 export default function UsageWidget({ sessionId }: Props) {
-  const [usage, setUsage] = useState<SessionUsage | null>(null);
+  const usage = useSessionStore((s) => s.sessionUsage[sessionId]);
+  const fetchSessionUsage = useSessionStore((s) => s.fetchSessionUsage);
 
   useEffect(() => {
-    fetch(`/api/usage/sessions?sessionId=${sessionId}`)
-      .then((r) => r.json())
-      .then((records: any[]) => {
-        if (!records || !Array.isArray(records)) {
-          setUsage({ totalCost: 0, inputTokens: 0, outputTokens: 0, requests: 0, model: '' });
-          return;
-        }
-        const totalCost = records.reduce((s, r) => s + (r.cost || 0), 0);
-        const inputTokens = records.reduce((s, r) => s + (r.input_tokens || r.inputTokens || 0), 0);
-        const outputTokens = records.reduce((s, r) => s + (r.output_tokens || r.outputTokens || 0), 0);
-        const model = records[records.length - 1]?.model || '';
-        setUsage({ totalCost, inputTokens, outputTokens, requests: records.length, model });
-      })
-      .catch(() => setUsage({ totalCost: 0, inputTokens: 0, outputTokens: 0, requests: 0, model: '' }));
+    fetchSessionUsage(sessionId);
   }, [sessionId]);
 
   if (!usage) return <div className="text-xs text-gray-600">Loading...</div>;
@@ -50,17 +31,17 @@ export default function UsageWidget({ sessionId }: Props) {
 
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="bg-gray-800/50 rounded p-2">
-            <div className="text-sm font-mono text-gray-200">{formatTokens(usage.inputTokens)}</div>
+            <div className="text-sm font-mono text-gray-200">{formatTokens(usage.totalInput)}</div>
             <div className="text-xs text-gray-500">Input</div>
           </div>
           <div className="bg-gray-800/50 rounded p-2">
-            <div className="text-sm font-mono text-gray-200">{formatTokens(usage.outputTokens)}</div>
+            <div className="text-sm font-mono text-gray-200">{formatTokens(usage.totalOutput)}</div>
             <div className="text-xs text-gray-500">Output</div>
           </div>
         </div>
 
         <div className="text-xs text-gray-500 mt-auto space-y-0.5">
-          <div>{usage.requests} API calls</div>
+          <div>{usage.callCount} API calls</div>
           {usage.model && <div className="truncate">Model: {usage.model}</div>}
         </div>
       </div>

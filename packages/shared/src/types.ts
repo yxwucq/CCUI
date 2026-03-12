@@ -77,6 +77,14 @@ export type SessionActivity =
   | { state: 'writing'; preview: string }
   | { state: 'tool_use'; tool: string; preview: string };
 
+// File activity (emitted when Claude reads/writes a file)
+export interface FileActivity {
+  op: 'read' | 'write' | 'exec';
+  path: string;
+  tool: string;
+  timestamp: string;
+}
+
 // WebSocket messages
 export type WSMessage =
   | { type: 'chat:input'; sessionId: string; content: string }
@@ -90,6 +98,7 @@ export type WSMessage =
   | { type: 'session:terminate'; sessionId: string }
   | { type: 'usage:update'; record: UsageRecord }
   | { type: 'file:changed'; path: string; event: string }
+  | { type: 'file:activity'; sessionId: string; op: 'read' | 'write' | 'exec'; path: string; tool: string; timestamp: string }
   // Terminal (interactive Claude CLI)
   | { type: 'terminal:create'; sessionId: string; cols: number; rows: number }
   | { type: 'terminal:input'; sessionId: string; data: string }

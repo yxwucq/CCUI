@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useAgentStore } from '../stores/agentStore';
 import SessionBlock from '../components/SessionBlock';
+import SessionOverviewCard from '../components/SessionOverviewCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { Plus, GitBranch, Minimize2 } from 'lucide-react';
+import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X } from 'lucide-react';
 
 export default function Chat() {
   const sessions = useSessionStore((s) => s.sessions);
@@ -22,6 +23,8 @@ export default function Chat() {
   const [currentBranch, setCurrentBranch] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchAgents();
@@ -90,8 +93,12 @@ export default function Chat() {
     }
   };
 
-  const activeSessions = sessions.filter((s) => s.status === 'active' || s.status === 'idle');
-  const terminatedSessions = sessions.filter((s) => s.status === 'terminated');
+  const q = search.toLowerCase().trim();
+  const filtered = q
+    ? sessions.filter((s) => s.name.toLowerCase().includes(q) || (s.branch || '').toLowerCase().includes(q))
+    : sessions;
+  const activeSessions = filtered.filter((s) => s.status === 'active' || s.status === 'idle');
+  const terminatedSessions = filtered.filter((s) => s.status === 'terminated');
   const isFocused = !!focusedSessionId;
   const focusedSession = isFocused ? sessions.find((s) => s.id === focusedSessionId) : null;
 
@@ -100,18 +107,48 @@ export default function Chat() {
       {/* Header — hidden in focus mode */}
       {!isFocused && (
         <div className="border-b border-gray-800 px-5 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <h1 className="text-sm font-semibold text-white">Sessions</h1>
-            <span className="text-xs text-gray-500">
-              {activeSessions.length} active
-            </span>
+            <span className="text-xs text-gray-500">{activeSessions.length} active</span>
+            <div className="relative">
+              <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filter…"
+                className="bg-gray-800/60 border border-gray-700/50 rounded px-2 py-1 pl-6 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-600 w-28 focus:w-40 transition-all"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400">
+                  <X size={10} />
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            onClick={() => setShowNewSession(!showNewSession)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-xs transition-colors"
-          >
-            <Plus size={14} /> New Session
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-gray-800 rounded p-0.5">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1 rounded transition-colors ${viewMode === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                title="List view"
+              >
+                <List size={13} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded transition-colors ${viewMode === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                title="Grid overview"
+              >
+                <LayoutGrid size={13} />
+              </button>
+            </div>
+            <button
+              onClick={() => setShowNewSession(!showNewSession)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-xs transition-colors"
+            >
+              <Plus size={14} /> New Session
+            </button>
+          </div>
         </div>
       )}
 
@@ -219,8 +256,39 @@ export default function Chat() {
           <ErrorBoundary><SessionBlock session={focusedSession} /></ErrorBoundary>
         )}
 
-        {/* Normal mode */}
-        {!isFocused && (
+        {/* Grid overview mode */}
+        {!isFocused && viewMode === 'grid' && (
+          <div className="overflow-y-auto flex-1 p-1">
+            {sessions.length === 0 && (
+              <div className="flex items-center justify-center h-32 text-gray-600 text-sm">
+                No sessions yet. Click "New Session" to create one.
+              </div>
+            )}
+            {activeSessions.length > 0 && (
+              <>
+                <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
+                <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                  {activeSessions.map((s) => (
+                    <SessionOverviewCard key={s.id} session={s} onClick={() => { setViewMode('list'); toggleFocus(s.id); }} />
+                  ))}
+                </div>
+              </>
+            )}
+            {terminatedSessions.length > 0 && (
+              <>
+                <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
+                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                  {terminatedSessions.map((s) => (
+                    <SessionOverviewCard key={s.id} session={s} onClick={() => { setViewMode('list'); toggleFocus(s.id); }} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Normal list mode */}
+        {!isFocused && viewMode === 'list' && (
           <>
             {activeSessions.map((s) => (
               <ErrorBoundary key={s.id}><SessionBlock session={s} /></ErrorBoundary>

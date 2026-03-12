@@ -125,6 +125,47 @@ class UsageTracker {
        FROM usage_records GROUP BY model`
     ).all();
   }
+
+  /** Today's cost total + token counts */
+  getTodaySummary() {
+    const db = getDB();
+    const row = db.prepare(
+      `SELECT COALESCE(SUM(cost), 0) as cost,
+              COALESCE(SUM(input_tokens), 0) as inputTokens,
+              COALESCE(SUM(output_tokens), 0) as outputTokens,
+              COUNT(*) as calls
+       FROM usage_records WHERE DATE(timestamp) = DATE('now')`
+    ).get() as any;
+    return {
+      cost: row.cost as number,
+      inputTokens: row.inputTokens as number,
+      outputTokens: row.outputTokens as number,
+      calls: row.calls as number,
+    };
+  }
+
+  /** Aggregated summary for a single session, plus latest input_tokens for context gauge */
+  getSessionSummary(sessionId: string) {
+    const db = getDB();
+    const totals = db.prepare(
+      `SELECT COALESCE(SUM(cost), 0) as totalCost,
+              COALESCE(SUM(input_tokens), 0) as totalInput,
+              COALESCE(SUM(output_tokens), 0) as totalOutput,
+              COUNT(*) as callCount
+       FROM usage_records WHERE session_id = ?`
+    ).get(sessionId) as any;
+    const latest = db.prepare(
+      `SELECT input_tokens, model FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1`
+    ).get(sessionId) as any;
+    return {
+      totalCost: totals.totalCost as number,
+      totalInput: totals.totalInput as number,
+      totalOutput: totals.totalOutput as number,
+      callCount: totals.callCount as number,
+      latestInputTokens: (latest?.input_tokens as number) || 0,
+      model: (latest?.model as string) || '',
+    };
+  }
 }
 
 export const usageTracker = new UsageTracker();

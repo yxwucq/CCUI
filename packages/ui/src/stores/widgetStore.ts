@@ -12,6 +12,7 @@ export const AVAILABLE_WIDGETS: WidgetDef[] = [
   { id: 'git-status', name: 'Git Status', description: 'Branch info & changed files', defaultEnabled: true },
   { id: 'history', name: 'History', description: 'Conversation stats & message count', defaultEnabled: true },
   { id: 'usage', name: 'Usage', description: 'Cost & token breakdown for this session', defaultEnabled: true },
+  { id: 'file-activity', name: 'File Activity', description: 'Live feed of files Claude is reading & writing', defaultEnabled: false },
 ];
 
 const DEFAULT_WIDGETS = AVAILABLE_WIDGETS.filter((w) => w.defaultEnabled).map((w) => w.id);
