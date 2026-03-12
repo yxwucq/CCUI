@@ -46,10 +46,10 @@ export default function ContextWidget({ sessionId, size }: Props) {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <Cpu size={12} />
         <span>Context</span>
-        {stats.isReal && <span className="ml-auto text-green-600 text-[10px]">actual</span>}
+        {stats.isReal && <span className="ml-auto text-green-600 text-xs font-normal">actual</span>}
       </div>
 
       {/* Progress bar — always shown */}

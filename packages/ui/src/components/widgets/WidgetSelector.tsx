@@ -58,7 +58,7 @@ export default function WidgetSelector({ sessionId }: Props) {
                     >
                       <button
                         onClick={() => setWidgetSize(sessionId, w.id, 'sm')}
-                        className={`px-1.5 py-0.5 text-[10px] font-mono transition-colors ${
+                        className={`px-1.5 py-0.5 text-xs font-mono transition-colors ${
                           size === 'sm' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
                         }`}
                         title="Compact"
@@ -67,7 +67,7 @@ export default function WidgetSelector({ sessionId }: Props) {
                       </button>
                       <button
                         onClick={() => setWidgetSize(sessionId, w.id, 'lg')}
-                        className={`px-1.5 py-0.5 text-[10px] font-mono transition-colors ${
+                        className={`px-1.5 py-0.5 text-xs font-mono transition-colors ${
                           size === 'lg' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
                         }`}
                         title="Detailed"

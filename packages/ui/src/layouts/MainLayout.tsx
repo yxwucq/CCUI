@@ -48,7 +48,7 @@ export default function MainLayout() {
                 status === 'connected' ? 'bg-green-500' :
                 status === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
               }`} />
-              <span className="text-[10px] text-gray-500">{status}</span>
+              <span className="text-xs text-gray-500">{status}</span>
             </div>
           </div>
         </header>

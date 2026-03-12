@@ -46,7 +46,7 @@ export default function UsageWidget({ sessionId, size }: Props) {
 
   if (!usage) return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <DollarSign size={12} /><span>Usage</span>
       </div>
       <div className="text-xs text-gray-600">Loading...</div>
@@ -55,14 +55,14 @@ export default function UsageWidget({ sessionId, size }: Props) {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <DollarSign size={12} />
         <span>Usage</span>
       </div>
 
       {/* Pricing unknown warning */}
       {usage.pricingUnknown && (
-        <div className="text-[10px] text-yellow-600 mb-1">
+        <div className="text-xs text-yellow-600 mb-1">
           Unknown pricing: {usage.model}
         </div>
       )}
@@ -75,7 +75,7 @@ export default function UsageWidget({ sessionId, size }: Props) {
         >
           ${usage.totalCost.toFixed(4)}
         </div>
-        <div className="text-[10px] text-gray-600">
+        <div className="text-xs text-gray-600">
           {usage.callCount} calls{usage.model ? ` · ${usage.model.split('-').slice(1, 3).join('-')}` : ''}
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function UsageWidget({ sessionId, size }: Props) {
             ].map(({ label, value }) => (
               <div key={label} className="bg-gray-800/50 rounded px-1 py-1.5">
                 <div className="text-xs font-mono text-gray-200">{formatTokens(value)}</div>
-                <div className="text-[10px] text-gray-600">{label}</div>
+                <div className="text-xs text-gray-500">{label}</div>
               </div>
             ))}
           </div>
@@ -100,7 +100,7 @@ export default function UsageWidget({ sessionId, size }: Props) {
           {/* Cumulative cost chart */}
           {chartData.length > 1 && (
             <div className="flex-1 min-h-0">
-              <div className="text-[10px] text-gray-600 mb-1">Cost over time</div>
+              <div className="text-xs text-gray-600 mb-1">Cost over time</div>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                   <defs>

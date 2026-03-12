@@ -159,7 +159,7 @@ export default function XTerminal({ sessionId, onClose }: Props) {
             status === 'connected' ? 'fill-green-500 text-green-500' :
             'fill-yellow-500 text-yellow-500 animate-pulse'
           }`} />
-          <span className="text-[10px] text-zinc-600">{status}</span>
+          <span className="text-xs text-zinc-600">{status}</span>
         </div>
       </div>
 
@@ -192,7 +192,7 @@ export default function XTerminal({ sessionId, onClose }: Props) {
               sendWsMessage({ type: 'terminal:input', sessionId, data: cmd + '\r' });
               termRef.current?.focus();
             }}
-            className="text-[10px] text-zinc-600 hover:text-violet-400 font-mono whitespace-nowrap transition-colors"
+            className="text-xs text-zinc-600 hover:text-violet-400 font-mono whitespace-nowrap transition-colors"
           >
             {cmd}
           </button>

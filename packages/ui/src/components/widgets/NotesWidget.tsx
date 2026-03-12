@@ -75,8 +75,8 @@ export default function NotesWidget({ sessionId, size }: Props) {
         ul: ({ children }) => <ul className="mb-1.5 space-y-0.5 pl-3">{children}</ul>,
         ol: ({ children }) => <ol className="mb-1.5 space-y-0.5 pl-3 list-decimal">{children}</ol>,
         li: ({ children }) => <li className="text-gray-300 list-disc">{children}</li>,
-        code: ({ children }) => <code className="bg-gray-800 px-1 rounded text-[10px] text-green-400 font-mono">{children}</code>,
-        pre: ({ children }) => <pre className="bg-gray-800 rounded p-2 mb-1.5 overflow-x-auto text-[10px] font-mono">{children}</pre>,
+        code: ({ children }) => <code className="bg-gray-800 px-1 rounded text-xs text-green-400 font-mono">{children}</code>,
+        pre: ({ children }) => <pre className="bg-gray-800 rounded p-2 mb-1.5 overflow-x-auto text-xs font-mono">{children}</pre>,
         strong: ({ children }) => <strong className="text-gray-100 font-semibold">{children}</strong>,
         em: ({ children }) => <em className="text-gray-400">{children}</em>,
         blockquote: ({ children }) => <blockquote className="border-l-2 border-gray-600 pl-2 text-gray-500 italic mb-1.5">{children}</blockquote>,
@@ -90,14 +90,14 @@ export default function NotesWidget({ sessionId, size }: Props) {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 shrink-0">
+      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2 shrink-0">
         <NotebookPen size={12} />
         <span>Notes</span>
         {editing && (
-          <span className="ml-auto text-[10px] text-gray-600">Ctrl+Enter to save · Esc to cancel</span>
+          <span className="ml-auto text-xs text-gray-600 font-normal">Ctrl+Enter to save · Esc to cancel</span>
         )}
         {!editing && saveState !== 'saved' && (
-          <span className={`ml-auto text-[10px] ${saveState === 'saving' ? 'text-gray-500' : 'text-yellow-600'}`}>
+          <span className={`ml-auto text-xs font-normal ${saveState === 'saving' ? 'text-gray-500' : 'text-yellow-600'}`}>
             {saveState === 'saving' ? 'saving…' : 'unsaved'}
           </span>
         )}
@@ -122,11 +122,11 @@ export default function NotesWidget({ sessionId, size }: Props) {
             title="Double-click to edit"
           >
             {notes ? (
-              <div className={renderSize === 'sm' ? 'text-[10px]' : 'text-xs'}>
+              <div className="text-xs">
                 {mdContent}
               </div>
             ) : (
-              <div className="text-gray-700 text-[10px] text-center pt-2">
+              <div className="text-gray-700 text-xs text-center pt-2">
                 Double-click to add notes…
               </div>
             )}

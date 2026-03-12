@@ -17,7 +17,7 @@ function TerminatedSection({ sessions, layoutMode, onToggleExpanded }: {
     <div className="shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 w-full px-1 py-1 text-[10px] text-gray-600 uppercase tracking-wider hover:text-gray-500 transition-colors select-none"
+        className="flex items-center gap-1.5 w-full px-1 py-1 text-xs text-gray-600 uppercase tracking-wider hover:text-gray-500 transition-colors select-none"
       >
         <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         Terminated ({sessions.length})
@@ -195,7 +195,7 @@ export default function Chat() {
       {!isFocused && (
         <div className="border-b border-gray-800 px-5 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-sm font-semibold text-white">Sessions</h1>
+            <h1 className="text-base font-bold text-white">Sessions</h1>
             <span className="text-xs text-gray-500">{activeSessions.length} active</span>
             <div className="relative">
               <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
@@ -407,7 +407,7 @@ export default function Chat() {
             )}
             {activeSessions.length > 0 && (
               <>
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
+                <p className="text-xs text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
                 <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {activeSessions.map((s) => (
                     <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />
@@ -417,7 +417,7 @@ export default function Chat() {
             )}
             {terminatedSessions.length > 0 && (
               <>
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
+                <p className="text-xs text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
                 <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {terminatedSessions.map((s) => (
                     <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />

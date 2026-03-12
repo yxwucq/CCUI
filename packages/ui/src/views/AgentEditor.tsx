@@ -77,7 +77,7 @@ export default function AgentEditor() {
                   <div className={`text-xs font-semibold mb-1 ${name === t.name ? meta.color : 'text-gray-300'}`}>
                     {t.name}
                   </div>
-                  <div className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">
+                  <div className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
                     {t.description}
                   </div>
                 </button>

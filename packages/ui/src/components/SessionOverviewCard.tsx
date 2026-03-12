@@ -170,7 +170,7 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
           </span>
         )}
         {sc.label && (
-          <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${sc.labelColor} ${sc.labelBg}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${sc.labelColor} ${sc.labelBg}`}>
             {sc.running && <span className={`w-1 h-1 rounded-full animate-pulse ${sc.stripe}`} />}
             {cardStatus === 'done' && <CircleCheck size={9} />}
             {sc.label}
@@ -182,18 +182,18 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
       {session.branch && (
         <div className="relative flex items-center gap-1 mb-2">
           <GitBranch size={9} className="text-gray-600 shrink-0" />
-          <span className="text-[10px] text-gray-500 truncate">{session.branch}</span>
+          <span className="text-xs text-gray-500 truncate">{session.branch}</span>
         </div>
       )}
 
       {/* Activity label — only rendered when active */}
       {label && (
-        <p className="relative text-[10px] text-gray-400 truncate mb-2">{label}</p>
+        <p className="relative text-xs text-gray-400 truncate mb-2">{label}</p>
       )}
 
       {/* Context bar */}
       <div className="relative mb-2">
-        <div className="flex justify-between text-[10px] text-gray-600 mb-0.5">
+        <div className="flex justify-between text-xs text-gray-600 mb-0.5">
           <span>ctx</span>
           <span>{contextPct}%</span>
         </div>
@@ -203,7 +203,7 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
       </div>
 
       {/* Cost + time */}
-      <div className="relative flex items-center justify-between text-[10px]">
+      <div className="relative flex items-center justify-between text-xs">
         <span className="text-green-600 font-mono">
           {usage ? `$${usage.totalCost.toFixed(4)}` : '–'}
         </span>
@@ -212,7 +212,7 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
 
       {/* Git diff summary */}
       {diffStat && diffStat.totalFiles > 0 && (
-        <div className="relative flex items-center gap-2 mt-2 pt-2 border-t border-gray-800/50 text-[10px]">
+        <div className="relative flex items-center gap-2 mt-2 pt-2 border-t border-gray-800/50 text-xs">
           <FileDiff size={10} className="text-gray-600 shrink-0" />
           <span className="text-green-500 font-mono">+{diffStat.totalAdded}</span>
           <span className="text-red-500 font-mono">-{diffStat.totalDeleted}</span>
