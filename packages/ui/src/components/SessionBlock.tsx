@@ -11,6 +11,7 @@ import HistoryWidget from './widgets/HistoryWidget';
 import UsageWidget from './widgets/UsageWidget';
 import FileActivityWidget from './widgets/FileActivityWidget';
 import NotesWidget from './widgets/NotesWidget';
+import MemoryWidget from './widgets/MemoryWidget';
 import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Send, Trash2, Play, Brain, Wrench, Pen, SquareTerminal,
@@ -35,6 +36,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   usage: UsageWidget,
   'file-activity': FileActivityWidget,
   notes: NotesWidget,
+  memory: MemoryWidget,
 };
 
 const EMPTY_MSGS: never[] = [];
@@ -44,10 +46,9 @@ type ViewMode = 'terminal' | 'chat';
 // Derive a unified display status from session + activity
 type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writing' | 'done' | 'waiting_input';
 
-function useDisplayStatus(session: Session, activity: SessionActivity | undefined, isExpanded: boolean): [DisplayStatus, () => void] {
+function useDisplayStatus(session: Session, activity: SessionActivity | undefined): [DisplayStatus, () => void] {
   const [justDone, setJustDone] = useState(false);
   const prevActivityRef = useRef<string | undefined>(undefined);
-  const runStartedAtRef = useRef<number | null>(null);
 
   const activityState = activity?.state;
   const isRunning = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
@@ -56,20 +57,15 @@ function useDisplayStatus(session: Session, activity: SessionActivity | undefine
     const prev = prevActivityRef.current;
     prevActivityRef.current = activityState;
 
-    // Track when a run starts
-    const isActive = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
-    const wasActive = prev && prev !== 'idle' && prev !== 'waiting_input';
-    if (isActive && !wasActive) runStartedAtRef.current = Date.now();
-
-    if (wasActive && activityState === 'idle' && session.status !== 'terminated') {
-      const elapsed = runStartedAtRef.current ? Date.now() - runStartedAtRef.current : 0;
-      if (!isExpanded && elapsed >= 5000) {
-        const timer = setTimeout(() => setJustDone(true), 500);
-        return () => clearTimeout(timer);
-      }
+    // Detect transition: was running → now idle (not waiting_input, which is a distinct state)
+    if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
+      setJustDone(true);
     }
-    if (activityState === 'waiting_input') setJustDone(false);
-  }, [activityState, session.status, isExpanded]);
+    // Clear done state when entering waiting_input
+    if (activityState === 'waiting_input') {
+      setJustDone(false);
+    }
+  }, [activityState, session.status]);
 
   let displayStatus: DisplayStatus;
   if (session.status === 'terminated') displayStatus = 'disconnected';
@@ -249,7 +245,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
     return () => window.removeEventListener('keydown', handler);
   }, [isFocused, session.id, toggleFocus]);
 
-  const [displayStatus, clearDone] = useDisplayStatus(session, activity, isExpanded);
+  const [displayStatus, clearDone] = useDisplayStatus(session, activity);
   const sc = STATUS_CONFIG[displayStatus];
 
   useEffect(() => {

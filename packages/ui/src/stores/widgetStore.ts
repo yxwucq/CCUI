@@ -20,6 +20,7 @@ export const AVAILABLE_WIDGETS: WidgetDef[] = [
   { id: 'usage',         name: 'Usage',         description: 'Cost & token breakdown for this session',       defaultEnabled: true,  defaultSize: 'sm' },
   { id: 'file-activity', name: 'File Activity', description: 'Live feed of files Claude is reading & writing', defaultEnabled: false, defaultSize: 'sm' },
   { id: 'notes',         name: 'Notes',         description: 'Session goals & reminders in Markdown',          defaultEnabled: false, defaultSize: 'lg' },
+  { id: 'memory',        name: 'Memory',        description: 'Auto-memory entries for this project',            defaultEnabled: false, defaultSize: 'lg' },
 ];
 
 const DEFAULT_WIDGETS: WidgetConfig[] = AVAILABLE_WIDGETS
