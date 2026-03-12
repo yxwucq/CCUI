@@ -4,7 +4,40 @@ import { useAgentStore } from '../stores/agentStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, AlertTriangle } from 'lucide-react';
+import { Plus, GitBranch, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Session } from '@ccui/shared/types';
+
+function TerminatedSection({ sessions, layoutMode, onToggleExpanded }: {
+  sessions: Session[];
+  layoutMode: 'accordion' | 'scroll';
+  onToggleExpanded: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 w-full px-1 py-1 text-[10px] text-gray-600 uppercase tracking-wider hover:text-gray-500 transition-colors select-none"
+      >
+        <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        Terminated ({sessions.length})
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1.5 mt-0.5">
+          {sessions.map((s) => (
+            <ErrorBoundary key={s.id}>
+              <SessionBlock
+                session={s}
+                scrollMode={layoutMode === 'scroll'}
+                onToggleExpanded={onToggleExpanded}
+              />
+            </ErrorBoundary>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Chat() {
   const sessions = useSessionStore((s) => s.sessions);
@@ -410,20 +443,11 @@ export default function Chat() {
             ))}
 
             {terminatedSessions.length > 0 && (
-              <>
-                {activeSessions.length > 0 && (
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider pt-0.5 px-1 shrink-0">Terminated</p>
-                )}
-                {terminatedSessions.map((s) => (
-                  <ErrorBoundary key={s.id}>
-                    <SessionBlock
-                      session={s}
-                      scrollMode={layoutMode === 'scroll'}
-                      onToggleExpanded={handleToggleExpanded}
-                    />
-                  </ErrorBoundary>
-                ))}
-              </>
+              <TerminatedSection
+                sessions={terminatedSessions}
+                layoutMode={layoutMode}
+                onToggleExpanded={handleToggleExpanded}
+              />
             )}
           </>
         )}

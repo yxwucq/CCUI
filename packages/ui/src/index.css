@@ -117,6 +117,24 @@ body {
   animation: status-breathe 2s ease-in-out infinite;
 }
 
+/* Done state: dot fast-blink (finite, stops after a few flashes) */
+@keyframes done-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.1; }
+}
+.done-blink {
+  animation: done-blink 0.55s ease-in-out 5;
+}
+
+/* Done state: border glow pulse (finite) */
+@keyframes done-glow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%       { box-shadow: 0 0 10px 1px rgba(134, 239, 172, 0.35); }
+}
+.session-done-glow {
+  animation: done-glow 0.55s ease-in-out 5;
+}
+
 /* Drag handle hover indicator */
 .drag-handle:hover::before {
   content: '';
