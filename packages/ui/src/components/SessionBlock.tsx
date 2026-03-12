@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, lazy, Suspense } from 'react';
+import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
 import { sendWsMessage } from '../hooks/useWebSocket';
@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Send, Trash2, Play, Brain, Wrench, Pen, SquareTerminal,
   MessageSquare, Unplug, CircleCheck, Loader, Circle,
+  Maximize2, Minimize2,
 } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
 
@@ -135,7 +136,9 @@ const STATUS_CONFIG: Record<DisplayStatus, {
 
 export default function SessionBlock({ session }: Props) {
   const isExpanded = useSessionStore((s) => !!s.expandedSessions[session.id]);
+  const isFocused = useSessionStore((s) => s.focusedSessionId === session.id);
   const toggleExpanded = useSessionStore((s) => s.toggleExpanded);
+  const toggleFocus = useSessionStore((s) => s.toggleFocus);
   const terminateSession = useSessionStore((s) => s.terminateSession);
   const resumeSession = useSessionStore((s) => s.resumeSession);
   const sessionMessages = useSessionStore((s) => s.messages[session.id] ?? EMPTY_MSGS);
@@ -150,12 +153,51 @@ export default function SessionBlock({ session }: Props) {
   const [input, setInput] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('terminal');
   const [terminalMounted, setTerminalMounted] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.5); // 0-1, left panel fraction
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Drag-to-resize handler
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const container = splitContainerRef.current;
+    if (!container) return;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const rect = container.getBoundingClientRect();
+      const ratio = Math.min(0.8, Math.max(0.2, (ev.clientX - rect.left) / rect.width));
+      setSplitRatio(ratio);
+    };
+    const onUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
 
   // Once expanded, keep terminal mounted forever (avoid PTY re-creation)
   useEffect(() => {
     if (isExpanded && !terminalMounted) setTerminalMounted(true);
   }, [isExpanded, terminalMounted]);
+
+  // Esc to exit focus mode
+  useEffect(() => {
+    if (!isFocused) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') toggleFocus(session.id);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isFocused, session.id, toggleFocus]);
 
   const displayStatus = useDisplayStatus(session, activity);
   const sc = STATUS_CONFIG[displayStatus];
@@ -200,13 +242,14 @@ export default function SessionBlock({ session }: Props) {
   const StatusIcon = sc.icon;
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${sc.border}`}
-      style={isExpanded ? { height: '70vh', minHeight: '400px' } : undefined}
+    <div className={`border rounded-lg overflow-hidden transition-all duration-300 flex flex-col ${isExpanded ? 'flex-1 min-h-[200px]' : 'shrink-0'} ${sc.border} ${isRunning ? 'session-glow' : ''}`}
+      style={isRunning ? { '--glow-color': sc.dot.includes('amber') ? 'rgba(251,191,36,0.15)' : sc.dot.includes('cyan') ? 'rgba(34,211,238,0.15)' : 'rgba(96,165,250,0.15)' } as React.CSSProperties : undefined}
     >
-      {/* Header */}
+      {/* Header — click to expand, double-click to focus */}
       <div
         className="flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
         onClick={() => toggleExpanded(session.id)}
+        onDoubleClick={(e) => { e.stopPropagation(); toggleFocus(session.id); }}
       >
         {isExpanded
           ? <ChevronDown size={14} className="text-gray-500 shrink-0" />
@@ -284,6 +327,16 @@ export default function SessionBlock({ session }: Props) {
             </div>
           )}
           {isExpanded && <WidgetSelector sessionId={session.id} />}
+          {/* Focus/unfocus button */}
+          {isExpanded && (
+            <button
+              onClick={() => toggleFocus(session.id)}
+              className="p-1 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors"
+              title={isFocused ? 'Exit focus (Esc)' : 'Focus this session'}
+            >
+              {isFocused ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            </button>
+          )}
           {session.status !== 'terminated' && (
             <button
               onClick={() => terminateSession(session.id)}
@@ -314,6 +367,11 @@ export default function SessionBlock({ session }: Props) {
         </div>
       </div>
 
+      {/* Activity stripe — visible when collapsed and running */}
+      {!isExpanded && isRunning && (
+        <div className={`h-0.5 ${sc.dot} activity-stripe`} />
+      )}
+
       {/* Expanded content — terminal stays mounted once opened (CSS hidden when collapsed) */}
       {(isExpanded || terminalMounted) && (
         <div
@@ -322,17 +380,27 @@ export default function SessionBlock({ session }: Props) {
         >
           {/* Terminal mode — always mounted once opened, toggled via display */}
           <div
+            ref={splitContainerRef}
             className="flex flex-1 min-h-0"
             style={{ display: viewMode === 'terminal' ? 'flex' : 'none' }}
           >
-            <div className="w-1/2 shrink-0 min-h-0 border-r border-gray-800">
+            {/* Terminal pane */}
+            <div className="min-h-0 overflow-hidden" style={{ width: `${splitRatio * 100}%` }}>
               {terminalMounted && (
                 <Suspense fallback={<div className="h-full flex items-center justify-center text-gray-600 text-sm">Starting Claude CLI...</div>}>
                   <XTerminal sessionId={session.id} />
                 </Suspense>
               )}
             </div>
-            <div className="w-1/2 min-h-0 flex flex-col overflow-hidden bg-gray-950/30">
+            {/* Drag handle */}
+            <div
+              className="w-1 shrink-0 cursor-col-resize bg-gray-800 hover:bg-blue-500/50 active:bg-blue-500 transition-colors relative drag-handle"
+              onMouseDown={handleDragStart}
+            >
+              <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
+            </div>
+            {/* Widget pane */}
+            <div className="min-h-0 flex flex-col overflow-hidden bg-gray-950/30" style={{ width: `${(1 - splitRatio) * 100}%` }}>
               {enabledWidgets.filter(Boolean).length > 0 ? (
                 enabledWidgets.filter(Boolean).map((widgetId, idx) => {
                   const Widget = widgetId ? WIDGET_COMPONENTS[widgetId] : null;

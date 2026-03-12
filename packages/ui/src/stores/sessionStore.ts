@@ -4,6 +4,7 @@ import type { Session, ChatMessage, SessionActivity } from '@ccui/shared';
 interface SessionStore {
   sessions: Session[];
   activeSessionId: string | null;
+  focusedSessionId: string | null;
   expandedSessions: Record<string, boolean>;
   messages: Record<string, ChatMessage[]>;
   streamingContent: Record<string, string>;
@@ -12,6 +13,7 @@ interface SessionStore {
   fetchSessions: () => Promise<void>;
   createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string }) => Promise<Session>;
   setActiveSession: (id: string | null) => void;
+  toggleFocus: (id: string) => void;
   toggleExpanded: (id: string) => void;
   setExpanded: (id: string, expanded: boolean) => void;
   appendMessage: (sessionId: string, msg: ChatMessage) => void;
@@ -28,6 +30,7 @@ interface SessionStore {
 export const useSessionStore = create<SessionStore>((set, get) => ({
   sessions: [],
   activeSessionId: null,
+  focusedSessionId: null,
   expandedSessions: {},
   messages: {},
   streamingContent: {},
@@ -58,6 +61,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   setActiveSession: (id) => set({ activeSessionId: id }),
+
+  toggleFocus: (id) => {
+    const current = get().focusedSessionId;
+    set({
+      focusedSessionId: current === id ? null : id,
+      expandedSessions: { ...get().expandedSessions, [id]: true },
+      activeSessionId: id,
+    });
+    if (current === id) return; // unfocusing
+    get().fetchMessages(id);
+  },
 
   toggleExpanded: (id) => {
     const wasExpanded = get().expandedSessions[id];
