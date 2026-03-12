@@ -79,6 +79,7 @@ export function setupWebSocket(server: Server) {
 
     broadcast(sessionId, { type: 'chat:saved_message', sessionId, role: 'user', content: userMsg, id: userId, timestamp: now });
     broadcast(sessionId, { type: 'chat:saved_message', sessionId, role: 'assistant', content: assistantMsg, id: asstId, timestamp: now });
+    broadcast(sessionId, { type: 'session:status', sessionId, status: 'idle', lastActiveAt: now });
   });
 
   // Wire up terminal events
