@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAgentStore } from '../stores/agentStore';
+import { getAgentMeta } from '../agentMeta';
 
 const ALL_TOOLS = ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'Agent', 'WebSearch', 'WebFetch'];
 
@@ -55,22 +56,34 @@ export default function AgentEditor() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 space-y-6">
       <h2 className="text-xl font-bold">{id ? 'Edit Agent' : 'New Agent'}</h2>
 
       {!id && templates.length > 0 && (
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Start from template</label>
-          <select
-            onChange={(e) => handleTemplate(Number(e.target.value))}
-            className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm w-full"
-            defaultValue=""
-          >
-            <option value="">Choose template...</option>
-            {templates.map((t, i) => (
-              <option key={i} value={i}>{t.name} - {t.description}</option>
-            ))}
-          </select>
+          <label className="block text-sm text-gray-400 mb-2">Start from template</label>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {templates.map((t, i) => {
+              const meta = getAgentMeta(t.name);
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleTemplate(i)}
+                  className={`flex-shrink-0 w-44 text-left rounded-lg border p-3 transition-all hover:brightness-110 ${
+                    name === t.name ? `${meta.bg} ${meta.border}` : 'bg-gray-800 border-gray-700'
+                  }`}
+                >
+                  <div className="text-xl mb-1.5">{meta.emoji}</div>
+                  <div className={`text-xs font-semibold mb-1 ${name === t.name ? meta.color : 'text-gray-300'}`}>
+                    {t.name}
+                  </div>
+                  <div className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">
+                    {t.description}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -126,7 +139,10 @@ export default function AgentEditor() {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Max Turns (optional)</label>
+        <div className="flex items-center gap-2 mb-1">
+          <label className="text-sm text-gray-400">Max Turns</label>
+          <span className="text-xs text-gray-600">max tool-use loops per message; leave empty for no limit</span>
+        </div>
         <input
           type="number"
           value={maxTurns || ''}
