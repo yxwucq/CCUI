@@ -264,6 +264,7 @@ class SessionManager {
     child.on('exit', (code) => {
       console.log(`[claude:${sessionId.slice(0, 8)}] process exited (code=${code})`);
       this.processes.delete(sessionId);
+      this.clearToolBuffers(sessionId);
 
       // Flush remaining buffer
       if (buffer.trim()) {
@@ -377,12 +378,19 @@ class SessionManager {
     }
   }
 
+  private clearToolBuffers(sessionId: string) {
+    for (const key of this.toolInputBuffers.keys()) {
+      if (key.startsWith(`${sessionId}:`)) this.toolInputBuffers.delete(key);
+    }
+  }
+
   terminateSession(sessionId: string) {
     const proc = this.processes.get(sessionId);
     if (proc) {
       proc.child.kill('SIGTERM');
       this.processes.delete(sessionId);
     }
+    this.clearToolBuffers(sessionId);
     const db = getDB();
 
     const row = db.prepare('SELECT project_path, worktree_path FROM sessions WHERE id = ?').get(sessionId) as any;

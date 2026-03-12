@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { Cpu } from 'lucide-react';
+import { pctBarColor } from '../../utils';
 
 interface Props {
   sessionId: string;
@@ -17,7 +18,7 @@ export default function ContextWidget({ sessionId }: Props) {
 
   useEffect(() => {
     if (!sessionUsage) fetchSessionUsage(sessionId);
-  }, [sessionId]);
+  }, [sessionId, fetchSessionUsage]);
 
   const stats = useMemo(() => {
     const hasReal = sessionUsage && sessionUsage.latestInputTokens > 0;
@@ -31,7 +32,7 @@ export default function ContextWidget({ sessionId }: Props) {
     return { usedTokens, remaining, pct, isReal: hasReal };
   }, [messages, streaming, sessionUsage]);
 
-  const barColor = stats.pct > 80 ? 'bg-red-500' : stats.pct > 50 ? 'bg-yellow-500' : 'bg-green-500';
+  const barColor = pctBarColor(stats.pct);
 
   return (
     <div className="h-full flex flex-col">

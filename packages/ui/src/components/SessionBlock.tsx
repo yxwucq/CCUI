@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { timeAgo } from '../utils';
 import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
 import { sendWsMessage } from '../hooks/useWebSocket';
@@ -230,15 +231,6 @@ export default function SessionBlock({ session }: Props) {
     }
   };
 
-  const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
-  };
 
   const isRunning = displayStatus === 'thinking' || displayStatus === 'tool_use' || displayStatus === 'writing';
   const StatusIcon = sc.icon;

@@ -20,6 +20,7 @@ interface SessionStore {
   activities: Record<string, SessionActivity>;
   sessionUsage: Record<string, SessionUsageSummary>;
   fileActivities: Record<string, FileActivity[]>;
+  usageRefreshKey: number;
 
   fetchSessions: () => Promise<void>;
   createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string }) => Promise<Session>;
@@ -51,6 +52,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   activities: {},
   sessionUsage: {},
   fileActivities: {},
+  usageRefreshKey: 0,
 
   fetchSessions: async () => {
     const res = await fetch('/api/sessions');
@@ -204,6 +206,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     set((s) => {
       const prev = s.sessionUsage[sessionId];
       return {
+        usageRefreshKey: s.usageRefreshKey + 1,
         sessionUsage: {
           ...s.sessionUsage,
           [sessionId]: {

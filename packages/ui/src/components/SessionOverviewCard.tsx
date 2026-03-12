@@ -1,6 +1,7 @@
 import { useSessionStore } from '../stores/sessionStore';
-import { GitBranch, Brain, Wrench, Pen, Circle, CircleCheck, Unplug, Loader } from 'lucide-react';
+import { GitBranch, Brain, Wrench, Pen, Circle, Unplug, Loader } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
+import { pctBarColor, timeAgo } from '../utils';
 
 interface Props {
   session: Session;
@@ -21,20 +22,10 @@ function StatusDot({ session, activity }: { session: Session; activity: SessionA
 
 function activityLabel(activity: SessionActivity | undefined): string {
   if (!activity || activity.state === 'idle') return '';
-  if (activity.state === 'thinking') return `Thinking…`;
-  if (activity.state === 'writing') return `Writing…`;
-  if (activity.state === 'tool_use') return `${activity.tool}`;
+  if (activity.state === 'thinking') return 'Thinking…';
+  if (activity.state === 'writing') return 'Writing…';
+  if (activity.state === 'tool_use') return activity.tool;
   return '';
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  return `${h}h ago`;
 }
 
 export default function SessionOverviewCard({ session, onClick }: Props) {
@@ -44,7 +35,6 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
   const contextPct = usage?.latestInputTokens
     ? Math.min(100, Math.round((usage.latestInputTokens / MAX_CONTEXT) * 100))
     : 0;
-  const barColor = contextPct > 80 ? 'bg-red-500' : contextPct > 50 ? 'bg-yellow-500' : 'bg-green-500';
   const label = activityLabel(activity);
   const isTerminated = session.status === 'terminated';
 
@@ -69,12 +59,10 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
         )}
       </div>
 
-      {/* Activity label */}
-      <div className="h-3 mb-2">
-        {label && (
-          <span className="text-[10px] text-gray-400 truncate block">{label}</span>
-        )}
-      </div>
+      {/* Activity label — only rendered when active, no fixed-height spacer */}
+      {label && (
+        <p className="text-[10px] text-gray-400 truncate mb-2">{label}</p>
+      )}
 
       {/* Context bar */}
       <div className="mb-2">
@@ -83,7 +71,7 @@ export default function SessionOverviewCard({ session, onClick }: Props) {
           <span>{contextPct}%</span>
         </div>
         <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
-          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${contextPct}%` }} />
+          <div className={`h-full rounded-full ${pctBarColor(contextPct)}`} style={{ width: `${contextPct}%` }} />
         </div>
       </div>
 

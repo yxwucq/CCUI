@@ -147,23 +147,22 @@ class UsageTracker {
   /** Aggregated summary for a single session, plus latest input_tokens for context gauge */
   getSessionSummary(sessionId: string) {
     const db = getDB();
-    const totals = db.prepare(
+    const row = db.prepare(
       `SELECT COALESCE(SUM(cost), 0) as totalCost,
               COALESCE(SUM(input_tokens), 0) as totalInput,
               COALESCE(SUM(output_tokens), 0) as totalOutput,
-              COUNT(*) as callCount
+              COUNT(*) as callCount,
+              (SELECT input_tokens FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestInput,
+              (SELECT model FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1) as latestModel
        FROM usage_records WHERE session_id = ?`
-    ).get(sessionId) as any;
-    const latest = db.prepare(
-      `SELECT input_tokens, model FROM usage_records WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1`
-    ).get(sessionId) as any;
+    ).get(sessionId, sessionId, sessionId) as any;
     return {
-      totalCost: totals.totalCost as number,
-      totalInput: totals.totalInput as number,
-      totalOutput: totals.totalOutput as number,
-      callCount: totals.callCount as number,
-      latestInputTokens: (latest?.input_tokens as number) || 0,
-      model: (latest?.model as string) || '',
+      totalCost: row.totalCost as number,
+      totalInput: row.totalInput as number,
+      totalOutput: row.totalOutput as number,
+      callCount: row.callCount as number,
+      latestInputTokens: (row.latestInput as number) || 0,
+      model: (row.latestModel as string) || '',
     };
   }
 }
