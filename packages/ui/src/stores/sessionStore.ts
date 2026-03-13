@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { Session, ChatMessage, SessionActivity, UsageRecord, FileActivity } from '@ccui/shared';
+import * as sessionsApi from '../api/sessions';
+import { fetchSessionUsageSummary } from '../api/usage';
 
 export interface SessionUsageSummary {
   latestInputTokens: number;
@@ -64,21 +66,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   chatJumpTarget: {},
 
   fetchSessions: async () => {
-    const res = await fetch('/api/sessions');
-    const sessions = await res.json();
+    const sessions = await sessionsApi.fetchSessions();
     set({ sessions });
   },
 
   createSession: async (projectPath, opts) => {
-    const res = await fetch('/api/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectPath, ...opts }),
-    });
-    const session = await res.json();
-    if (!res.ok || session.error) {
-      throw new Error(session.error || 'Failed to create session');
-    }
+    const session = await sessionsApi.createSession(projectPath, opts);
     set((s) => ({
       sessions: [session, ...s.sessions],
       activeSessionId: session.id,
@@ -158,8 +151,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   fetchMessages: async (sessionId) => {
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/messages`);
-      const messages = await res.json();
+      const messages = await sessionsApi.fetchMessages(sessionId);
       set((s) => ({ messages: { ...s.messages, [sessionId]: messages } }));
     } catch { /* ignore */ }
   },
@@ -189,11 +181,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   resumeSession: async (sessionId) => {
-    const res = await fetch(`/api/sessions/${sessionId}/resume`, { method: 'POST' });
-    const session = await res.json();
-    if (!res.ok || session.error) {
-      throw new Error(session.error || 'Failed to resume session');
-    }
+    await sessionsApi.resumeSession(sessionId);
     set((s) => ({
       sessions: s.sessions.map((sess) =>
         sess.id === sessionId ? { ...sess, status: 'idle' as const } : sess
@@ -205,7 +193,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   terminateSession: async (sessionId) => {
-    await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+    await sessionsApi.terminateSession(sessionId);
     set((s) => ({
       sessions: s.sessions.map((sess) =>
         sess.id === sessionId ? { ...sess, status: 'terminated' as const } : sess
@@ -242,9 +230,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   fetchSessionUsage: async (sessionId) => {
     try {
-      const res = await fetch(`/api/usage/session-summary?sessionId=${sessionId}`);
-      const data = await res.json();
-      if (!data.error) {
+      const data = await fetchSessionUsageSummary(sessionId);
+      if (!(data as any).error) {
         set((s) => ({
           sessionUsage: { ...s.sessionUsage, [sessionId]: data },
         }));

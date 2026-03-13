@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AgentConfig } from '@ccui/shared';
+import * as agentsApi from '../api/agents';
 
 interface AgentStore {
   agents: AgentConfig[];
@@ -16,42 +17,30 @@ export const useAgentStore = create<AgentStore>((set) => ({
   templates: [],
 
   fetchAgents: async () => {
-    const res = await fetch('/api/agents');
-    const agents = await res.json();
+    const agents = await agentsApi.fetchAgents();
     set({ agents });
   },
 
   fetchTemplates: async () => {
-    const res = await fetch('/api/agents/templates');
-    const templates = await res.json();
+    const templates = await agentsApi.fetchAgentTemplates();
     set({ templates });
   },
 
   createAgent: async (data) => {
-    const res = await fetch('/api/agents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const agent = await res.json();
+    const agent = await agentsApi.createAgent(data);
     set((s) => ({ agents: [agent, ...s.agents] }));
     return agent;
   },
 
   updateAgent: async (id, data) => {
-    const res = await fetch(`/api/agents/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const updated = await res.json();
+    const updated = await agentsApi.updateAgent(id, data);
     set((s) => ({
       agents: s.agents.map((a) => (a.id === id ? updated : a)),
     }));
   },
 
   deleteAgent: async (id) => {
-    await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+    await agentsApi.deleteAgent(id);
     set((s) => ({ agents: s.agents.filter((a) => a.id !== id) }));
   },
 }));

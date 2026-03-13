@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { UsageSummary } from '@ccui/shared';
+import * as usageApi from '../api/usage';
 
 export interface SessionUsageRow {
   sessionId: string;
@@ -69,36 +70,26 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
   fetchSummary: async (range, sessionId) => {
     const r = range ?? get().range;
     const sid = sessionId !== undefined ? sessionId : get().selectedSessionId;
-    const params = new URLSearchParams({ range: r });
-    if (sid) params.set('sessionId', sid);
-    const res = await fetch(`/api/usage/summary?${params}`);
-    const summary = await res.json();
+    const summary = await usageApi.fetchUsageSummary(r, sid);
     set({ summary });
   },
 
   fetchDaily: async (range, sessionId) => {
     const r = range ?? get().range;
     const sid = sessionId !== undefined ? sessionId : get().selectedSessionId;
-    const params = new URLSearchParams({ range: r });
-    if (sid) params.set('sessionId', sid);
-    const res = await fetch(`/api/usage/daily?${params}`);
-    const daily = await res.json();
+    const daily = await usageApi.fetchDailyUsage(r, sid);
     set({ daily });
   },
 
   fetchModelUsage: async (sessionId) => {
     const sid = sessionId !== undefined ? sessionId : get().selectedSessionId;
-    const params = sid ? `?sessionId=${sid}` : '';
-    const res = await fetch(`/api/usage/models${params}`);
-    const modelUsage = await res.json();
+    const modelUsage = await usageApi.fetchModelUsage(sid);
     set({ modelUsage });
   },
 
   fetchPerSession: async (range) => {
     const r = range ?? get().range;
-    const params = r ? `?range=${r}` : '';
-    const res = await fetch(`/api/usage/per-session${params}`);
-    const perSession = await res.json();
+    const perSession = await usageApi.fetchPerSessionUsage(r);
     set({ perSession });
   },
 }));

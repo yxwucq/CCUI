@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as configApi from '../api/config';
 
 export interface WidgetDef {
   id: string;
@@ -53,8 +54,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
 
   loadConfig: async () => {
     try {
-      const res = await fetch('/api/config');
-      const config = await res.json();
+      const config = await configApi.loadConfig();
       set({
         defaultWidgets: config.defaultWidgets
           ? migrateWidgets(config.defaultWidgets)
@@ -105,11 +105,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
       ),
     };
     try {
-      await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
-      });
+      await configApi.saveConfig(config);
     } catch { /* best effort */ }
   },
 }));
