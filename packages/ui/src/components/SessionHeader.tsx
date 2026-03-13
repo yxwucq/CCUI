@@ -1,4 +1,3 @@
-import { useSessionStore } from '../stores/sessionStore';
 import { DisplayStatus, STATUS_CONFIG } from './sessionStatus';
 import WidgetSelector from './widgets/WidgetSelector';
 import LiveTimeAgo from './LiveTimeAgo';
@@ -9,6 +8,7 @@ import {
   Unplug, MessageCircleQuestion,
 } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
+import type { WidgetConfig } from '../stores/widgetStore';
 
 type ViewMode = 'terminal' | 'chat';
 
@@ -16,19 +16,21 @@ interface Props {
   session: Session;
   displayStatus: DisplayStatus;
   viewMode: ViewMode;
+  isExpanded: boolean;
+  isFocused: boolean;
+  activity?: SessionActivity;
+  enabledWidgets: WidgetConfig[];
   onSetViewMode: (mode: ViewMode) => void;
   onClearDone: () => void;
   onToggleExpanded?: (id: string) => void;
+  onToggleFocus: (id: string) => void;
+  onTerminate: (id: string) => void;
+  onResume: (id: string) => Promise<void>;
+  onToggleWidget: (sessionId: string, widgetId: string) => void;
+  onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
 }
 
-export default function SessionHeader({ session, displayStatus, viewMode, onSetViewMode, onClearDone, onToggleExpanded }: Props) {
-  const isExpanded = useSessionStore((s) => !!s.expandedSessions[session.id]);
-  const isFocused = useSessionStore((s) => s.focusedSessionId === session.id);
-  const toggleExpanded = useSessionStore((s) => s.toggleExpanded);
-  const toggleFocus = useSessionStore((s) => s.toggleFocus);
-  const terminateSession = useSessionStore((s) => s.terminateSession);
-  const resumeSession = useSessionStore((s) => s.resumeSession);
-  const activity = useSessionStore((s) => s.activities[session.id]) as SessionActivity | undefined;
+export default function SessionHeader({ session, displayStatus, viewMode, isExpanded, isFocused, activity, enabledWidgets, onSetViewMode, onClearDone, onToggleExpanded, onToggleFocus, onTerminate, onResume, onToggleWidget, onSetWidgetSize }: Props) {
 
   const sc = STATUS_CONFIG[displayStatus];
   const isRunning = displayStatus === 'thinking' || displayStatus === 'tool_use' || displayStatus === 'writing';
@@ -37,7 +39,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, onSetV
   return (
     <div
       className="relative flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
-      onClick={() => { (onToggleExpanded ?? toggleExpanded)(session.id); if (!isExpanded) onClearDone(); }}
+      onClick={() => { if (onToggleExpanded) onToggleExpanded(session.id); if (!isExpanded) onClearDone(); }}
     >
       {/* Status tint overlay */}
       <div
@@ -138,11 +140,11 @@ export default function SessionHeader({ session, displayStatus, viewMode, onSetV
             </button>
           </div>
         )}
-        {isExpanded && <WidgetSelector sessionId={session.id} />}
+        {isExpanded && <WidgetSelector sessionId={session.id} enabled={enabledWidgets} onToggleWidget={onToggleWidget} onSetWidgetSize={onSetWidgetSize} />}
         {/* Focus/unfocus button */}
         {isExpanded && (
           <button
-            onClick={() => toggleFocus(session.id)}
+            onClick={() => onToggleFocus(session.id)}
             className="p-1 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors"
             title={isFocused ? 'Exit focus (Esc)' : 'Focus this session'}
           >
@@ -151,7 +153,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, onSetV
         )}
         {session.status !== 'terminated' && (
           <button
-            onClick={() => terminateSession(session.id)}
+            onClick={() => onTerminate(session.id)}
             className="p-1 text-red-400/60 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors"
             title="Stop session"
           >
@@ -161,14 +163,14 @@ export default function SessionHeader({ session, displayStatus, viewMode, onSetV
         {session.status === 'terminated' && (
           <>
             <button
-              onClick={() => resumeSession(session.id).catch((e: any) => alert(e.message))}
+              onClick={() => onResume(session.id).catch((e: any) => alert(e.message))}
               className="p-1 text-green-400 hover:bg-green-900/30 rounded transition-colors"
               title="Resume session"
             >
               <Play size={13} />
             </button>
             <button
-              onClick={() => terminateSession(session.id)}
+              onClick={() => onTerminate(session.id)}
               className="p-1 text-gray-500 hover:bg-gray-800 rounded transition-colors"
               title="Remove session"
             >

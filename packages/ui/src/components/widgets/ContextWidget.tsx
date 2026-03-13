@@ -1,28 +1,27 @@
 import { useEffect, useMemo } from 'react';
-import { useSessionStore } from '../../stores/sessionStore';
 import { Cpu } from 'lucide-react';
 import { pctBarColor } from '../../utils';
 import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
+import type { ChatMessage } from '@ccui/shared';
+import type { SessionUsageSummary } from '../../stores/sessionStore';
 
 interface Props {
   sessionId: string;
   size: 'sm' | 'lg';
+  messages: ChatMessage[];
+  streaming: string;
+  sessionUsage?: SessionUsageSummary;
+  fetchSessionUsage: (sessionId: string) => Promise<void>;
 }
 
 const MAX_CONTEXT = 200000;
-const EMPTY: never[] = [];
 
 function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
 }
 
-export default function ContextWidget({ sessionId, size }: Props) {
-  const messages = useSessionStore((s) => s.messages[sessionId] ?? EMPTY);
-  const streaming = useSessionStore((s) => s.streamingContent[sessionId] ?? '');
-  const sessionUsage = useSessionStore((s) => s.sessionUsage[sessionId]);
-  const fetchSessionUsage = useSessionStore((s) => s.fetchSessionUsage);
-
+export default function ContextWidget({ sessionId, size, messages, streaming, sessionUsage, fetchSessionUsage }: Props) {
   const [containerRef, containerHeight] = useContainerHeight();
   const renderSize = effectiveSize(size, containerHeight);
 

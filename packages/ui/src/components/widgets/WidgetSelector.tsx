@@ -1,16 +1,17 @@
-import { useWidgetStore, AVAILABLE_WIDGETS } from '../../stores/widgetStore';
+import { AVAILABLE_WIDGETS } from '../../stores/widgetStore';
+import type { WidgetConfig } from '../../stores/widgetStore';
 import { Settings, Check } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
   sessionId: string;
+  enabled: WidgetConfig[];
+  onToggleWidget: (sessionId: string, widgetId: string) => void;
+  onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
 }
 
-export default function WidgetSelector({ sessionId }: Props) {
+export default function WidgetSelector({ sessionId, enabled, onToggleWidget, onSetWidgetSize }: Props) {
   const [open, setOpen] = useState(false);
-  const toggleWidget = useWidgetStore((s) => s.toggleWidget);
-  const setWidgetSize = useWidgetStore((s) => s.setWidgetSize);
-  const enabled = useWidgetStore((s) => s.sessionWidgets[sessionId] ?? s.defaultWidgets);
 
   return (
     <div className="relative">
@@ -36,7 +37,7 @@ export default function WidgetSelector({ sessionId }: Props) {
                 <div key={w.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800 transition-colors">
                   {/* Checkbox toggle */}
                   <button
-                    onClick={() => toggleWidget(sessionId, w.id)}
+                    onClick={() => onToggleWidget(sessionId, w.id)}
                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
                   >
                     <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
@@ -57,7 +58,7 @@ export default function WidgetSelector({ sessionId }: Props) {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
-                        onClick={() => setWidgetSize(sessionId, w.id, 'sm')}
+                        onClick={() => onSetWidgetSize(sessionId, w.id, 'sm')}
                         className={`px-1.5 py-0.5 text-xs font-mono transition-colors ${
                           size === 'sm' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
                         }`}
@@ -66,7 +67,7 @@ export default function WidgetSelector({ sessionId }: Props) {
                         S
                       </button>
                       <button
-                        onClick={() => setWidgetSize(sessionId, w.id, 'lg')}
+                        onClick={() => onSetWidgetSize(sessionId, w.id, 'lg')}
                         className={`px-1.5 py-0.5 text-xs font-mono transition-colors ${
                           size === 'lg' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
                         }`}

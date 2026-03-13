@@ -1,9 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useSessionStore } from '../stores/sessionStore';
 import {
   LayoutDashboard, MessageSquare, FolderOpen, Bot,
   FileCode, GitBranch,
 } from 'lucide-react';
+import type { Session } from '@ccui/shared';
 
 const navItems = [
   { to: '/', icon: MessageSquare, label: 'Sessions' },
@@ -13,10 +13,13 @@ const navItems = [
   { to: '/files', icon: FileCode, label: 'Files' },
 ];
 
-export default function Sidebar() {
-  const sessions = useSessionStore((s) => s.sessions);
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const toggleExpanded = useSessionStore((s) => s.toggleExpanded);
+interface Props {
+  sessions: Session[];
+  activeSessionId: string | null;
+  onToggleExpanded: (id: string) => void;
+}
+
+export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }: Props) {
   const navigate = useNavigate();
 
   const activeSessions = sessions.filter((s) => s.status === 'active');
@@ -59,7 +62,7 @@ export default function Sidebar() {
               key={s.id}
               onClick={() => {
                 navigate('/');
-                toggleExpanded(s.id);
+                onToggleExpanded(s.id);
               }}
               className={`w-full text-left px-3 py-1.5 rounded text-xs transition-colors ${
                 activeSessionId === s.id

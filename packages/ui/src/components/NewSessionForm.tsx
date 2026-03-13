@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useSessionStore } from '../stores/sessionStore';
-import { useAgentStore } from '../stores/agentStore';
 import { fetchProjectInfo, fetchGitBranches } from '../api/projects';
 import { GitBranch, AlertTriangle } from 'lucide-react';
+import type { AgentConfig, Session } from '@ccui/shared';
 
 interface Props {
   onClose: () => void;
+  agents: AgentConfig[];
+  fetchAgents: () => Promise<void>;
+  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean }) => Promise<Session>;
 }
 
-export default function NewSessionForm({ onClose }: Props) {
-  const createSession = useSessionStore((s) => s.createSession);
-  const agents = useAgentStore((s) => s.agents);
-  const fetchAgents = useAgentStore((s) => s.fetchAgents);
+export default function NewSessionForm({ onClose, agents, fetchAgents, createSession }: Props) {
 
   const [newBranch, setNewBranch] = useState('');
   const [newName, setNewName] = useState('');

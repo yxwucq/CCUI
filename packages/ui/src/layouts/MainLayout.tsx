@@ -13,6 +13,10 @@ import ToastContainer from '../components/ToastContainer';
 export default function MainLayout() {
   const { status } = useWebSocket();
   const fetchSessions = useSessionStore((s) => s.fetchSessions);
+  const sessions = useSessionStore((s) => s.sessions);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const toggleExpanded = useSessionStore((s) => s.toggleExpanded);
+  const usageRefreshKey = useSessionStore((s) => s.usageRefreshKey);
   const loadConfig = useWidgetStore((s) => s.loadConfig);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
@@ -26,7 +30,7 @@ export default function MainLayout() {
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100">
       {/* Sidebar — collapsible */}
-      {sidebarOpen && <Sidebar />}
+      {sidebarOpen && <Sidebar sessions={sessions} activeSessionId={activeSessionId} onToggleExpanded={toggleExpanded} />}
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
@@ -42,7 +46,7 @@ export default function MainLayout() {
             <span className="text-xs font-semibold text-gray-400">CCUI</span>
           </div>
           <div className="flex items-center gap-3">
-            <QuotaGauge />
+            <QuotaGauge usageRefreshKey={usageRefreshKey} />
             <div className="flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${
                 status === 'connected' ? 'bg-green-500' :

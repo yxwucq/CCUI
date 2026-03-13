@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { GitBranch, FileEdit, FilePlus, FileMinus, FileQuestion, RefreshCw, Circle } from 'lucide-react';
+import { GitBranch, FileEdit, FilePlus, FileMinus, FileQuestion, RefreshCw } from 'lucide-react';
 import type { Session } from '@ccui/shared';
-import { useSessionStore } from '../../stores/sessionStore';
 import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
 
 interface Props {
@@ -48,17 +47,14 @@ export default function GitStatusWidget({ sessionId, session, size }: Props) {
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
   // Auto-refresh when session goes active → idle
-  const sessionStatus = useSessionStore(
-    (s) => s.sessions.find((sess) => sess.id === sessionId)?.status
-  );
-  const prevStatusRef = useRef(sessionStatus);
+  const prevStatusRef = useRef(session.status);
   useEffect(() => {
     const prev = prevStatusRef.current;
-    prevStatusRef.current = sessionStatus;
-    if (prev === 'active' && sessionStatus === 'idle') {
+    prevStatusRef.current = session.status;
+    if (prev === 'active' && session.status === 'idle') {
       fetchStatus();
     }
-  }, [sessionStatus, fetchStatus]);
+  }, [session.status, fetchStatus]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

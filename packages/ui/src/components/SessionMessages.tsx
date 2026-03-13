@@ -1,21 +1,19 @@
 import { useRef, useEffect, useState } from 'react';
-import { useSessionStore } from '../stores/sessionStore';
 import { sendWsMessage } from '../hooks/useWebSocket';
 import ChatMessage from './ChatMessage';
 import { Send } from 'lucide-react';
-import type { Session } from '@ccui/shared';
-
-const EMPTY_MSGS: never[] = [];
+import type { Session, ChatMessage as ChatMessageType } from '@ccui/shared';
 
 interface Props {
   session: Session;
   isRunning: boolean;
+  messages: ChatMessageType[];
+  streaming: string;
+  appendMessage: (sessionId: string, msg: ChatMessageType) => void;
   onClearDone: () => void;
 }
 
-export default function SessionMessages({ session, isRunning, onClearDone }: Props) {
-  const sessionMessages = useSessionStore((s) => s.messages[session.id] ?? EMPTY_MSGS);
-  const streaming = useSessionStore((s) => s.streamingContent[session.id] ?? '');
+export default function SessionMessages({ session, isRunning, messages: sessionMessages, streaming, appendMessage, onClearDone }: Props) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +24,7 @@ export default function SessionMessages({ session, isRunning, onClearDone }: Pro
   const handleSend = () => {
     if (!input.trim()) return;
     onClearDone();
-    useSessionStore.getState().appendMessage(session.id, {
+    appendMessage(session.id, {
       id: crypto.randomUUID(),
       sessionId: session.id,
       role: 'user',

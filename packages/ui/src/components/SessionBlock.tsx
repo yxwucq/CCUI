@@ -1,33 +1,42 @@
 import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
-import { useSessionStore } from '../stores/sessionStore';
-import { useWidgetStore } from '../stores/widgetStore';
 import { useDisplayStatus, STATUS_CONFIG } from './sessionStatus';
 import SessionHeader from './SessionHeader';
 import SessionMessages from './SessionMessages';
 import SessionWidgetBar from './SessionWidgetBar';
 import { Play, Unplug } from 'lucide-react';
-import type { Session, SessionActivity } from '@ccui/shared';
+import type { Session, SessionActivity, ChatMessage } from '@ccui/shared';
+import type { WidgetConfig } from '../stores/widgetStore';
+import type { SessionUsageSummary } from '../stores/sessionStore';
 
 const XTerminal = lazy(() => import('./XTerminal'));
 
 interface Props {
   session: Session;
+  isExpanded: boolean;
+  isFocused: boolean;
+  activity?: SessionActivity;
+  jumpTarget?: string | null;
+  enabledWidgets: WidgetConfig[];
+  messages: ChatMessage[];
+  streaming: string;
+  sessionUsage?: SessionUsageSummary;
+  usageCalls: Array<{ cost: number }>;
   highlighted?: boolean;
   scrollMode?: boolean;
   onToggleExpanded?: (id: string) => void;
+  onToggleFocus: (id: string) => void;
+  onTerminate: (id: string) => void;
+  onResume: (id: string) => Promise<void>;
+  onSetExpanded: (id: string, open: boolean) => void;
+  onAppendMessage: (sessionId: string, msg: ChatMessage) => void;
+  onClearJumpTarget: (id: string) => void;
+  fetchSessionUsage: (sessionId: string) => Promise<void>;
+  setChatJumpTarget: (sessionId: string, messageId: string) => void;
+  onToggleWidget: (sessionId: string, widgetId: string) => void;
+  onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
 }
 
-export default function SessionBlock({ session, highlighted, scrollMode, onToggleExpanded }: Props) {
-  const isExpanded = useSessionStore((s) => !!s.expandedSessions[session.id]);
-  const isFocused = useSessionStore((s) => s.focusedSessionId === session.id);
-  const toggleFocus = useSessionStore((s) => s.toggleFocus);
-  const resumeSession = useSessionStore((s) => s.resumeSession);
-  const activity = useSessionStore((s) => s.activities[session.id]) as SessionActivity | undefined;
-  const jumpTarget = useSessionStore((s) => s.chatJumpTarget[session.id]);
-  const enabledWidgets = useWidgetStore((s) => {
-    const sw = s.sessionWidgets[session.id];
-    return sw ?? s.defaultWidgets;
-  });
+export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, streaming, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onTerminate, onResume, onSetExpanded, onAppendMessage, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
 
   const [viewMode, setViewMode] = useState<'terminal' | 'chat'>('terminal');
   const [terminalMounted, setTerminalMounted] = useState(false);
@@ -73,19 +82,19 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
   useEffect(() => {
     if (!isFocused) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') toggleFocus(session.id);
+      if (e.key === 'Escape') onToggleFocus(session.id);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isFocused, session.id, toggleFocus]);
+  }, [isFocused, session.id, onToggleFocus]);
 
   // Jump to a specific message from HistoryWidget
   useEffect(() => {
     if (!jumpTarget) return;
-    useSessionStore.getState().setExpanded(session.id, true);
+    onSetExpanded(session.id, true);
     setViewMode('chat');
     const msgId = jumpTarget;
-    useSessionStore.getState().clearChatJumpTarget(session.id);
+    onClearJumpTarget(session.id);
     const t = setTimeout(() => {
       document.querySelector(`[data-msg-id="${msgId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 250);
@@ -100,9 +109,18 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
         session={session}
         displayStatus={displayStatus}
         viewMode={viewMode}
+        isExpanded={isExpanded}
+        isFocused={isFocused}
+        activity={activity}
+        enabledWidgets={enabledWidgets}
         onSetViewMode={setViewMode}
         onClearDone={clearDone}
         onToggleExpanded={onToggleExpanded}
+        onToggleFocus={onToggleFocus}
+        onTerminate={onTerminate}
+        onResume={onResume}
+        onToggleWidget={onToggleWidget}
+        onSetWidgetSize={onSetWidgetSize}
       />
 
       {/* Activity stripe — visible when collapsed and running */}
@@ -133,7 +151,7 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
                   <Unplug size={24} />
                   <p className="text-sm">Session terminated</p>
                   <button
-                    onClick={() => resumeSession(session.id).catch((e: any) => alert(e.message))}
+                    onClick={() => onResume(session.id).catch((e: any) => alert(e.message))}
                     className="flex items-center gap-2 px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
                   >
                     <Play size={13} />
@@ -151,17 +169,17 @@ export default function SessionBlock({ session, highlighted, scrollMode, onToggl
             </div>
             {/* Widget pane */}
             <div className="min-h-0 flex flex-col overflow-hidden bg-gray-950/30" style={{ width: `${(1 - splitRatio) * 100}%` }}>
-              <SessionWidgetBar sessionId={session.id} session={session} emptyMessage="Use widget selector to add panels" />
+              <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} streaming={streaming} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} emptyMessage="Use widget selector to add panels" />
             </div>
           </div>
 
           {/* Chat mode */}
           {viewMode === 'chat' && (
             <div className="flex flex-1 min-h-0">
-              <SessionMessages session={session} isRunning={isRunning} onClearDone={clearDone} />
+              <SessionMessages session={session} isRunning={isRunning} messages={messages} streaming={streaming} appendMessage={onAppendMessage} onClearDone={clearDone} />
               {enabledWidgets.length > 0 && (
                 <div className="w-72 shrink-0 flex flex-col overflow-hidden bg-gray-950/30">
-                  <SessionWidgetBar sessionId={session.id} session={session} />
+                  <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} streaming={streaming} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} />
                 </div>
               )}
             </div>

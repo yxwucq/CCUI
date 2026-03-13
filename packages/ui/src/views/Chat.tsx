@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
+import { useAgentStore } from '../stores/agentStore';
+import { useWidgetStore } from '../stores/widgetStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import NewSessionForm from '../components/NewSessionForm';
@@ -7,10 +9,13 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { Plus, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, ChevronRight } from 'lucide-react';
 import { Session } from '@ccui/shared';
 
-function TerminatedSection({ sessions, layoutMode, onToggleExpanded }: {
+const EMPTY_MSGS: never[] = [];
+const EMPTY_CALLS: never[] = [];
+
+function TerminatedSection({ sessions, layoutMode, children }: {
   sessions: Session[];
   layoutMode: 'accordion' | 'scroll';
-  onToggleExpanded: (id: string) => void;
+  children: (s: Session) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -24,15 +29,7 @@ function TerminatedSection({ sessions, layoutMode, onToggleExpanded }: {
       </button>
       {open && (
         <div className="flex flex-col gap-1.5 mt-0.5">
-          {sessions.map((s) => (
-            <ErrorBoundary key={s.id}>
-              <SessionBlock
-                session={s}
-                scrollMode={layoutMode === 'scroll'}
-                onToggleExpanded={onToggleExpanded}
-              />
-            </ErrorBoundary>
-          ))}
+          {sessions.map((s) => children(s))}
         </div>
       )}
     </div>
@@ -44,6 +41,29 @@ export default function Chat() {
   const fetchSessions = useSessionStore((s) => s.fetchSessions);
   const focusedSessionId = useSessionStore((s) => s.focusedSessionId);
   const toggleFocus = useSessionStore((s) => s.toggleFocus);
+  const expandedSessions = useSessionStore((s) => s.expandedSessions);
+  const terminateSession = useSessionStore((s) => s.terminateSession);
+  const resumeSession = useSessionStore((s) => s.resumeSession);
+  const setExpanded = useSessionStore((s) => s.setExpanded);
+  const appendMessage = useSessionStore((s) => s.appendMessage);
+  const clearChatJumpTarget = useSessionStore((s) => s.clearChatJumpTarget);
+  const fetchSessionUsage = useSessionStore((s) => s.fetchSessionUsage);
+  const setChatJumpTarget = useSessionStore((s) => s.setChatJumpTarget);
+  const allMessages = useSessionStore((s) => s.messages);
+  const allStreaming = useSessionStore((s) => s.streamingContent);
+  const allActivities = useSessionStore((s) => s.activities);
+  const allSessionUsage = useSessionStore((s) => s.sessionUsage);
+  const allUsageCalls = useSessionStore((s) => s.usageCalls);
+  const allJumpTargets = useSessionStore((s) => s.chatJumpTarget);
+
+  const agents = useAgentStore((s) => s.agents);
+  const fetchAgents = useAgentStore((s) => s.fetchAgents);
+  const createSession = useSessionStore((s) => s.createSession);
+
+  const toggleWidget = useWidgetStore((s) => s.toggleWidget);
+  const setWidgetSize = useWidgetStore((s) => s.setWidgetSize);
+  const allSessionWidgets = useWidgetStore((s) => s.sessionWidgets);
+  const defaultWidgets = useWidgetStore((s) => s.defaultWidgets);
 
   const [showNewSession, setShowNewSession] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -120,6 +140,29 @@ export default function Chat() {
   const isFocused = !!focusedSessionId;
   const focusedSession = isFocused ? sessions.find((s) => s.id === focusedSessionId) : null;
 
+  const sessionBlockProps = useCallback((s: Session) => ({
+    session: s,
+    isExpanded: !!expandedSessions[s.id],
+    isFocused: focusedSessionId === s.id,
+    activity: allActivities[s.id],
+    jumpTarget: allJumpTargets[s.id],
+    enabledWidgets: allSessionWidgets[s.id] ?? defaultWidgets,
+    messages: allMessages[s.id] ?? EMPTY_MSGS,
+    streaming: allStreaming[s.id] ?? '',
+    sessionUsage: allSessionUsage[s.id],
+    usageCalls: allUsageCalls[s.id] ?? EMPTY_CALLS,
+    onToggleFocus: toggleFocus,
+    onTerminate: terminateSession,
+    onResume: resumeSession,
+    onSetExpanded: setExpanded,
+    onAppendMessage: appendMessage,
+    onClearJumpTarget: clearChatJumpTarget,
+    fetchSessionUsage,
+    setChatJumpTarget,
+    onToggleWidget: toggleWidget,
+    onSetWidgetSize: setWidgetSize,
+  }), [expandedSessions, focusedSessionId, allActivities, allJumpTargets, allSessionWidgets, defaultWidgets, allMessages, allStreaming, allSessionUsage, allUsageCalls, toggleFocus, terminateSession, resumeSession, setExpanded, appendMessage, clearChatJumpTarget, fetchSessionUsage, setChatJumpTarget, toggleWidget, setWidgetSize]);
+
   return (
     <div className="h-full flex flex-col">
       {/* Header — hidden in focus mode */}
@@ -179,7 +222,7 @@ export default function Chat() {
       )}
 
       {/* New session form */}
-      {showNewSession && !isFocused && <NewSessionForm onClose={() => setShowNewSession(false)} />}
+      {showNewSession && !isFocused && <NewSessionForm onClose={() => setShowNewSession(false)} agents={agents} fetchAgents={fetchAgents} createSession={createSession} />}
 
       {/* Main area */}
       <div className={`flex-1 p-2 gap-1.5 ${layoutMode === 'scroll' ? 'overflow-y-auto flex flex-col' : 'flex flex-col min-h-0'}`}>
@@ -193,7 +236,7 @@ export default function Chat() {
         )}
 
         {isFocused && focusedSession && (
-          <ErrorBoundary><SessionBlock session={focusedSession} /></ErrorBoundary>
+          <ErrorBoundary><SessionBlock {...sessionBlockProps(focusedSession)} /></ErrorBoundary>
         )}
 
         {!isFocused && viewMode === 'grid' && (
@@ -205,7 +248,7 @@ export default function Chat() {
               <>
                 <p className="text-xs text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
                 <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                  {activeSessions.map((s) => <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />)}
+                  {activeSessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />)}
                 </div>
               </>
             )}
@@ -213,7 +256,7 @@ export default function Chat() {
               <>
                 <p className="text-xs text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
                 <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                  {terminatedSessions.map((s) => <SessionOverviewCard key={s.id} session={s} onClick={() => toggleFocus(s.id)} />)}
+                  {terminatedSessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />)}
                 </div>
               </>
             )}
@@ -224,11 +267,17 @@ export default function Chat() {
           <>
             {activeSessions.map((s) => (
               <ErrorBoundary key={s.id}>
-                <SessionBlock session={s} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
+                <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
               </ErrorBoundary>
             ))}
             {terminatedSessions.length > 0 && (
-              <TerminatedSection sessions={terminatedSessions} layoutMode={layoutMode} onToggleExpanded={handleToggleExpanded} />
+              <TerminatedSection sessions={terminatedSessions} layoutMode={layoutMode}>
+                {(s) => (
+                  <ErrorBoundary key={s.id}>
+                    <SessionBlock {...sessionBlockProps(s)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
+                  </ErrorBoundary>
+                )}
+              </TerminatedSection>
             )}
           </>
         )}

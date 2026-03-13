@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSessionStore } from '../../stores/sessionStore';
 import { Activity, Plus, Minus, FileCode } from 'lucide-react';
 import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
+import type { Session } from '@ccui/shared';
 
 interface Props {
   sessionId: string;
+  session: Session;
   size: 'sm' | 'lg';
 }
 
@@ -17,7 +18,7 @@ interface DiffStat {
 
 const EMPTY_STAT: DiffStat = { files: [], totalAdded: 0, totalDeleted: 0, totalFiles: 0 };
 
-export default function FileActivityWidget({ sessionId, size }: Props) {
+export default function FileActivityWidget({ sessionId, session, size }: Props) {
   const [stat, setStat] = useState<DiffStat>(EMPTY_STAT);
   const [containerRef, containerHeight] = useContainerHeight();
   const renderSize = effectiveSize(size, containerHeight);
@@ -33,17 +34,14 @@ export default function FileActivityWidget({ sessionId, size }: Props) {
   useEffect(() => { fetchStat(); }, [fetchStat]);
 
   // Auto-refresh when session goes active → idle (run finished)
-  const sessionStatus = useSessionStore(
-    (s) => s.sessions.find((sess) => sess.id === sessionId)?.status
-  );
-  const prevStatusRef = useRef(sessionStatus);
+  const prevStatusRef = useRef(session.status);
   useEffect(() => {
     const prev = prevStatusRef.current;
-    prevStatusRef.current = sessionStatus;
-    if (prev === 'active' && sessionStatus === 'idle') {
+    prevStatusRef.current = session.status;
+    if (prev === 'active' && session.status === 'idle') {
       fetchStat();
     }
-  }, [sessionStatus, fetchStat]);
+  }, [session.status, fetchStat]);
 
   const { totalAdded, totalDeleted, totalFiles, files } = stat;
   const hasChanges = totalFiles > 0;

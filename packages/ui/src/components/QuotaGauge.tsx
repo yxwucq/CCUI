@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSessionStore } from '../stores/sessionStore';
 import { useToastStore } from '../stores/toastStore';
 import { pctBarColor } from '../utils';
 
@@ -10,9 +9,12 @@ interface TodaySummary {
   calls: number;
 }
 
-export default function QuotaGauge() {
+interface Props {
+  usageRefreshKey: number;
+}
+
+export default function QuotaGauge({ usageRefreshKey }: Props) {
   const [today, setToday] = useState<TodaySummary | null>(null);
-  const usageRefreshKey = useSessionStore((s) => s.usageRefreshKey);
   const prevPctRef = useRef<number | null>(null);
 
   useEffect(() => {

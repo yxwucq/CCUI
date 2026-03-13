@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
-import { useSessionStore } from '../../stores/sessionStore';
 import { MessageSquare, User } from 'lucide-react';
 import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
-import type { Session } from '@ccui/shared';
+import type { Session, ChatMessage } from '@ccui/shared';
 
 interface Props {
   sessionId: string;
   session?: Session;
   size: 'sm' | 'lg';
+  messages: ChatMessage[];
+  callCount: number;
+  setChatJumpTarget: (sessionId: string, messageId: string) => void;
 }
 
 function formatDuration(ms: number): string {
@@ -18,12 +20,7 @@ function formatDuration(ms: number): string {
   return `${h}h ${m}m`;
 }
 
-const EMPTY: never[] = [];
-
-export default function HistoryWidget({ sessionId, session, size }: Props) {
-  const messages = useSessionStore((s) => s.messages[sessionId] ?? EMPTY);
-  const callCount = useSessionStore((s) => s.sessionUsage[sessionId]?.callCount ?? 0);
-  const setChatJumpTarget = useSessionStore((s) => s.setChatJumpTarget);
+export default function HistoryWidget({ sessionId, session, size, messages, callCount, setChatJumpTarget }: Props) {
   const [containerRef, containerHeight] = useContainerHeight();
   const renderSize = effectiveSize(size, containerHeight);
 

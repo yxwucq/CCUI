@@ -1,15 +1,16 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { useSessionStore } from '../../stores/sessionStore';
 import { DollarSign } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
+import type { SessionUsageSummary } from '../../stores/sessionStore';
 
 interface Props {
   sessionId: string;
   size: 'sm' | 'lg';
+  usage?: SessionUsageSummary;
+  callHistory: Array<{ cost: number }>;
+  fetchSessionUsage: (sessionId: string) => Promise<void>;
 }
-
-const EMPTY_CALLS: never[] = [];
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -17,11 +18,7 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-export default function UsageWidget({ sessionId, size }: Props) {
-  const usage = useSessionStore((s) => s.sessionUsage[sessionId]);
-  const callHistory = useSessionStore((s) => s.usageCalls[sessionId] ?? EMPTY_CALLS);
-  const fetchSessionUsage = useSessionStore((s) => s.fetchSessionUsage);
-
+export default function UsageWidget({ sessionId, size, usage, callHistory, fetchSessionUsage }: Props) {
   const [containerRef, containerHeight] = useContainerHeight();
   const renderSize = effectiveSize(size, containerHeight);
 

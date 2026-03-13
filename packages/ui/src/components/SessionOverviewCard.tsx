@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSessionStore } from '../stores/sessionStore';
 import { GitBranch, Brain, Wrench, Pen, Circle, Unplug, Loader, AlertTriangle, MessageCircleQuestion, FileDiff, CircleCheck } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
+import type { SessionUsageSummary } from '../stores/sessionStore';
 import { pctBarColor } from '../utils';
 import LiveTimeAgo from './LiveTimeAgo';
 
 interface Props {
   session: Session;
+  activity?: SessionActivity;
+  usage?: SessionUsageSummary;
   onClick: () => void;
 }
 
@@ -125,9 +127,7 @@ function useGitDiffStat(sessionId: string, activity: SessionActivity | undefined
   return stat;
 }
 
-export default function SessionOverviewCard({ session, onClick }: Props) {
-  const activity = useSessionStore((s) => s.activities[session.id]);
-  const usage = useSessionStore((s) => s.sessionUsage[session.id]);
+export default function SessionOverviewCard({ session, activity, usage, onClick }: Props) {
   const diffStat = useGitDiffStat(session.id, activity);
   const cardStatus = useCardStatus(session, activity);
   const sc = CARD_STATUS[cardStatus];
