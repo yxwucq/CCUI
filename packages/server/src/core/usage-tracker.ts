@@ -2,13 +2,27 @@ import { v4 as uuid } from 'uuid';
 import { getDB } from '../db/database.js';
 import type { UsageRecord, UsageSummary } from '@ccui/shared';
 
-// Model pricing per million tokens (USD), matched by prefix after stripping date suffix
+// Model pricing per million tokens (USD).
+// Matched by prefix after stripping trailing date suffix (e.g. -20251101).
+// Order matters: more specific prefixes must come before shorter ones.
 const MODEL_PRICING = [
-  { prefix: 'claude-opus-4',     price: { input: 15,  output: 75 } },
-  { prefix: 'claude-sonnet-4',   price: { input: 3,   output: 15 } },
-  { prefix: 'claude-sonnet-3-5', price: { input: 3,   output: 15 } },
-  { prefix: 'claude-haiku-4',    price: { input: 0.8, output: 4  } },
-  { prefix: 'claude-haiku-3-5',  price: { input: 0.8, output: 4  } },
+  // Opus 4.5 / 4.6 — $5 / $25
+  { prefix: 'claude-opus-4-5',   price: { input: 5,    output: 25   } },
+  { prefix: 'claude-opus-4-6',   price: { input: 5,    output: 25   } },
+  // Opus 4.0 / 4.1 — $15 / $75
+  { prefix: 'claude-opus-4',     price: { input: 15,   output: 75   } },
+  // Sonnet 4.x — $3 / $15
+  { prefix: 'claude-sonnet-4',   price: { input: 3,    output: 15   } },
+  // Claude 3.5 Sonnet (claude-3-5-sonnet-...) — $3 / $15
+  { prefix: 'claude-3-5-sonnet', price: { input: 3,    output: 15   } },
+  // Haiku 4.5 — $1 / $5
+  { prefix: 'claude-haiku-4-5',  price: { input: 1,    output: 5    } },
+  // Haiku 4.x fallback — $1 / $5
+  { prefix: 'claude-haiku-4',    price: { input: 1,    output: 5    } },
+  // Claude 3.5 Haiku (claude-3-5-haiku-...) — $0.8 / $4
+  { prefix: 'claude-3-5-haiku',  price: { input: 0.8,  output: 4    } },
+  // Claude 3 Haiku (deprecated) — $0.25 / $1.25
+  { prefix: 'claude-3-haiku',    price: { input: 0.25, output: 1.25 } },
 ];
 
 function getPrice(model: string): { input: number; output: number } | null {
