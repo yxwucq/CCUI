@@ -38,24 +38,32 @@ function migrateWidgets(raw: any[]): WidgetConfig[] {
 interface WidgetStore {
   sessionWidgets: Record<string, WidgetConfig[]>;
   defaultWidgets: WidgetConfig[];
+  appName: string;
   loaded: boolean;
 
   loadConfig: () => Promise<void>;
   getWidgets: (sessionId: string) => WidgetConfig[];
   toggleWidget: (sessionId: string, widgetId: string) => void;
   setWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
+  setAppName: (name: string) => void;
   saveConfig: () => Promise<void>;
 }
+
+const DEFAULT_APP_NAME = 'CCUI';
 
 export const useWidgetStore = create<WidgetStore>((set, get) => ({
   sessionWidgets: {},
   defaultWidgets: DEFAULT_WIDGETS,
+  appName: DEFAULT_APP_NAME,
   loaded: false,
 
   loadConfig: async () => {
     try {
       const config = await configApi.loadConfig();
+      const appName = config.appName || DEFAULT_APP_NAME;
+      document.title = appName;
       set({
+        appName,
         defaultWidgets: config.defaultWidgets
           ? migrateWidgets(config.defaultWidgets)
           : DEFAULT_WIDGETS,
@@ -96,9 +104,17 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     get().saveConfig();
   },
 
+  setAppName: (name) => {
+    const trimmed = name.trim() || DEFAULT_APP_NAME;
+    document.title = trimmed;
+    set({ appName: trimmed });
+    get().saveConfig();
+  },
+
   saveConfig: async () => {
-    const { defaultWidgets, sessionWidgets } = get();
+    const { defaultWidgets, sessionWidgets, appName } = get();
     const config = {
+      appName,
       defaultWidgets,
       sessions: Object.fromEntries(
         Object.entries(sessionWidgets).map(([k, v]) => [k, { widgets: v }])

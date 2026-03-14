@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Sidebar from '../components/Sidebar';
 import Chat from '../views/Chat';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -18,7 +18,16 @@ export default function MainLayout() {
   const toggleExpanded = useSessionStore((s) => s.toggleExpanded);
   const usageRefreshKey = useSessionStore((s) => s.usageRefreshKey);
   const loadConfig = useWidgetStore((s) => s.loadConfig);
+  const appName = useWidgetStore((s) => s.appName);
+  const setAppName = useWidgetStore((s) => s.setAppName);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commitName = useCallback(() => {
+    if (inputRef.current) setAppName(inputRef.current.value);
+    setEditing(false);
+  }, [setAppName]);
   const location = useLocation();
   const isSessionsPage = location.pathname === '/';
 
@@ -43,7 +52,22 @@ export default function MainLayout() {
             >
               {sidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
             </button>
-            <span className="text-xs font-semibold text-gray-400">CCUI</span>
+            {editing ? (
+              <input
+                ref={inputRef}
+                defaultValue={appName}
+                autoFocus
+                onBlur={commitName}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') setEditing(false); }}
+                className="text-xs font-semibold text-gray-300 bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 w-24 focus:outline-none focus:border-blue-500"
+              />
+            ) : (
+              <span
+                className="text-xs font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors"
+                onDoubleClick={() => setEditing(true)}
+                title="Double-click to rename"
+              >{appName}</span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <QuotaGauge usageRefreshKey={usageRefreshKey} />
