@@ -14,7 +14,15 @@ interface Props {
   fetchSessionUsage: (sessionId: string) => Promise<void>;
 }
 
-const MAX_CONTEXT = 200000;
+// Context window size per model. Opus 4.6 and Sonnet 4.6 support 1M natively.
+function getContextLimit(model?: string): number {
+  if (!model) return 200_000;
+  const normalized = model.replace(/-\d{8}$/, '');
+  if (normalized.startsWith('claude-opus-4-6') || normalized.startsWith('claude-sonnet-4-6')) {
+    return 1_000_000;
+  }
+  return 200_000;
+}
 
 function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -31,14 +39,15 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
 
   const stats = useMemo(() => {
     const hasReal = sessionUsage && sessionUsage.latestInputTokens > 0;
+    const maxContext = getContextLimit(sessionUsage?.model);
     const usedTokens = hasReal
       ? sessionUsage.latestInputTokens
       : Math.round(
           (messages.reduce((sum, m) => sum + m.content.length, 0) + streaming.length) / 4
         );
-    const remaining = Math.max(0, MAX_CONTEXT - usedTokens);
-    const pct = Math.round((usedTokens / MAX_CONTEXT) * 100);
-    return { usedTokens, remaining, pct, isReal: hasReal };
+    const remaining = Math.max(0, maxContext - usedTokens);
+    const pct = Math.round((usedTokens / maxContext) * 100);
+    return { usedTokens, remaining, pct, isReal: hasReal, maxContext };
   }, [messages, streaming, sessionUsage]);
 
   const barColor = pctBarColor(stats.pct);
@@ -47,7 +56,7 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
     <div ref={containerRef} className="h-full flex flex-col">
       <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <Cpu size={12} />
-        <span>Context</span>
+        <span>Context {stats.maxContext >= 1_000_000 ? '1M' : '200k'}</span>
         {stats.isReal && <span className="ml-auto text-green-600 text-xs font-normal">actual</span>}
       </div>
 

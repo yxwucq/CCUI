@@ -6,10 +6,13 @@ import type { UsageRecord, UsageSummary } from '@ccui/shared';
 // Matched by prefix after stripping trailing date suffix (e.g. -20251101).
 // Order matters: more specific prefixes must come before shorter ones.
 const MODEL_PRICING = [
-  // Opus 4.5 / 4.6 — $5 / $25
+  // Opus 4.6 — $5 / $25 (fast mode: $30 / $150)
+  { prefix: 'claude-opus-4-6',   price: { input: 5,    output: 25   }, fast: { input: 30, output: 150 } },
+  // Opus 4.5 — $5 / $25
   { prefix: 'claude-opus-4-5',   price: { input: 5,    output: 25   } },
-  { prefix: 'claude-opus-4-6',   price: { input: 5,    output: 25   } },
-  // Opus 4.0 / 4.1 — $15 / $75
+  // Opus 4.1 — $15 / $75
+  { prefix: 'claude-opus-4-1',   price: { input: 15,   output: 75   } },
+  // Opus 4.0 — $15 / $75
   { prefix: 'claude-opus-4',     price: { input: 15,   output: 75   } },
   // Sonnet 4.x — $3 / $15
   { prefix: 'claude-sonnet-4',   price: { input: 3,    output: 15   } },
@@ -25,10 +28,13 @@ const MODEL_PRICING = [
   { prefix: 'claude-3-haiku',    price: { input: 0.25, output: 1.25 } },
 ];
 
-function getPrice(model: string): { input: number; output: number } | null {
+function getPrice(model: string, speed?: string): { input: number; output: number } | null {
   const normalized = model.replace(/-\d{8}$/, '');
-  for (const { prefix, price } of MODEL_PRICING) {
-    if (normalized.startsWith(prefix)) return price;
+  for (const entry of MODEL_PRICING) {
+    if (normalized.startsWith(entry.prefix)) {
+      if (speed === 'fast' && 'fast' in entry) return entry.fast!;
+      return entry.price;
+    }
   }
   return null;
 }
@@ -47,13 +53,29 @@ class UsageTracker {
     const outputTokens = usage.output_tokens || 0;
     const cacheRead = usage.cache_read_input_tokens || 0;
     const cacheWrite = usage.cache_creation_input_tokens || 0;
-    const price = getPrice(model);
+    const speed: string | undefined = usage.speed;
+    const price = getPrice(model, speed);
+
+    // Cache write cost: distinguish 5min (1.25x) vs 1h (2x) TTLs when available
+    let cacheWriteCost = 0;
+    if (price) {
+      const cc = usage.cache_creation;
+      if (cc && (cc.ephemeral_5m_input_tokens || cc.ephemeral_1h_input_tokens)) {
+        const cache5m = cc.ephemeral_5m_input_tokens || 0;
+        const cache1h = cc.ephemeral_1h_input_tokens || 0;
+        cacheWriteCost = (cache5m * price.input * 1.25 + cache1h * price.input * 2.0) / 1_000_000;
+      } else {
+        // Fallback: no breakdown available, assume 1.25x
+        cacheWriteCost = (cacheWrite * price.input * 1.25) / 1_000_000;
+      }
+    }
+
     const cost = price
       ? (inputTokens * price.input +
-          cacheWrite * price.input * 1.25 +
           cacheRead * price.input * 0.1 +
           outputTokens * price.output) /
-        1_000_000
+        1_000_000 +
+        cacheWriteCost
       : 0;
 
     const record: UsageRecord = {
