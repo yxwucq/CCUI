@@ -48,6 +48,16 @@ function isWaitingForInput(recentOutput: string): boolean {
   return INPUT_PATTERNS.some((p) => p.test(tail));
 }
 
+/** Extract the most recent tool call from Claude CLI output (⏺ ToolName args...) */
+function detectToolFromOutput(recentOutput: string): { tool: string; preview: string } | null {
+  const clean = stripAnsi(recentOutput);
+  const tail = clean.slice(-1024);
+  const matches = [...tail.matchAll(/⏺\s+([A-Z][a-zA-Z_]+)\b\s*(.*)/g)];
+  if (matches.length === 0) return null;
+  const last = matches[matches.length - 1];
+  return { tool: last[1], preview: last[2]?.trim().slice(0, 80) || '' };
+}
+
 class TerminalManager {
   private terminals = new Map<string, TerminalProcess>();
   private outputListeners: OutputListener[] = [];
@@ -64,6 +74,11 @@ class TerminalManager {
 
   // JSONL usage tracking per session
   private jsonlWatchers = new Map<string, JSONLState>();
+
+  // Tool transition throttling — minimum dwell time between tool-to-tool switches
+  private static TOOL_MIN_DWELL_MS = 2000;
+  private toolEmitTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private lastToolEmitTime = new Map<string, number>();
 
   // Message capture state
   private inputBuffer = new Map<string, string>();    // accumulates raw user keystrokes
@@ -87,12 +102,51 @@ class TerminalManager {
   }
 
   private emitActivity(sessionId: string, activity: SessionActivity) {
-    // Skip duplicate emissions
-    const key = activity.state;
+    // On non-tool states, cancel any pending tool transition timer
+    if (activity.state !== 'tool_use') {
+      const timer = this.toolEmitTimers.get(sessionId);
+      if (timer) { clearTimeout(timer); this.toolEmitTimers.delete(sessionId); }
+      this.lastToolEmitTime.delete(sessionId);
+    }
+
+    // Skip duplicate emissions — include tool name so Read→Edit→Bash transitions emit
+    const key = activity.state === 'tool_use'
+      ? `tool_use:${(activity as any).tool || ''}`
+      : activity.state;
     if (this.currentState.get(sessionId) === key) return;
     this.currentState.set(sessionId, key);
 
     for (const l of this.activityListeners) l(sessionId, activity);
+  }
+
+  /** Throttled tool_use emission — ensures each tool is displayed for at least TOOL_MIN_DWELL_MS */
+  private emitToolActivity(sessionId: string, tool: string, preview: string) {
+    // Same tool already displayed — nothing to do
+    if (this.currentState.get(sessionId) === `tool_use:${tool}`) return;
+
+    const now = Date.now();
+    const lastEmit = this.lastToolEmitTime.get(sessionId) || 0;
+    const elapsed = now - lastEmit;
+
+    // Cancel any previously scheduled transition
+    const existing = this.toolEmitTimers.get(sessionId);
+    if (existing) { clearTimeout(existing); this.toolEmitTimers.delete(sessionId); }
+
+    const doEmit = () => {
+      this.toolEmitTimers.delete(sessionId);
+      this.lastToolEmitTime.set(sessionId, Date.now());
+      this.emitActivity(sessionId, { state: 'tool_use', tool, preview });
+    };
+
+    // Immediate transition from 'processing' placeholder or if enough time has passed
+    const fromProcessing = this.currentState.get(sessionId) === 'tool_use:processing';
+    if (fromProcessing || elapsed >= TerminalManager.TOOL_MIN_DWELL_MS) {
+      doEmit();
+    } else {
+      // Delay until the current tool has been displayed long enough
+      const delay = TerminalManager.TOOL_MIN_DWELL_MS - elapsed;
+      this.toolEmitTimers.set(sessionId, setTimeout(doEmit, delay));
+    }
   }
 
   /**
@@ -197,6 +251,10 @@ class TerminalManager {
     this.recentOutput.delete(sessionId);
     this.waitingInputFlag.delete(sessionId);
     this.resizeSuppressUntil.delete(sessionId);
+    const toolTimer = this.toolEmitTimers.get(sessionId);
+    if (toolTimer) clearTimeout(toolTimer);
+    this.toolEmitTimers.delete(sessionId);
+    this.lastToolEmitTime.delete(sessionId);
     this.inputBuffer.delete(sessionId);
     this.outputBuffer.delete(sessionId);
     this.pendingUserMsg.delete(sessionId);
@@ -308,8 +366,13 @@ class TerminalManager {
         if (this.waitingInputFlag.get(sessionId) || Date.now() < suppressUntil) {
           this.resetIdleTimer(sessionId);
         } else {
-          // Activity: output flowing → running
-          this.emitActivity(sessionId, { state: 'tool_use', tool: 'processing', preview: '' });
+          // Activity: detect real tool name from Claude CLI output (throttled)
+          const detected = detectToolFromOutput(this.recentOutput.get(sessionId) || '');
+          this.emitToolActivity(
+            sessionId,
+            detected?.tool || 'processing',
+            detected?.preview || '',
+          );
           this.resetIdleTimer(sessionId);
         }
       });
