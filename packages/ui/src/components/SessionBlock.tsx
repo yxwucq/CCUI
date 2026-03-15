@@ -44,7 +44,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
-  const [displayStatus, clearDone] = useDisplayStatus(session, activity);
+  const [displayStatus, clearDone] = useDisplayStatus(session, activity, isExpanded);
   const sc = STATUS_CONFIG[displayStatus];
   const isRunning = displayStatus === 'thinking' || displayStatus === 'tool_use' || displayStatus === 'writing';
 
