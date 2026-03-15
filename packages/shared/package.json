@@ -3,11 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/types.ts",
+  "main": "./dist/types.js",
   "types": "./src/types.ts",
   "exports": {
-    ".": "./src/types.ts",
-    "./models": "./src/models.ts"
+    ".": {
+      "types": "./src/types.ts",
+      "default": "./dist/types.js"
+    },
+    "./models": {
+      "types": "./src/models.ts",
+      "default": "./dist/models.js"
+    }
   },
   "scripts": {
     "build": "tsc"
