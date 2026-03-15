@@ -10,7 +10,7 @@ export default function CodeEditor({ value, onChange, readOnly }: Props) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       readOnly={readOnly}
-      className="w-full h-full bg-transparent font-mono text-sm text-gray-200 p-4 resize-none focus:outline-none"
+      className="w-full h-full bg-transparent font-mono text-sm text-cc-text p-4 resize-none focus:outline-none"
       spellCheck={false}
     />
   );

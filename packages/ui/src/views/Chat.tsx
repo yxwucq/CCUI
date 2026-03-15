@@ -22,7 +22,7 @@ function TerminatedSection({ sessions, layoutMode, children }: {
     <div className="shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 w-full px-1 py-1 text-xs text-gray-600 uppercase tracking-wider hover:text-gray-500 transition-colors select-none"
+        className="flex items-center gap-1.5 w-full px-1 py-1 text-xs text-cc-text-muted uppercase tracking-wider hover:text-cc-text-muted transition-colors select-none"
       >
         <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         Terminated ({sessions.length})
@@ -167,43 +167,43 @@ export default function Chat() {
     <div className="h-full flex flex-col">
       {/* Header — hidden in focus mode */}
       {!isFocused && (
-        <div className="border-b border-gray-800 px-5 py-3 flex items-center justify-between shrink-0">
+        <div className="border-b border-cc-border px-5 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-base font-bold text-white">Sessions</h1>
-            <span className="text-xs text-gray-500">{activeSessions.length} active</span>
+            <h1 className="text-base font-bold text-cc-text">Sessions</h1>
+            <span className="text-xs text-cc-text-muted">{activeSessions.length} active</span>
             <div className="relative">
-              <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600" />
+              <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-cc-text-muted" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Filter…"
-                className="bg-gray-800/60 border border-gray-700/50 rounded px-2 py-1 pl-6 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-600 w-28 focus:w-40 transition-all"
+                className="bg-cc-bg-surface/60 border border-cc-border/50 rounded px-2 py-1 pl-6 text-xs text-cc-text-secondary placeholder-cc-text-muted focus:outline-none focus:border-cc-accent w-28 focus:w-40 transition-all"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400">
+                <button onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-cc-text-muted hover:text-cc-text-secondary">
                   <X size={10} />
                 </button>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex bg-gray-800 rounded p-0.5">
-              <button onClick={() => setLayoutMode('accordion')} className={`p-1 rounded transition-colors ${layoutMode === 'accordion' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`} title="Accordion">
+            <div className="flex bg-cc-bg-surface rounded p-0.5">
+              <button onClick={() => setLayoutMode('accordion')} className={`p-1 rounded transition-colors ${layoutMode === 'accordion' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Accordion">
                 <PanelTop size={13} />
               </button>
-              <button onClick={() => setLayoutMode('scroll')} className={`p-1 rounded transition-colors ${layoutMode === 'scroll' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`} title="Scroll">
+              <button onClick={() => setLayoutMode('scroll')} className={`p-1 rounded transition-colors ${layoutMode === 'scroll' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Scroll">
                 <Layers size={13} />
               </button>
             </div>
-            <div className="flex bg-gray-800 rounded p-0.5">
-              <button onClick={() => setViewMode('list')} className={`p-1 rounded transition-colors ${viewMode === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`} title="List view">
+            <div className="flex bg-cc-bg-surface rounded p-0.5">
+              <button onClick={() => setViewMode('list')} className={`p-1 rounded transition-colors ${viewMode === 'list' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="List view">
                 <List size={13} />
               </button>
-              <button onClick={() => setViewMode('grid')} className={`p-1 rounded transition-colors ${viewMode === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`} title="Grid overview">
+              <button onClick={() => setViewMode('grid')} className={`p-1 rounded transition-colors ${viewMode === 'grid' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Grid overview">
                 <LayoutGrid size={13} />
               </button>
             </div>
-            <button onClick={() => setShowNewSession(!showNewSession)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-xs transition-colors">
+            <button onClick={() => setShowNewSession(!showNewSession)} className="flex items-center gap-2 bg-cc-accent hover:bg-cc-accent-hover px-3 py-1.5 rounded-lg text-xs transition-colors">
               <Plus size={14} /> New Session
             </button>
           </div>
@@ -212,12 +212,12 @@ export default function Chat() {
 
       {/* Focus mode bar */}
       {isFocused && focusedSession && (
-        <div className="border-b border-gray-800/50 px-3 py-1.5 flex items-center gap-2 shrink-0">
-          <button onClick={() => toggleFocus(focusedSessionId!)} className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors" title="Exit focus mode (Esc)">
+        <div className="border-b border-cc-border/50 px-3 py-1.5 flex items-center gap-2 shrink-0">
+          <button onClick={() => toggleFocus(focusedSessionId!)} className="p-1 text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-surface rounded transition-colors" title="Exit focus mode (Esc)">
             <Minimize2 size={14} />
           </button>
-          <span className="text-xs text-gray-500">Focus:</span>
-          <span className="text-xs text-white font-medium">{focusedSession.name}</span>
+          <span className="text-xs text-cc-text-muted">Focus:</span>
+          <span className="text-xs text-cc-text font-medium">{focusedSession.name}</span>
         </div>
       )}
 
@@ -227,7 +227,7 @@ export default function Chat() {
       {/* Main area */}
       <div className={`flex-1 p-2 gap-1.5 ${layoutMode === 'scroll' ? 'overflow-y-auto flex flex-col' : 'flex flex-col min-h-0'}`}>
         {sessions.length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-gray-600">
+          <div className="flex-1 flex items-center justify-center text-cc-text-muted">
             <div className="text-center">
               <p className="text-lg mb-2">No sessions yet</p>
               <p className="text-sm">Click "New Session" to create one and start working.</p>
@@ -242,11 +242,11 @@ export default function Chat() {
         {!isFocused && viewMode === 'grid' && (
           <div className="overflow-y-auto flex-1 p-1">
             {sessions.length === 0 && (
-              <div className="flex items-center justify-center h-32 text-gray-600 text-sm">No sessions yet. Click "New Session" to create one.</div>
+              <div className="flex items-center justify-center h-32 text-cc-text-muted text-sm">No sessions yet. Click "New Session" to create one.</div>
             )}
             {activeSessions.length > 0 && (
               <>
-                <p className="text-xs text-gray-600 uppercase tracking-wider px-1 mb-2">Active</p>
+                <p className="text-xs text-cc-text-muted uppercase tracking-wider px-1 mb-2">Active</p>
                 <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {activeSessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />)}
                 </div>
@@ -254,7 +254,7 @@ export default function Chat() {
             )}
             {terminatedSessions.length > 0 && (
               <>
-                <p className="text-xs text-gray-600 uppercase tracking-wider px-1 mb-2">Terminated</p>
+                <p className="text-xs text-cc-text-muted uppercase tracking-wider px-1 mb-2">Terminated</p>
                 <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                   {terminatedSessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />)}
                 </div>

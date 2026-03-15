@@ -15,15 +15,15 @@ interface Props {
 const MAX_CONTEXT = 200_000;
 
 function StatusDot({ session, activity, cardStatus }: { session: Session; activity: SessionActivity | undefined; cardStatus: CardStatus }) {
-  if (session.status === 'terminated') return <Unplug size={11} className="text-gray-600" />;
-  if (cardStatus === 'done') return <CircleCheck size={11} className="text-emerald-400" />;
+  if (session.status === 'terminated') return <Unplug size={11} className="text-cc-text-muted" />;
+  if (cardStatus === 'done') return <CircleCheck size={11} className="text-cc-emerald-text" />;
   const state = activity?.state;
-  if (state === 'waiting_input') return <MessageCircleQuestion size={11} className="text-orange-400 animate-pulse" />;
-  if (state === 'thinking') return <Brain size={11} className="text-amber-400 animate-pulse" />;
-  if (state === 'tool_use') return <Wrench size={11} className="text-cyan-400 animate-pulse" />;
-  if (state === 'writing') return <Pen size={11} className="text-blue-400 animate-pulse" />;
-  if (session.status === 'active') return <Loader size={11} className="text-blue-400 animate-spin" />;
-  return <Circle size={11} className="text-green-500" />;
+  if (state === 'waiting_input') return <MessageCircleQuestion size={11} className="text-cc-orange-text animate-pulse" />;
+  if (state === 'thinking') return <Brain size={11} className="text-cc-amber-text animate-pulse" />;
+  if (state === 'tool_use') return <Wrench size={11} className="text-cc-cyan-text animate-pulse" />;
+  if (state === 'writing') return <Pen size={11} className="text-cc-blue-text animate-pulse" />;
+  if (session.status === 'active') return <Loader size={11} className="text-cc-blue-text animate-spin" />;
+  return <Circle size={11} className="text-cc-green-text" />;
 }
 
 function activityLabel(activity: SessionActivity | undefined): string {
@@ -47,13 +47,13 @@ const CARD_STATUS: Record<CardStatus, {
   stripe: string;
   running: boolean;
 }> = {
-  disconnected: { label: 'off', labelColor: 'text-gray-500', labelBg: 'bg-gray-800', border: 'border-gray-800/50', tintColor: '', tintOpacity: 0, stripe: '', running: false },
-  idle: { label: '', labelColor: '', labelBg: '', border: 'border-gray-700/60', tintColor: '', tintOpacity: 0, stripe: '', running: false },
-  thinking: { label: 'thinking', labelColor: 'text-amber-400', labelBg: 'bg-amber-900/30', border: 'border-amber-800/50', tintColor: 'rgb(245,158,11)', tintOpacity: 0.06, stripe: 'bg-amber-500', running: true },
-  tool_use: { label: 'running', labelColor: 'text-cyan-400', labelBg: 'bg-cyan-900/30', border: 'border-cyan-800/50', tintColor: 'rgb(6,182,212)', tintOpacity: 0.06, stripe: 'bg-cyan-500', running: true },
-  writing: { label: 'writing', labelColor: 'text-blue-400', labelBg: 'bg-blue-900/30', border: 'border-blue-800/50', tintColor: 'rgb(59,130,246)', tintOpacity: 0.06, stripe: 'bg-blue-500', running: true },
-  done: { label: 'done', labelColor: 'text-emerald-400', labelBg: 'bg-emerald-900/30', border: 'border-emerald-800/50', tintColor: 'rgb(52,211,153)', tintOpacity: 0.06, stripe: '', running: false },
-  waiting_input: { label: 'waiting', labelColor: 'text-orange-400', labelBg: 'bg-orange-900/30', border: 'border-orange-800/50', tintColor: 'rgb(251,146,60)', tintOpacity: 0.06, stripe: 'bg-orange-400', running: false },
+  disconnected: { label: 'off', labelColor: 'text-cc-text-muted', labelBg: 'bg-cc-bg-surface', border: 'border-cc-border/50', tintColor: '', tintOpacity: 0, stripe: '', running: false },
+  idle: { label: '', labelColor: '', labelBg: '', border: 'border-cc-border/60', tintColor: '', tintOpacity: 0, stripe: '', running: false },
+  thinking: { label: 'thinking', labelColor: 'text-cc-amber-text', labelBg: 'bg-cc-amber-bg', border: 'border-cc-amber-border', tintColor: 'rgb(245,158,11)', tintOpacity: 0.06, stripe: 'bg-cc-amber-text', running: true },
+  tool_use: { label: 'running', labelColor: 'text-cc-cyan-text', labelBg: 'bg-cc-cyan-bg', border: 'border-cc-cyan-border', tintColor: 'rgb(6,182,212)', tintOpacity: 0.06, stripe: 'bg-cc-cyan-text', running: true },
+  writing: { label: 'writing', labelColor: 'text-cc-blue-text', labelBg: 'bg-cc-blue-bg', border: 'border-cc-blue-border', tintColor: 'rgb(59,130,246)', tintOpacity: 0.06, stripe: 'bg-cc-blue-text', running: true },
+  done: { label: 'done', labelColor: 'text-cc-emerald-text', labelBg: 'bg-cc-emerald-bg', border: 'border-cc-emerald-border', tintColor: 'rgb(52,211,153)', tintOpacity: 0.06, stripe: '', running: false },
+  waiting_input: { label: 'waiting', labelColor: 'text-cc-orange-text', labelBg: 'bg-cc-orange-bg', border: 'border-cc-orange-border', tintColor: 'rgb(251,146,60)', tintOpacity: 0.06, stripe: 'bg-cc-orange-text', running: false },
 };
 
 function useCardStatus(session: Session, activity: SessionActivity | undefined): CardStatus {
@@ -141,10 +141,10 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
   return (
     <button
       onClick={onClick}
-      className={`relative text-left w-full rounded-lg border p-3 transition-all overflow-hidden hover:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+      className={`relative text-left w-full rounded-lg border p-3 transition-all overflow-hidden hover:border-cc-border focus:outline-none focus:ring-1 focus:ring-cc-accent ${
         isTerminated
-          ? 'bg-gray-900/30 border-gray-800/50 opacity-60'
-          : `bg-gray-900 ${sc.border} hover:bg-gray-800/80`
+          ? 'bg-cc-bg/30 border-cc-border/50 opacity-60'
+          : `bg-cc-bg ${sc.border} hover:bg-cc-bg-surface/80`
       }`}
     >
       {/* Tint overlay */}
@@ -163,10 +163,10 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
       {/* Header row */}
       <div className="relative flex items-center gap-1.5 mb-2">
         <StatusDot session={session} activity={activity} cardStatus={cardStatus} />
-        <span className="text-xs font-medium text-gray-200 truncate flex-1">{session.name}</span>
+        <span className="text-xs font-medium text-cc-text truncate flex-1">{session.name}</span>
         {session.skipPermissions && (
           <span className="shrink-0" title="Skip permissions enabled">
-            <AlertTriangle size={11} className="text-yellow-500" />
+            <AlertTriangle size={11} className="text-cc-yellow-text" />
           </span>
         )}
         {sc.label && (
@@ -181,42 +181,42 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
       {/* Branch */}
       {session.branch && (
         <div className="relative flex items-center gap-1 mb-2">
-          <GitBranch size={9} className="text-gray-600 shrink-0" />
-          <span className="text-xs text-gray-500 truncate">{session.branch}</span>
+          <GitBranch size={9} className="text-cc-text-muted shrink-0" />
+          <span className="text-xs text-cc-text-muted truncate">{session.branch}</span>
         </div>
       )}
 
       {/* Activity label — only rendered when active */}
       {label && (
-        <p className="relative text-xs text-gray-400 truncate mb-2">{label}</p>
+        <p className="relative text-xs text-cc-text-secondary truncate mb-2">{label}</p>
       )}
 
       {/* Context bar */}
       <div className="relative mb-2">
-        <div className="flex justify-between text-xs text-gray-600 mb-0.5">
+        <div className="flex justify-between text-xs text-cc-text-muted mb-0.5">
           <span>ctx</span>
           <span>{contextPct}%</span>
         </div>
-        <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-1 bg-cc-bg-surface rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${pctBarColor(contextPct)}`} style={{ width: `${contextPct}%` }} />
         </div>
       </div>
 
       {/* Cost + time */}
       <div className="relative flex items-center justify-between text-xs">
-        <span className="text-green-600 font-mono">
+        <span className="text-cc-green-text font-mono">
           {usage ? `$${usage.totalCost.toFixed(4)}` : '–'}
         </span>
-        <LiveTimeAgo iso={session.lastActiveAt} className="text-gray-600" />
+        <LiveTimeAgo iso={session.lastActiveAt} className="text-cc-text-muted" />
       </div>
 
       {/* Git diff summary */}
       {diffStat && diffStat.totalFiles > 0 && (
-        <div className="relative flex items-center gap-2 mt-2 pt-2 border-t border-gray-800/50 text-xs">
-          <FileDiff size={10} className="text-gray-600 shrink-0" />
-          <span className="text-green-500 font-mono">+{diffStat.totalAdded}</span>
-          <span className="text-red-500 font-mono">-{diffStat.totalDeleted}</span>
-          <span className="text-gray-600">{diffStat.totalFiles} file{diffStat.totalFiles !== 1 ? 's' : ''}</span>
+        <div className="relative flex items-center gap-2 mt-2 pt-2 border-t border-cc-border/50 text-xs">
+          <FileDiff size={10} className="text-cc-text-muted shrink-0" />
+          <span className="text-cc-green-text font-mono">+{diffStat.totalAdded}</span>
+          <span className="text-cc-red-text font-mono">-{diffStat.totalDeleted}</span>
+          <span className="text-cc-text-muted">{diffStat.totalFiles} file{diffStat.totalFiles !== 1 ? 's' : ''}</span>
         </div>
       )}
     </button>

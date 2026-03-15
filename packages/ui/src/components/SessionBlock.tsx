@@ -141,7 +141,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
       {/* Expanded content — terminal stays mounted once opened (CSS hidden when collapsed) */}
       {(isExpanded || terminalMounted) && (
         <div
-          className="border-t border-gray-800/50 flex-1 min-h-0 flex flex-col"
+          className="border-t border-cc-border/50 flex-1 min-h-0 flex flex-col"
           style={{ display: isExpanded ? 'flex' : 'none' }}
         >
           {/* Terminal mode — always mounted once opened, toggled via display */}
@@ -153,16 +153,16 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
             {/* Terminal pane */}
             <div className="min-h-0 overflow-hidden" style={{ width: `${splitRatio * 100}%` }}>
               {terminalMounted ? (
-                <Suspense fallback={<div className="h-full flex items-center justify-center text-gray-600 text-sm">Starting Claude CLI...</div>}>
+                <Suspense fallback={<div className="h-full flex items-center justify-center text-cc-text-muted text-sm">Starting Claude CLI...</div>}>
                   <XTerminal ref={terminalRef} sessionId={session.id} />
                 </Suspense>
               ) : session.status === 'terminated' ? (
-                <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-500">
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-cc-text-muted">
                   <Unplug size={24} />
                   <p className="text-sm">Session terminated</p>
                   <button
                     onClick={() => onResume(session.id).catch((e: any) => alert(e.message))}
-                    className="flex items-center gap-2 px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-1.5 bg-cc-green-text hover:bg-cc-green-text text-white text-sm rounded-lg transition-colors"
                   >
                     <Play size={13} />
                     Resume
@@ -172,7 +172,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
             </div>
             {/* Drag handle */}
             <div
-              className="w-1 shrink-0 cursor-col-resize bg-gray-800 hover:bg-blue-500/50 active:bg-blue-500 transition-colors relative drag-handle"
+              className="w-1 shrink-0 cursor-col-resize bg-cc-bg-surface hover:bg-cc-accent/50 active:bg-cc-accent transition-colors relative drag-handle"
               onMouseDown={handleDragStart}
             >
               <div className="absolute inset-y-0 -left-1.5 -right-1.5" />

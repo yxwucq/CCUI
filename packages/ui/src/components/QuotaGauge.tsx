@@ -45,13 +45,13 @@ export default function QuotaGauge({ usageRefreshKey }: Props) {
       className="flex items-center gap-1.5"
       title={`Today: $${today.cost.toFixed(4)} / $${DAILY_BUDGET} budget`}
     >
-      <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+      <div className="w-16 h-1.5 bg-cc-bg-surface rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${pctBarColor(pct)}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`text-xs font-mono ${warn ? 'text-red-400' : 'text-gray-500'}`}>
+      <span className={`text-xs font-mono ${warn ? 'text-cc-red-text' : 'text-cc-text-muted'}`}>
         ${today.cost.toFixed(2)}
       </span>
     </div>

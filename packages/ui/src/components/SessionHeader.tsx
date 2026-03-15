@@ -52,28 +52,28 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
       />
 
       {isExpanded
-        ? <ChevronDown size={14} className="text-gray-500 shrink-0" />
-        : <ChevronRight size={14} className="text-gray-500 shrink-0" />
+        ? <ChevronDown size={14} className="text-cc-text-muted shrink-0" />
+        : <ChevronRight size={14} className="text-cc-text-muted shrink-0" />
       }
 
       {/* Status dot */}
       <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-300 ${sc.dot} ${sc.dotPulse ? 'animate-pulse' : ''} ${displayStatus === 'done' ? 'done-blink' : ''}`} />
 
       {/* Session name */}
-      <span className="font-medium text-sm text-gray-200 truncate">
+      <span className="font-medium text-sm text-cc-text truncate">
         {session.name}
       </span>
 
       {/* Skip permissions warning */}
       {session.skipPermissions && (
-        <span className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-900/30 px-1.5 py-0.5 rounded-full shrink-0" title="Skip permissions enabled">
+        <span className="flex items-center gap-1 text-xs text-cc-yellow-text bg-cc-yellow-bg px-1.5 py-0.5 rounded-full shrink-0" title="Skip permissions enabled">
           <AlertTriangle size={11} />
         </span>
       )}
 
       {/* Branch */}
       {session.branch && (
-        <span className="flex items-center gap-1 text-xs text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded-full shrink-0">
+        <span className="flex items-center gap-1 text-xs text-cc-purple-text bg-cc-purple-bg px-2 py-0.5 rounded-full shrink-0">
           <GitBranch size={11} />
           {session.branch}
         </span>
@@ -102,7 +102,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
 
       {/* Time — when not running */}
       {!isRunning && displayStatus !== 'waiting_input' && (
-        <LiveTimeAgo iso={session.lastActiveAt} className="text-xs text-gray-600 shrink-0 ml-auto" />
+        <LiveTimeAgo iso={session.lastActiveAt} className="text-xs text-cc-text-muted shrink-0 ml-auto" />
       )}
 
       {/* Status badge */}
@@ -119,11 +119,11 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
       {/* Action buttons */}
       <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
         {isExpanded && (
-          <div className="flex items-center bg-gray-800/50 rounded-md p-0.5 gap-0.5">
+          <div className="flex items-center bg-cc-bg-surface/50 rounded-md p-0.5 gap-0.5">
             <button
               onClick={() => onSetViewMode('terminal')}
               className={`p-1 rounded transition-colors ${
-                viewMode === 'terminal' ? 'text-green-400 bg-green-900/40' : 'text-gray-500 hover:text-gray-300'
+                viewMode === 'terminal' ? 'text-cc-green-text bg-cc-green-bg' : 'text-cc-text-muted hover:text-cc-text'
               }`}
               title="Terminal mode"
             >
@@ -132,7 +132,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
             <button
               onClick={() => onSetViewMode('chat')}
               className={`p-1 rounded transition-colors ${
-                viewMode === 'chat' ? 'text-blue-400 bg-blue-900/40' : 'text-gray-500 hover:text-gray-300'
+                viewMode === 'chat' ? 'text-cc-blue-text bg-cc-blue-bg' : 'text-cc-text-muted hover:text-cc-text'
               }`}
               title="Chat mode"
             >
@@ -145,7 +145,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
         {isExpanded && (
           <button
             onClick={() => onToggleFocus(session.id)}
-            className="p-1 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors"
+            className="p-1 text-cc-text-muted hover:text-cc-text hover:bg-cc-bg-surface rounded transition-colors"
             title={isFocused ? 'Exit focus (Esc)' : 'Focus this session'}
           >
             {isFocused ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
@@ -154,7 +154,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
         {session.status !== 'terminated' && (
           <button
             onClick={() => onTerminate(session.id)}
-            className="p-1 text-red-400/60 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors"
+            className="p-1 text-cc-red-text/60 hover:text-cc-red-text hover:bg-cc-red-bg rounded transition-colors"
             title="Stop session"
           >
             <Square size={13} />
@@ -164,14 +164,14 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
           <>
             <button
               onClick={() => onResume(session.id).catch((e: any) => alert(e.message))}
-              className="p-1 text-green-400 hover:bg-green-900/30 rounded transition-colors"
+              className="p-1 text-cc-green-text hover:bg-cc-green-bg rounded transition-colors"
               title="Resume session"
             >
               <Play size={13} />
             </button>
             <button
               onClick={() => onTerminate(session.id)}
-              className="p-1 text-gray-500 hover:bg-gray-800 rounded transition-colors"
+              className="p-1 text-cc-text-muted hover:bg-cc-bg-surface rounded transition-colors"
               title="Remove session"
             >
               <Trash2 size={13} />

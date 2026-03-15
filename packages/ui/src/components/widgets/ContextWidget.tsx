@@ -17,8 +17,13 @@ interface Props {
 const DEFAULT_CONTEXT = 200_000;
 
 function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
+}
+
+function contextLabel(n: number): string {
+  return n >= 1_000_000 ? `${n / 1_000_000}M` : `${n / 1000}k`;
 }
 
 export default function ContextWidget({ sessionId, size, messages, streaming, sessionUsage, fetchSessionUsage }: Props) {
@@ -49,7 +54,7 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
     <div ref={containerRef} className="h-full flex flex-col">
       <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <Cpu size={12} />
-        <span>Context</span>
+        <span>Context {contextLabel(maxContext)}</span>
         {stats.isReal && <span className="ml-auto text-green-600 text-xs font-normal">actual</span>}
       </div>
 
