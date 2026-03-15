@@ -7,9 +7,10 @@ import {
 
 export type DisplayStatus = 'disconnected' | 'idle' | 'thinking' | 'tool_use' | 'writing' | 'done' | 'waiting_input';
 
-export function useDisplayStatus(session: Session, activity: SessionActivity | undefined): [DisplayStatus, () => void] {
+export function useDisplayStatus(session: Session, activity: SessionActivity | undefined, isExpanded: boolean): [DisplayStatus, () => void] {
   const [justDone, setJustDone] = useState(false);
   const prevActivityRef = useRef<string | undefined>(undefined);
+  const runStartedAtRef = useRef<number | null>(null);
 
   const activityState = activity?.state;
   const isRunning = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
@@ -18,15 +19,34 @@ export function useDisplayStatus(session: Session, activity: SessionActivity | u
     const prev = prevActivityRef.current;
     prevActivityRef.current = activityState;
 
-    // Detect transition: was running → now idle (not waiting_input, which is a distinct state)
-    if (prev && prev !== 'idle' && prev !== 'waiting_input' && activityState === 'idle' && session.status !== 'terminated') {
-      setJustDone(true);
+    // Track when running started
+    const wasActive = prev && prev !== 'idle' && prev !== 'waiting_input';
+    const nowActive = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
+    if (nowActive && !wasActive) {
+      runStartedAtRef.current = Date.now();
+    }
+
+    // Detect transition: was running → now idle
+    if (wasActive && activityState === 'idle' && session.status !== 'terminated') {
+      // Expanded: user sees the terminal directly, no done flash needed
+      // Collapsed + <5s: suppress short tasks, stay idle
+      // Collapsed + >=5s: show done after 500ms delay, auto-clear after 3s
+      if (!isExpanded) {
+        const elapsed = runStartedAtRef.current ? Date.now() - runStartedAtRef.current : 0;
+        if (elapsed >= 5000) {
+          const timer = setTimeout(() => {
+            setJustDone(true);
+            setTimeout(() => setJustDone(false), 3000);
+          }, 500);
+          return () => clearTimeout(timer);
+        }
+      }
     }
     // Clear done state when entering waiting_input
     if (activityState === 'waiting_input') {
       setJustDone(false);
     }
-  }, [activityState, session.status]);
+  }, [activityState, session.status, isExpanded]);
 
   let displayStatus: DisplayStatus;
   if (session.status === 'terminated') displayStatus = 'disconnected';

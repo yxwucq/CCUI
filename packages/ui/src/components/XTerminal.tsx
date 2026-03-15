@@ -1,32 +1,46 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import { sendWsMessage } from '../hooks/useWebSocket';
 import { terminalTheme } from '../theme';
-import { Circle, RotateCcw, X, Maximize2, Minimize2 } from 'lucide-react';
+import { useWidgetStore } from '../stores/widgetStore';
+import { RotateCcw } from 'lucide-react';
+
+const FONT_DEFAULTS = {
+  fontFamily: '"JetBrains Mono", Menlo, Monaco, "Courier New", monospace',
+  fontSize: 13,
+  lineHeight: 1.35,
+};
 
 interface Props {
   sessionId: string;
-  onClose?: () => void;
 }
 
-export default function XTerminal({ sessionId, onClose }: Props) {
+export interface XTerminalHandle {
+  focus: () => void;
+}
+
+const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessionId }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const [status, setStatus] = useState<'connecting' | 'connected' | 'exited'>('connecting');
-  const [expanded, setExpanded] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const terminalConfig = useWidgetStore((s) => s.terminalConfig);
+
+  // Expose focus() to parent
+  useImperativeHandle(ref, () => ({
+    focus: () => termRef.current?.focus(),
+  }));
 
   // Restart: kill existing PTY, clear xterm, create fresh
   const restart = useCallback(() => {
     setStatus('connecting');
     if (termRef.current) {
-      // Kill old PTY on server
       sendWsMessage({ type: 'session:terminate', sessionId });
       termRef.current.reset();
-      // Create new after brief delay for kill to propagate
       setTimeout(() => {
         if (termRef.current) {
           const { cols, rows } = termRef.current;
@@ -36,19 +50,21 @@ export default function XTerminal({ sessionId, onClose }: Props) {
     }
   }, [sessionId]);
 
-  // Initialize xterm + request PTY (server reuses existing if alive)
+  // Initialize xterm + request PTY
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    const font = { ...FONT_DEFAULTS, ...terminalConfig };
 
     const term = new Terminal({
       cursorBlink: false,
       cursorStyle: 'bar',
       cursorInactiveStyle: 'none',
-      fontSize: 13,
-      lineHeight: 1.35,
+      fontSize: font.fontSize,
+      lineHeight: font.lineHeight,
       letterSpacing: 0.5,
-      fontFamily: '"JetBrains Mono", Menlo, Monaco, "Courier New", monospace',
+      fontFamily: font.fontFamily,
       scrollback: 5000,
       theme: terminalTheme,
     });
@@ -63,18 +79,36 @@ export default function XTerminal({ sessionId, onClose }: Props) {
 
     fitAddon.fit();
 
-    // Request PTY — server creates only if not already running
+    // Focus tracking via xterm's textarea
+    const textarea = el.querySelector('textarea.xterm-helper-textarea');
+    const onFocus = () => setIsFocused(true);
+    const onBlur = () => setIsFocused(false);
+    if (textarea) {
+      textarea.addEventListener('focus', onFocus);
+      textarea.addEventListener('blur', onBlur);
+    }
+
+    // WebGL renderer (dynamic import, auto-fallback to DOM)
+    (async () => {
+      try {
+        const { WebglAddon } = await import('@xterm/addon-webgl');
+        if (!termRef.current) return;
+        const webgl = new WebglAddon();
+        webgl.onContextLoss(() => { webgl.dispose(); });
+        term.loadAddon(webgl);
+      } catch { /* WebGL unavailable — DOM renderer is fine */ }
+    })();
+
+    // Request PTY
     const { cols, rows } = term;
     const createTimer = setTimeout(() => {
       sendWsMessage({ type: 'terminal:create', sessionId, cols, rows });
     }, 80);
 
-    // Forward user keystrokes to server
     const inputDisposable = term.onData((data) => {
       sendWsMessage({ type: 'terminal:input', sessionId, data });
     });
 
-    // Auto-fit on container resize + notify server
     const observer = new ResizeObserver(() => {
       fitAddon.fit();
       const { cols: c, rows: r } = term;
@@ -86,6 +120,10 @@ export default function XTerminal({ sessionId, onClose }: Props) {
       clearTimeout(createTimer);
       observer.disconnect();
       inputDisposable.dispose();
+      if (textarea) {
+        textarea.removeEventListener('focus', onFocus);
+        textarea.removeEventListener('blur', onBlur);
+      }
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -113,59 +151,11 @@ export default function XTerminal({ sessionId, onClose }: Props) {
     };
   }, [sessionId]);
 
-  // Refit on fullscreen toggle
-  useEffect(() => {
-    requestAnimationFrame(() => fitRef.current?.fit());
-  }, [expanded]);
-
   return (
-    <div className={`flex flex-col h-full bg-[#09090b] ${expanded ? 'fixed inset-0 z-50' : ''}`}>
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/80 border-b border-zinc-800/60 shrink-0">
-        <div className="flex items-center gap-1.5 mr-1">
-          <button
-            onClick={onClose}
-            className="group w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors flex items-center justify-center"
-            title="Close terminal"
-          >
-            <X size={7} className="text-red-900 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-          <button
-            onClick={restart}
-            className="group w-3 h-3 rounded-full bg-yellow-500/80 hover:bg-yellow-500 transition-colors flex items-center justify-center"
-            title="Restart"
-          >
-            <RotateCcw size={7} className="text-yellow-900 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="group w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors flex items-center justify-center"
-            title={expanded ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            {expanded
-              ? <Minimize2 size={6} className="text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" />
-              : <Maximize2 size={6} className="text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" />
-            }
-          </button>
-        </div>
-
-        <div className="flex-1 text-center">
-          <span className="text-xs text-zinc-500 font-medium">Claude CLI</span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Circle size={6} className={`shrink-0 ${
-            status === 'exited' ? 'fill-red-500 text-red-500' :
-            status === 'connected' ? 'fill-green-500 text-green-500' :
-            'fill-yellow-500 text-yellow-500 animate-pulse'
-          }`} />
-          <span className="text-xs text-zinc-600">{status}</span>
-        </div>
-      </div>
-
-      {/* Terminal body */}
-      <div className="flex-1 min-h-0 relative">
-        <div ref={containerRef} className="absolute inset-0 p-1.5" />
+    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--cc-bg, #09090b)' }}>
+      {/* Terminal body — fills entire area */}
+      <div className={`flex-1 min-h-0 relative xterm-container ${isFocused ? 'focused' : ''}`}>
+        <div ref={containerRef} className="absolute inset-0" />
 
         {status === 'exited' && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
@@ -183,8 +173,13 @@ export default function XTerminal({ sessionId, onClose }: Props) {
         )}
       </div>
 
-      {/* Hint bar */}
-      <div className="flex items-center gap-3 px-3 py-1 bg-zinc-900/50 border-t border-zinc-800/40 shrink-0 overflow-x-auto">
+      {/* Hint bar — borderless, transparent, with status dot */}
+      <div className="flex items-center gap-3 px-3 py-1 shrink-0 overflow-x-auto">
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+          status === 'exited' ? 'bg-red-500' :
+          status === 'connected' ? 'bg-green-500' :
+          'bg-yellow-500 animate-pulse'
+        }`} />
         {['/help', '/compact', '/clear', '/model', '/cost', '/memory'].map((cmd) => (
           <button
             key={cmd}
@@ -200,4 +195,6 @@ export default function XTerminal({ sessionId, onClose }: Props) {
       </div>
     </div>
   );
-}
+});
+
+export default XTerminal;

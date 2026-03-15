@@ -58,7 +58,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
   };
 
   return (
-    <div className="border-b border-gray-800 px-5 py-3 bg-gray-900/50 shrink-0">
+    <div className="border-b border-gray-800/50 px-5 py-3 shrink-0">
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-xs text-gray-500 mb-1">Session Name</label>

@@ -44,7 +44,7 @@ export default function SessionMessages({ session, isRunning, messages: sessionM
 
   return (
     <div className="flex-1 flex flex-col min-w-0 border-r border-gray-800">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-950/50 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {sessionMessages.length === 0 && !streaming && (
           <div className="text-center text-gray-600 text-sm py-8">
             {session.status !== 'terminated' ? 'Send a message to start.' : 'No messages.'}
@@ -68,7 +68,7 @@ export default function SessionMessages({ session, isRunning, messages: sessionM
         <div ref={messagesEndRef} />
       </div>
       {session.status !== 'terminated' && (
-        <div className="border-t border-gray-800 p-3 bg-gray-900/30 shrink-0">
+        <div className="border-t border-gray-800/50 p-3 shrink-0">
           <div className="flex gap-2">
             <textarea
               value={input}

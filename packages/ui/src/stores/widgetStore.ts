@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as configApi from '../api/config';
+import type { TerminalConfig } from '@ccui/shared';
 
 export interface WidgetDef {
   id: string;
@@ -39,6 +40,7 @@ interface WidgetStore {
   sessionWidgets: Record<string, WidgetConfig[]>;
   defaultWidgets: WidgetConfig[];
   appName: string;
+  terminalConfig: TerminalConfig;
   loaded: boolean;
 
   loadConfig: () => Promise<void>;
@@ -55,6 +57,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   sessionWidgets: {},
   defaultWidgets: DEFAULT_WIDGETS,
   appName: DEFAULT_APP_NAME,
+  terminalConfig: {},
   loaded: false,
 
   loadConfig: async () => {
@@ -64,6 +67,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
       document.title = appName;
       set({
         appName,
+        terminalConfig: config.terminal || {},
         defaultWidgets: config.defaultWidgets
           ? migrateWidgets(config.defaultWidgets)
           : DEFAULT_WIDGETS,
@@ -112,14 +116,17 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   },
 
   saveConfig: async () => {
-    const { defaultWidgets, sessionWidgets, appName } = get();
-    const config = {
+    const { defaultWidgets, sessionWidgets, appName, terminalConfig } = get();
+    const config: Record<string, any> = {
       appName,
       defaultWidgets,
       sessions: Object.fromEntries(
         Object.entries(sessionWidgets).map(([k, v]) => [k, { widgets: v }])
       ),
     };
+    if (Object.keys(terminalConfig).length > 0) {
+      config.terminal = terminalConfig;
+    }
     try {
       await configApi.saveConfig(config);
     } catch { /* best effort */ }

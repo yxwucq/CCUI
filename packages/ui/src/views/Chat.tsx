@@ -212,7 +212,7 @@ export default function Chat() {
 
       {/* Focus mode bar */}
       {isFocused && focusedSession && (
-        <div className="border-b border-gray-800 px-3 py-1.5 flex items-center gap-2 shrink-0 bg-gray-900/50">
+        <div className="border-b border-gray-800/50 px-3 py-1.5 flex items-center gap-2 shrink-0">
           <button onClick={() => toggleFocus(focusedSessionId!)} className="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors" title="Exit focus mode (Esc)">
             <Minimize2 size={14} />
           </button>

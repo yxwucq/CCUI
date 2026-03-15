@@ -7,6 +7,7 @@ import { Play, Unplug } from 'lucide-react';
 import type { Session, SessionActivity, ChatMessage } from '@ccui/shared';
 import type { WidgetConfig } from '../stores/widgetStore';
 import type { SessionUsageSummary } from '../stores/sessionStore';
+import type { XTerminalHandle } from './XTerminal';
 
 const XTerminal = lazy(() => import('./XTerminal'));
 
@@ -42,9 +43,10 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
   const [terminalMounted, setTerminalMounted] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
   const splitContainerRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<XTerminalHandle>(null);
   const isDraggingRef = useRef(false);
 
-  const [displayStatus, clearDone] = useDisplayStatus(session, activity);
+  const [displayStatus, clearDone] = useDisplayStatus(session, activity, isExpanded);
   const sc = STATUS_CONFIG[displayStatus];
   const isRunning = displayStatus === 'thinking' || displayStatus === 'tool_use' || displayStatus === 'writing';
 
@@ -77,6 +79,14 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
   useEffect(() => {
     if (isExpanded && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
   }, [isExpanded, terminalMounted, session.status]);
+
+  // Auto-focus terminal when session expands
+  useEffect(() => {
+    if (isExpanded && viewMode === 'terminal' && terminalRef.current) {
+      const t = setTimeout(() => terminalRef.current?.focus(), 150);
+      return () => clearTimeout(t);
+    }
+  }, [isExpanded, viewMode]);
 
   // Esc to exit focus mode
   useEffect(() => {
@@ -131,7 +141,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
       {/* Expanded content — terminal stays mounted once opened (CSS hidden when collapsed) */}
       {(isExpanded || terminalMounted) && (
         <div
-          className="border-t border-gray-800 flex-1 min-h-0 flex flex-col"
+          className="border-t border-gray-800/50 flex-1 min-h-0 flex flex-col"
           style={{ display: isExpanded ? 'flex' : 'none' }}
         >
           {/* Terminal mode — always mounted once opened, toggled via display */}
@@ -144,7 +154,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
             <div className="min-h-0 overflow-hidden" style={{ width: `${splitRatio * 100}%` }}>
               {terminalMounted ? (
                 <Suspense fallback={<div className="h-full flex items-center justify-center text-gray-600 text-sm">Starting Claude CLI...</div>}>
-                  <XTerminal sessionId={session.id} />
+                  <XTerminal ref={terminalRef} sessionId={session.id} />
                 </Suspense>
               ) : session.status === 'terminated' ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-500">
@@ -168,7 +178,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
               <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
             </div>
             {/* Widget pane */}
-            <div className="min-h-0 flex flex-col overflow-hidden bg-gray-950/30" style={{ width: `${(1 - splitRatio) * 100}%` }}>
+            <div className="min-h-0 flex flex-col overflow-hidden bg-transparent" style={{ width: `${(1 - splitRatio) * 100}%` }}>
               <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} streaming={streaming} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} emptyMessage="Use widget selector to add panels" />
             </div>
           </div>
@@ -178,7 +188,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
             <div className="flex flex-1 min-h-0">
               <SessionMessages session={session} isRunning={isRunning} messages={messages} streaming={streaming} appendMessage={onAppendMessage} onClearDone={clearDone} />
               {enabledWidgets.length > 0 && (
-                <div className="w-72 shrink-0 flex flex-col overflow-hidden bg-gray-950/30">
+                <div className="w-72 shrink-0 flex flex-col overflow-hidden bg-transparent">
                   <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} streaming={streaming} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} />
                 </div>
               )}

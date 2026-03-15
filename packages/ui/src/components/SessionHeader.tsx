@@ -38,7 +38,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
 
   return (
     <div
-      className="relative flex items-center gap-2.5 px-3 py-2 bg-gray-900/50 cursor-pointer hover:bg-gray-900/80 transition-colors select-none shrink-0"
+      className="relative flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white/[0.03] transition-colors select-none shrink-0"
       onClick={() => { if (onToggleExpanded) onToggleExpanded(session.id); if (!isExpanded) onClearDone(); }}
     >
       {/* Status tint overlay */}

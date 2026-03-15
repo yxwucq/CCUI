@@ -72,6 +72,13 @@ export interface GitFileStatus {
   status: 'modified' | 'added' | 'deleted' | 'untracked';
 }
 
+// Terminal configuration
+export interface TerminalConfig {
+  fontFamily?: string;
+  fontSize?: number;
+  lineHeight?: number;
+}
+
 // Session activity
 export type SessionActivity =
   | { state: 'idle' }

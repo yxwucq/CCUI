@@ -59,5 +59,25 @@ export const terminalTheme = {
   cursorAccent: 'transparent',
   selectionBackground: theme.accentMuted,
   selectionForeground: theme.ansi.brightWhite,
+  scrollbarSliderBackground: '#3f3f4680',
+  scrollbarSliderHoverBackground: '#52525b',
+  scrollbarSliderActiveBackground: '#71717a',
   ...theme.ansi,
 };
+
+/** Inject theme colors as CSS custom properties on :root */
+export function injectThemeVars() {
+  const s = document.documentElement.style;
+  s.setProperty('--cc-bg', theme.bg);
+  s.setProperty('--cc-bg-surface', theme.bgSurface);
+  s.setProperty('--cc-bg-overlay', theme.bgOverlay);
+  s.setProperty('--cc-text', theme.text);
+  s.setProperty('--cc-text-secondary', theme.textSecondary);
+  s.setProperty('--cc-text-muted', theme.textMuted);
+  s.setProperty('--cc-border', theme.border);
+  s.setProperty('--cc-border-subtle', theme.borderSubtle);
+  s.setProperty('--cc-accent', theme.accent);
+  s.setProperty('--cc-accent-hover', theme.accentHover);
+  s.setProperty('--cc-scrollbar', '#3f3f46');
+  s.setProperty('--cc-scrollbar-hover', '#52525b');
+}

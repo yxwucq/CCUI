@@ -9,6 +9,7 @@ import { useWidgetStore } from '../stores/widgetStore';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import QuotaGauge from '../components/QuotaGauge';
 import ToastContainer from '../components/ToastContainer';
+import { injectThemeVars } from '../theme';
 
 export default function MainLayout() {
   const { status } = useWebSocket();
@@ -32,12 +33,13 @@ export default function MainLayout() {
   const isSessionsPage = location.pathname === '/';
 
   useEffect(() => {
+    injectThemeVars();
     fetchSessions();
     loadConfig();
   }, [fetchSessions, loadConfig]);
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100">
+    <div className="flex h-screen text-gray-100" style={{ backgroundColor: 'var(--cc-bg, #09090b)' }}>
       {/* Sidebar — collapsible */}
       {sidebarOpen && <Sidebar sessions={sessions} activeSessionId={activeSessionId} onToggleExpanded={toggleExpanded} />}
 
