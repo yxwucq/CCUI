@@ -14,15 +14,7 @@ interface Props {
   fetchSessionUsage: (sessionId: string) => Promise<void>;
 }
 
-// Context window size per model. Opus 4.6 and Sonnet 4.6 support 1M natively.
-function getContextLimit(model?: string): number {
-  if (!model) return 200_000;
-  const normalized = model.replace(/-\d{8}$/, '');
-  if (normalized.startsWith('claude-opus-4-6') || normalized.startsWith('claude-sonnet-4-6')) {
-    return 1_000_000;
-  }
-  return 200_000;
-}
+const DEFAULT_CONTEXT = 200_000;
 
 function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -37,9 +29,10 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
     if (!sessionUsage) fetchSessionUsage(sessionId);
   }, [sessionId, fetchSessionUsage]);
 
+  const maxContext = sessionUsage?.contextWindow ?? DEFAULT_CONTEXT;
+
   const stats = useMemo(() => {
     const hasReal = sessionUsage && sessionUsage.latestInputTokens > 0;
-    const maxContext = getContextLimit(sessionUsage?.model);
     const usedTokens = hasReal
       ? sessionUsage.latestInputTokens
       : Math.round(
@@ -47,8 +40,8 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
         );
     const remaining = Math.max(0, maxContext - usedTokens);
     const pct = Math.round((usedTokens / maxContext) * 100);
-    return { usedTokens, remaining, pct, isReal: hasReal, maxContext };
-  }, [messages, streaming, sessionUsage]);
+    return { usedTokens, remaining, pct, isReal: hasReal };
+  }, [messages, streaming, sessionUsage, maxContext]);
 
   const barColor = pctBarColor(stats.pct);
 
@@ -56,7 +49,7 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
     <div ref={containerRef} className="h-full flex flex-col">
       <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
         <Cpu size={12} />
-        <span>Context {stats.maxContext >= 1_000_000 ? '1M' : '200k'}</span>
+        <span>Context</span>
         {stats.isReal && <span className="ml-auto text-green-600 text-xs font-normal">actual</span>}
       </div>
 

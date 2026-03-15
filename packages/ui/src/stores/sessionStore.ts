@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Session, ChatMessage, SessionActivity, UsageRecord, FileActivity } from '@ccui/shared';
+import { getContextWindow } from '@ccui/shared/models';
 import * as sessionsApi from '../api/sessions';
 import { fetchSessionUsageSummary } from '../api/usage';
 
@@ -12,6 +13,7 @@ export interface SessionUsageSummary {
   totalCacheWrite: number;
   callCount: number;
   model: string;
+  contextWindow: number;
   pricingUnknown: boolean;
 }
 
@@ -221,6 +223,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
             totalCacheWrite: (prev?.totalCacheWrite ?? 0) + record.cacheWrite,
             callCount: (prev?.callCount ?? 0) + 1,
             model: record.model || prev?.model || '',
+            contextWindow: getContextWindow(record.model || prev?.model || ''),
             pricingUnknown: record.pricingUnknown || (prev?.pricingUnknown ?? false),
           },
         },

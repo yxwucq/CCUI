@@ -1,43 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { getDB } from '../db/database.js';
 import type { UsageRecord, UsageSummary } from '@ccui/shared';
-
-// Model pricing per million tokens (USD).
-// Matched by prefix after stripping trailing date suffix (e.g. -20251101).
-// Order matters: more specific prefixes must come before shorter ones.
-const MODEL_PRICING = [
-  // Opus 4.6 — $5 / $25 (fast mode: $30 / $150)
-  { prefix: 'claude-opus-4-6',   price: { input: 5,    output: 25   }, fast: { input: 30, output: 150 } },
-  // Opus 4.5 — $5 / $25
-  { prefix: 'claude-opus-4-5',   price: { input: 5,    output: 25   } },
-  // Opus 4.1 — $15 / $75
-  { prefix: 'claude-opus-4-1',   price: { input: 15,   output: 75   } },
-  // Opus 4.0 — $15 / $75
-  { prefix: 'claude-opus-4',     price: { input: 15,   output: 75   } },
-  // Sonnet 4.x — $3 / $15
-  { prefix: 'claude-sonnet-4',   price: { input: 3,    output: 15   } },
-  // Claude 3.5 Sonnet (claude-3-5-sonnet-...) — $3 / $15
-  { prefix: 'claude-3-5-sonnet', price: { input: 3,    output: 15   } },
-  // Haiku 4.5 — $1 / $5
-  { prefix: 'claude-haiku-4-5',  price: { input: 1,    output: 5    } },
-  // Haiku 4.x fallback — $1 / $5
-  { prefix: 'claude-haiku-4',    price: { input: 1,    output: 5    } },
-  // Claude 3.5 Haiku (claude-3-5-haiku-...) — $0.8 / $4
-  { prefix: 'claude-3-5-haiku',  price: { input: 0.8,  output: 4    } },
-  // Claude 3 Haiku (deprecated) — $0.25 / $1.25
-  { prefix: 'claude-3-haiku',    price: { input: 0.25, output: 1.25 } },
-];
-
-function getPrice(model: string, speed?: string): { input: number; output: number } | null {
-  const normalized = model.replace(/-\d{8}$/, '');
-  for (const entry of MODEL_PRICING) {
-    if (normalized.startsWith(entry.prefix)) {
-      if (speed === 'fast' && 'fast' in entry) return entry.fast!;
-      return entry.price;
-    }
-  }
-  return null;
-}
+import { getPrice, getContextWindow, CACHE_MULTIPLIERS } from '@ccui/shared/models';
 
 type UsageListener = (record: UsageRecord) => void;
 
@@ -53,29 +17,23 @@ class UsageTracker {
     const outputTokens = usage.output_tokens || 0;
     const cacheRead = usage.cache_read_input_tokens || 0;
     const cacheWrite = usage.cache_creation_input_tokens || 0;
-    const speed: string | undefined = usage.speed;
-    const price = getPrice(model, speed);
+    const price = getPrice(model);
 
-    // Cache write cost: distinguish 5min (1.25x) vs 1h (2x) TTLs when available
-    let cacheWriteCost = 0;
-    if (price) {
-      const cc = usage.cache_creation;
-      if (cc && (cc.ephemeral_5m_input_tokens || cc.ephemeral_1h_input_tokens)) {
-        const cache5m = cc.ephemeral_5m_input_tokens || 0;
-        const cache1h = cc.ephemeral_1h_input_tokens || 0;
-        cacheWriteCost = (cache5m * price.input * 1.25 + cache1h * price.input * 2.0) / 1_000_000;
-      } else {
-        // Fallback: no breakdown available, assume 1.25x
-        cacheWriteCost = (cacheWrite * price.input * 1.25) / 1_000_000;
-      }
-    }
+    // Use 5m/1h cache breakdown if available, otherwise treat all as 5m
+    const cacheCreation = usage.cache_creation || {};
+    const cache5m = cacheCreation.ephemeral_5m_input_tokens || 0;
+    const cache1h = cacheCreation.ephemeral_1h_input_tokens || 0;
+    const hasBreakdown = cache5m > 0 || cache1h > 0;
 
     const cost = price
       ? (inputTokens * price.input +
-          cacheRead * price.input * 0.1 +
+          (hasBreakdown
+            ? cache5m * price.input * CACHE_MULTIPLIERS.write5m +
+              cache1h * price.input * CACHE_MULTIPLIERS.write1h
+            : cacheWrite * price.input * CACHE_MULTIPLIERS.write5m) +
+          cacheRead * price.input * CACHE_MULTIPLIERS.read +
           outputTokens * price.output) /
-        1_000_000 +
-        cacheWriteCost
+        1_000_000
       : 0;
 
     const record: UsageRecord = {
@@ -244,6 +202,7 @@ class UsageTracker {
       callCount: row.callCount as number,
       latestInputTokens: (row.latestInput as number) || 0,
       model,
+      contextWindow: getContextWindow(model),
       pricingUnknown: model ? getPrice(model) === null : false,
     };
   }
