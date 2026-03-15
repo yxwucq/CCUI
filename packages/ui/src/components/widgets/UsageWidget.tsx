@@ -43,23 +43,23 @@ export default function UsageWidget({ sessionId, size, usage, callHistory, fetch
 
   if (!usage) return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2">
         <DollarSign size={12} /><span>Usage</span>
       </div>
-      <div className="text-xs text-gray-600">Loading...</div>
+      <div className="text-xs text-cc-text-muted">Loading...</div>
     </div>
   );
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2">
         <DollarSign size={12} />
         <span>Usage</span>
       </div>
 
       {/* Pricing unknown warning */}
       {usage.pricingUnknown && (
-        <div className="text-xs text-yellow-600 mb-1">
+        <div className="text-xs text-cc-yellow-text mb-1">
           Unknown pricing: {usage.model}
         </div>
       )}
@@ -68,11 +68,11 @@ export default function UsageWidget({ sessionId, size, usage, callHistory, fetch
       <div className={`flex items-baseline justify-between ${renderSize === 'sm' ? 'mb-0' : 'mb-2'}`}>
         <div
           key={isNewCost ? costKey : undefined}
-          className={`font-mono text-green-400 ${isNewCost ? 'cost-flash' : ''} ${renderSize === 'lg' ? 'text-xl' : 'text-lg'}`}
+          className={`font-mono text-cc-green-text ${isNewCost ? 'cost-flash' : ''} ${renderSize === 'lg' ? 'text-xl' : 'text-lg'}`}
         >
           ${usage.totalCost.toFixed(4)}
         </div>
-        <div className="text-xs text-gray-600">
+        <div className="text-xs text-cc-text-muted">
           {usage.callCount} calls{usage.model ? ` · ${usage.model.split('-').slice(1, 3).join('-')}` : ''}
         </div>
       </div>
@@ -87,9 +87,9 @@ export default function UsageWidget({ sessionId, size, usage, callHistory, fetch
               { label: 'Cache↓', value: usage.totalCacheRead ?? 0 },
               { label: 'Cache↑', value: usage.totalCacheWrite ?? 0 },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-800/50 rounded px-1 py-1.5">
-                <div className="text-xs font-mono text-gray-200">{formatTokens(value)}</div>
-                <div className="text-xs text-gray-500">{label}</div>
+              <div key={label} className="bg-cc-bg-surface/50 rounded px-1 py-1.5">
+                <div className="text-xs font-mono text-cc-text">{formatTokens(value)}</div>
+                <div className="text-xs text-cc-text-muted">{label}</div>
               </div>
             ))}
           </div>
@@ -97,7 +97,7 @@ export default function UsageWidget({ sessionId, size, usage, callHistory, fetch
           {/* Cumulative cost chart */}
           {chartData.length > 1 && (
             <div className="flex-1 min-h-0">
-              <div className="text-xs text-gray-600 mb-1">Cost over time</div>
+              <div className="text-xs text-cc-text-muted mb-1">Cost over time</div>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                   <defs>
