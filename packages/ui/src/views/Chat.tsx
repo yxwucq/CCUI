@@ -42,7 +42,9 @@ export default function Chat() {
   const focusedSessionId = useSessionStore((s) => s.focusedSessionId);
   const toggleFocus = useSessionStore((s) => s.toggleFocus);
   const expandedSessions = useSessionStore((s) => s.expandedSessions);
+  const stopSession = useSessionStore((s) => s.stopSession);
   const terminateSession = useSessionStore((s) => s.terminateSession);
+  const deleteSession = useSessionStore((s) => s.deleteSession);
   const resumeSession = useSessionStore((s) => s.resumeSession);
   const setExpanded = useSessionStore((s) => s.setExpanded);
   const appendMessage = useSessionStore((s) => s.appendMessage);
@@ -152,7 +154,9 @@ export default function Chat() {
     sessionUsage: allSessionUsage[s.id],
     usageCalls: allUsageCalls[s.id] ?? EMPTY_CALLS,
     onToggleFocus: toggleFocus,
-    onTerminate: terminateSession,
+    onStop: stopSession,
+    onTerminate: (id: string) => terminateSession(id, 'discard'),
+    onDelete: deleteSession,
     onResume: resumeSession,
     onSetExpanded: setExpanded,
     onAppendMessage: appendMessage,
@@ -161,7 +165,7 @@ export default function Chat() {
     setChatJumpTarget,
     onToggleWidget: toggleWidget,
     onSetWidgetSize: setWidgetSize,
-  }), [expandedSessions, focusedSessionId, allActivities, allJumpTargets, allSessionWidgets, defaultWidgets, allMessages, allStreaming, allSessionUsage, allUsageCalls, toggleFocus, terminateSession, resumeSession, setExpanded, appendMessage, clearChatJumpTarget, fetchSessionUsage, setChatJumpTarget, toggleWidget, setWidgetSize]);
+  }), [expandedSessions, focusedSessionId, allActivities, allJumpTargets, allSessionWidgets, defaultWidgets, allMessages, allStreaming, allSessionUsage, allUsageCalls, toggleFocus, stopSession, terminateSession, deleteSession, resumeSession, setExpanded, appendMessage, clearChatJumpTarget, fetchSessionUsage, setChatJumpTarget, toggleWidget, setWidgetSize]);
 
   return (
     <div className="h-full flex flex-col">

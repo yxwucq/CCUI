@@ -85,8 +85,19 @@ router.put('/:id/memory/:filename', (req, res) => {
   }
 });
 
+router.post('/:id/stop', (req, res) => {
+  sessionManager.stopSession(req.params.id);
+  res.json({ ok: true });
+});
+
+router.post('/:id/terminate', (req, res) => {
+  const { action } = req.body || {};
+  const result = sessionManager.terminateSession(req.params.id, action);
+  res.json(result);
+});
+
 router.delete('/:id', (req, res) => {
-  sessionManager.terminateSession(req.params.id);
+  sessionManager.deleteSession(req.params.id);
   res.json({ ok: true });
 });
 

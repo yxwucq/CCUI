@@ -26,7 +26,9 @@ interface Props {
   scrollMode?: boolean;
   onToggleExpanded?: (id: string) => void;
   onToggleFocus: (id: string) => void;
+  onStop: (id: string) => void;
   onTerminate: (id: string) => void;
+  onDelete: (id: string) => void;
   onResume: (id: string) => Promise<void>;
   onSetExpanded: (id: string, open: boolean) => void;
   onAppendMessage: (sessionId: string, msg: ChatMessage) => void;
@@ -37,7 +39,7 @@ interface Props {
   onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
 }
 
-export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, streaming, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onTerminate, onResume, onSetExpanded, onAppendMessage, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
+export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, streaming, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onAppendMessage, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
 
   const [viewMode, setViewMode] = useState<'terminal' | 'chat'>('terminal');
   const [terminalMounted, setTerminalMounted] = useState(false);
@@ -127,7 +129,9 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
         onClearDone={clearDone}
         onToggleExpanded={onToggleExpanded}
         onToggleFocus={onToggleFocus}
+        onStop={onStop}
         onTerminate={onTerminate}
+        onDelete={onDelete}
         onResume={onResume}
         onToggleWidget={onToggleWidget}
         onSetWidgetSize={onSetWidgetSize}

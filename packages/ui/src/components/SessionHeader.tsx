@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Play, Trash2, SquareTerminal, MessageSquare,
   Maximize2, Minimize2, AlertTriangle, CircleCheck,
-  Unplug, MessageCircleQuestion,
+  Unplug, MessageCircleQuestion, XCircle,
 } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
 import type { WidgetConfig } from '../stores/widgetStore';
@@ -24,13 +24,15 @@ interface Props {
   onClearDone: () => void;
   onToggleExpanded?: (id: string) => void;
   onToggleFocus: (id: string) => void;
+  onStop: (id: string) => void;
   onTerminate: (id: string) => void;
+  onDelete: (id: string) => void;
   onResume: (id: string) => Promise<void>;
   onToggleWidget: (sessionId: string, widgetId: string) => void;
   onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
 }
 
-export default function SessionHeader({ session, displayStatus, viewMode, isExpanded, isFocused, activity, enabledWidgets, onSetViewMode, onClearDone, onToggleExpanded, onToggleFocus, onTerminate, onResume, onToggleWidget, onSetWidgetSize }: Props) {
+export default function SessionHeader({ session, displayStatus, viewMode, isExpanded, isFocused, activity, enabledWidgets, onSetViewMode, onClearDone, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onToggleWidget, onSetWidgetSize }: Props) {
 
   const sc = STATUS_CONFIG[displayStatus];
   const isRunning = displayStatus === 'thinking' || displayStatus === 'tool_use' || displayStatus === 'writing';
@@ -71,11 +73,11 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
         </span>
       )}
 
-      {/* Branch */}
-      {session.branch && (
+      {/* Branch — show target branch if available, otherwise work branch */}
+      {(session.targetBranch || session.branch) && (
         <span className="flex items-center gap-1 text-xs text-cc-purple-text bg-cc-purple-bg px-2 py-0.5 rounded-full shrink-0">
           <GitBranch size={11} />
-          {session.branch}
+          {session.targetBranch || session.branch}
         </span>
       )}
 
@@ -151,15 +153,29 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
             {isFocused ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
           </button>
         )}
-        {session.status !== 'terminated' && (
+        {/* Active → Stop button */}
+        {session.status === 'active' && (
           <button
-            onClick={() => onTerminate(session.id)}
+            onClick={() => onStop(session.id)}
             className="p-1 text-cc-red-text/60 hover:text-cc-red-text hover:bg-cc-red-bg rounded transition-colors"
-            title="Stop session"
+            title="Stop (pause session)"
           >
             <Square size={13} />
           </button>
         )}
+        {/* Idle → Resume + Terminate buttons */}
+        {session.status === 'idle' && (
+          <>
+            <button
+              onClick={() => onTerminate(session.id)}
+              className="p-1 text-cc-orange-text/60 hover:text-cc-orange-text hover:bg-cc-orange-bg rounded transition-colors"
+              title="Terminate session"
+            >
+              <XCircle size={13} />
+            </button>
+          </>
+        )}
+        {/* Terminated → Resume + Delete buttons */}
         {session.status === 'terminated' && (
           <>
             <button
@@ -170,9 +186,9 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
               <Play size={13} />
             </button>
             <button
-              onClick={() => onTerminate(session.id)}
-              className="p-1 text-cc-text-muted hover:bg-cc-bg-surface rounded transition-colors"
-              title="Remove session"
+              onClick={() => onDelete(session.id)}
+              className="p-1 text-cc-text-muted hover:text-cc-red-text hover:bg-cc-red-bg rounded transition-colors"
+              title="Delete session"
             >
               <Trash2 size={13} />
             </button>

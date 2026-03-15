@@ -1,7 +1,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { v4 as uuid } from 'uuid';
 import { getDB } from '../db/database.js';
-import { createWorktree, removeWorktree, getCurrentBranch } from './worktree-manager.js';
+import { createIsolatedWorktree, removeWorktree, removeWorkBranch, getWorktreeStatus, mergeWorktree, getCurrentBranch } from './worktree-manager.js';
 import { BranchWatcher } from './branch-watcher.js';
 import { StreamParser } from './stream-parser.js';
 import type { Session, ChatMessage, SessionActivity, FileActivity } from '@ccui/shared';
@@ -14,20 +14,6 @@ type StatusListener = (sessionId: string, status: Session['status'], lastActiveA
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
 type FileActivityListener = (sessionId: string, activity: FileActivity) => void;
 
-function buildMemoryPrompt(worktreePath: string): string {
-  return `You have a persistent memory system at \`${worktreePath}/.claude/memory/\`. Use it to save important context about this session's work so it persists across conversations.
-
-Save memories as markdown files with frontmatter:
-\`\`\`
----
-name: <name>
-type: <user|project|feedback|reference>
----
-<content>
-\`\`\`
-
-Keep an index in \`MEMORY.md\` (one line per memory file with description). At the start of each conversation, check for relevant memories and load them. Save discoveries about the codebase, decisions made, progress, and any context that would help resume work later.`;
-}
 
 class SessionManager {
   private processes = new Map<string, SessionProcess>();
@@ -90,22 +76,24 @@ class SessionManager {
     const id = uuid();
     const now = new Date().toISOString();
     const { agentId, branch, name, skipPermissions } = opts || {};
-    let worktreePath: string | undefined;
     const currentBranch = getCurrentBranch(projectPath);
-    if (branch && branch !== currentBranch) worktreePath = createWorktree(projectPath, id, branch);
+    const targetBranch = branch || currentBranch;
+
+    // Always create isolated worktree with unique work branch
+    const { worktreePath, workBranch } = createIsolatedWorktree(projectPath, id, targetBranch);
 
     const sessionName = name || branch || `session-${id.slice(0, 8)}`;
     const session: Session = {
       id, name: sessionName, projectPath,
-      branch: branch || currentBranch, worktreePath, agentId,
+      branch: workBranch, targetBranch, worktreePath, agentId,
       skipPermissions: skipPermissions || false,
       status: 'idle', createdAt: now, lastActiveAt: now,
     };
 
     const db = getDB();
     db.prepare(
-      'INSERT INTO sessions (id, name, project_path, branch, worktree_path, agent_id, skip_permissions, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(id, sessionName, projectPath, session.branch || null, worktreePath || null, agentId || null, skipPermissions ? 1 : 0, 'idle', null, now, now);
+      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, sessionName, projectPath, workBranch, targetBranch, worktreePath, agentId || null, skipPermissions ? 1 : 0, 'idle', null, now, now);
     return session;
   }
 
@@ -150,12 +138,6 @@ class SessionManager {
         if (agent.max_turns) args.push('--max-turns', String(agent.max_turns));
       }
     }
-    if (row.worktree_path) {
-      const memoryPrompt = buildMemoryPrompt(row.worktree_path);
-      const spIdx = args.indexOf('--system-prompt');
-      if (spIdx !== -1) args[spIdx + 1] += `\n\n${memoryPrompt}`;
-      else args.push('--system-prompt', memoryPrompt);
-    }
     this.spawnClaude(sessionId, this.mapSession(row), args, cwd);
   }
 
@@ -199,18 +181,112 @@ class SessionManager {
     this.processes.set(sessionId, { child, session });
   }
 
-  terminateSession(sessionId: string) {
+  /**
+   * Stop: kill processes but keep worktree and all state. Session goes idle.
+   */
+  stopSession(sessionId: string) {
     const proc = this.processes.get(sessionId);
     if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
     this.streamParser.clearSession(sessionId);
+    const now = new Date().toISOString();
     const db = getDB();
-    const row = db.prepare('SELECT project_path, worktree_path FROM sessions WHERE id = ?').get(sessionId) as any;
+    db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?').run('idle', now, sessionId);
+    this.emitStatus(sessionId, 'idle', now);
+    this.emitActivity(sessionId, { state: 'idle' }, true);
+  }
+
+  /**
+   * Terminate: stop + handle worktree cleanup.
+   * action: 'check' returns status, 'merge' merges then cleans, 'discard' force cleans.
+   */
+  terminateSession(sessionId: string, action?: 'check' | 'merge' | 'discard') {
+    const db = getDB();
+    const row = db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as any;
+    if (!row) return { error: 'Session not found' };
+
+    // For 'check', just return worktree status without terminating
+    if (action === 'check' && row.worktree_path && row.branch && row.target_branch) {
+      const status = getWorktreeStatus(row.worktree_path, row.branch, row.target_branch);
+      return { ...status, workBranch: row.branch, targetBranch: row.target_branch };
+    }
+
+    // Kill processes
+    const proc = this.processes.get(sessionId);
+    if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
+    this.streamParser.clearSession(sessionId);
+
+    // Handle worktree based on action
+    if (row.worktree_path) {
+      if (action === 'merge' && row.branch && row.target_branch) {
+        try {
+          mergeWorktree(row.project_path, row.worktree_path, row.branch, row.target_branch);
+        } catch (err: any) {
+          // If merge fails, keep worktree as pending
+          const termNow = new Date().toISOString();
+          db.prepare('UPDATE sessions SET status = ?, cleanup_status = ?, last_active_at = ? WHERE id = ?')
+            .run('terminated', 'pending', termNow, sessionId);
+          this.emitStatus(sessionId, 'terminated', termNow);
+          return { error: `Merge failed: ${err.message}` };
+        }
+      } else if (action === 'discard') {
+        try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
+        if (row.branch) {
+          try { removeWorkBranch(row.project_path, row.branch); } catch { /* best effort */ }
+        }
+      } else if (!action) {
+        // Default: check if there are changes, set pending if so
+        const hasChanges = row.branch && row.target_branch
+          ? getWorktreeStatus(row.worktree_path, row.branch, row.target_branch)
+          : { hasUncommitted: false, unpushedCommits: 0 };
+        if (hasChanges.hasUncommitted || hasChanges.unpushedCommits > 0) {
+          const termNow = new Date().toISOString();
+          db.prepare('UPDATE sessions SET status = ?, cleanup_status = ?, last_active_at = ? WHERE id = ?')
+            .run('terminated', 'pending', termNow, sessionId);
+          this.emitStatus(sessionId, 'terminated', termNow);
+          return { pending: true, ...hasChanges };
+        }
+        // No changes, safe to clean up
+        try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
+        if (row.branch) {
+          try { removeWorkBranch(row.project_path, row.branch); } catch { /* best effort */ }
+        }
+      }
+    }
+
+    const termNow = new Date().toISOString();
+    const cleanupStatus = (action === 'merge' || action === 'discard' || !row.worktree_path) ? 'cleaned' : null;
+    db.prepare('UPDATE sessions SET status = ?, cleanup_status = ?, last_active_at = ? WHERE id = ?')
+      .run('terminated', cleanupStatus, termNow, sessionId);
+    this.emitStatus(sessionId, 'terminated', termNow);
+    return { ok: true };
+  }
+
+  /**
+   * Delete: permanently remove session and all related data from database.
+   */
+  deleteSession(sessionId: string) {
+    // Stop any running processes first
+    const proc = this.processes.get(sessionId);
+    if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
+    this.streamParser.clearSession(sessionId);
+
+    const db = getDB();
+    const row = db.prepare('SELECT project_path, worktree_path, branch FROM sessions WHERE id = ?').get(sessionId) as any;
+
+    // Clean up worktree if still exists
     if (row?.worktree_path) {
       try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
+      if (row.branch) {
+        try { removeWorkBranch(row.project_path, row.branch); } catch { /* best effort */ }
+      }
     }
-    const termNow = new Date().toISOString();
-    db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?').run('terminated', termNow, sessionId);
-    this.emitStatus(sessionId, 'terminated', termNow);
+
+    // Delete all related records
+    db.prepare('DELETE FROM usage_records WHERE session_id = ?').run(sessionId);
+    db.prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId);
+    db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+
+    this.emitStatus(sessionId, 'terminated', new Date().toISOString());
   }
 
   listSessions(): Session[] {
@@ -244,8 +320,10 @@ class SessionManager {
     return {
       id: row.id, name: row.name || row.id.slice(0, 8),
       projectPath: row.project_path, branch: row.branch || undefined,
+      targetBranch: row.target_branch || undefined,
       worktreePath: row.worktree_path || undefined, agentId: row.agent_id || undefined,
       skipPermissions: !!row.skip_permissions, status: row.status,
+      cleanupStatus: row.cleanup_status || undefined,
       createdAt: row.created_at, lastActiveAt: row.last_active_at,
     };
   }

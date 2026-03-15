@@ -4,10 +4,12 @@ export interface Session {
   name: string;
   projectPath: string;
   branch?: string;
+  targetBranch?: string;
   worktreePath?: string;
   agentId?: string;
   skipPermissions?: boolean;
   status: 'active' | 'idle' | 'terminated';
+  cleanupStatus?: 'pending' | 'cleaned';
   createdAt: string;
   lastActiveAt: string;
 }
@@ -116,7 +118,9 @@ export type WSMessage =
   | { type: 'session:branch'; sessionId: string; branch: string }
   | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean }
   | { type: 'session:resume'; sessionId: string }
-  | { type: 'session:terminate'; sessionId: string }
+  | { type: 'session:stop'; sessionId: string }
+  | { type: 'session:terminate'; sessionId: string; action?: 'check' | 'merge' | 'discard' }
+  | { type: 'session:delete'; sessionId: string }
   | { type: 'usage:update'; record: UsageRecord }
   | { type: 'file:changed'; path: string; event: string }
   | { type: 'file:activity'; sessionId: string; op: 'read' | 'write' | 'exec'; path: string; tool: string; timestamp: string }

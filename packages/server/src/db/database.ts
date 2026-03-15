@@ -69,6 +69,8 @@ export function initDB(projectPath: string): Database.Database {
   if (!colNames.has('claude_session_id')) db.exec('ALTER TABLE sessions ADD COLUMN claude_session_id TEXT');
   if (!colNames.has('skip_permissions')) db.exec('ALTER TABLE sessions ADD COLUMN skip_permissions INTEGER DEFAULT 0');
   if (!colNames.has('notes')) db.exec("ALTER TABLE sessions ADD COLUMN notes TEXT DEFAULT ''");
+  if (!colNames.has('target_branch')) db.exec('ALTER TABLE sessions ADD COLUMN target_branch TEXT');
+  if (!colNames.has('cleanup_status')) db.exec('ALTER TABLE sessions ADD COLUMN cleanup_status TEXT');
 
   return db;
 }

@@ -35,6 +35,22 @@ export async function resumeSession(sessionId: string): Promise<Session> {
   return session;
 }
 
-export async function terminateSession(sessionId: string): Promise<void> {
+export async function stopSession(sessionId: string): Promise<void> {
+  await fetch(`/api/sessions/${sessionId}/stop`, { method: 'POST' });
+}
+
+export async function terminateSession(
+  sessionId: string,
+  action?: 'check' | 'merge' | 'discard',
+): Promise<any> {
+  const res = await fetch(`/api/sessions/${sessionId}/terminate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+  return res.json();
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
   await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
 }

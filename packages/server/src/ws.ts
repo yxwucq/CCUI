@@ -124,9 +124,15 @@ export function setupWebSocket(server: Server) {
           if (!subscriptions.has(msg.sessionId)) subscriptions.set(msg.sessionId, new Set());
           subscriptions.get(msg.sessionId)!.add(ws);
           ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
-        } else if (msg.type === 'session:terminate') {
-          sessionManager.terminateSession(msg.sessionId);
+        } else if (msg.type === 'session:stop') {
+          sessionManager.stopSession(msg.sessionId);
           terminalManager.kill(msg.sessionId);
+        } else if (msg.type === 'session:terminate') {
+          sessionManager.terminateSession(msg.sessionId, msg.action);
+          terminalManager.kill(msg.sessionId);
+        } else if (msg.type === 'session:delete') {
+          terminalManager.kill(msg.sessionId);
+          sessionManager.deleteSession(msg.sessionId);
         } else if (msg.type === 'terminal:create') {
           // Subscribe to this session
           if (!subscriptions.has(msg.sessionId)) subscriptions.set(msg.sessionId, new Set());

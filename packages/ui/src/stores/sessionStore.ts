@@ -45,7 +45,9 @@ interface SessionStore {
   updateActivity: (sessionId: string, activity: SessionActivity) => void;
   updateSessionBranch: (sessionId: string, branch: string) => void;
   resumeSession: (sessionId: string) => Promise<void>;
-  terminateSession: (sessionId: string) => Promise<void>;
+  stopSession: (sessionId: string) => Promise<void>;
+  terminateSession: (sessionId: string, action?: 'check' | 'merge' | 'discard') => Promise<any>;
+  deleteSession: (sessionId: string) => Promise<void>;
   updateSessionUsage: (sessionId: string, record: UsageRecord) => void;
   fetchSessionUsage: (sessionId: string) => Promise<void>;
   addFileActivity: (sessionId: string, activity: FileActivity) => void;
@@ -194,12 +196,31 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     get().fetchMessages(sessionId);
   },
 
-  terminateSession: async (sessionId) => {
-    await sessionsApi.terminateSession(sessionId);
+  stopSession: async (sessionId) => {
+    await sessionsApi.stopSession(sessionId);
     set((s) => ({
       sessions: s.sessions.map((sess) =>
-        sess.id === sessionId ? { ...sess, status: 'terminated' as const } : sess
+        sess.id === sessionId ? { ...sess, status: 'idle' as const } : sess
       ),
+    }));
+  },
+
+  terminateSession: async (sessionId, action) => {
+    const result = await sessionsApi.terminateSession(sessionId, action);
+    if (action !== 'check') {
+      set((s) => ({
+        sessions: s.sessions.map((sess) =>
+          sess.id === sessionId ? { ...sess, status: 'terminated' as const } : sess
+        ),
+      }));
+    }
+    return result;
+  },
+
+  deleteSession: async (sessionId) => {
+    await sessionsApi.deleteSession(sessionId);
+    set((s) => ({
+      sessions: s.sessions.filter((sess) => sess.id !== sessionId),
     }));
   },
 
