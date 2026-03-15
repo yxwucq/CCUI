@@ -36,7 +36,7 @@ export default function HistoryWidget({ sessionId, session, size, messages, call
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2 shrink-0">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2 shrink-0">
         <MessageSquare size={12} />
         <span>History</span>
       </div>
@@ -44,17 +44,17 @@ export default function HistoryWidget({ sessionId, session, size, messages, call
       {/* sm: compact single row */}
       {renderSize === 'sm' && (
         <div className="flex items-center gap-3 text-xs">
-          <span className="font-mono text-blue-400">{callCount}</span>
-          <span className="text-gray-600">turns</span>
+          <span className="font-mono text-cc-blue-text">{callCount}</span>
+          <span className="text-cc-text-muted">turns</span>
           {messages.length > 0 && (
             <>
-              <span className="font-mono text-gray-400 flex items-center gap-0.5">
+              <span className="font-mono text-cc-text-secondary flex items-center gap-0.5">
                 <User size={10} />{userMsgs.length}
               </span>
-              <span className="text-gray-600">msgs</span>
+              <span className="text-cc-text-muted">msgs</span>
             </>
           )}
-          {duration && <span className="text-gray-600 ml-auto">{duration}</span>}
+          {duration && <span className="text-cc-text-muted ml-auto">{duration}</span>}
         </div>
       )}
 
@@ -63,23 +63,23 @@ export default function HistoryWidget({ sessionId, session, size, messages, call
         <div className="flex-1 flex flex-col gap-2 min-h-0">
           {/* Stats row */}
           <div className="flex items-center gap-3 text-xs shrink-0">
-            <span className="font-mono text-blue-400">{callCount}</span>
-            <span className="text-gray-600">turns</span>
+            <span className="font-mono text-cc-blue-text">{callCount}</span>
+            <span className="text-cc-text-muted">turns</span>
             {messages.length > 0 && (
               <>
-                <span className="font-mono text-gray-400 flex items-center gap-0.5">
+                <span className="font-mono text-cc-text-secondary flex items-center gap-0.5">
                   <User size={10} />{userMsgs.length}
                 </span>
-                <span className="text-gray-600">msgs</span>
+                <span className="text-cc-text-muted">msgs</span>
               </>
             )}
-            {duration && <span className="text-gray-500 ml-auto">{duration}</span>}
+            {duration && <span className="text-cc-text-muted ml-auto">{duration}</span>}
           </div>
 
           {/* Recent user messages — click to jump */}
           <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
             {userMsgs.length === 0 ? (
-              <div className="text-gray-700 text-xs text-center pt-2">
+              <div className="text-cc-text-muted text-xs text-center pt-2">
                 {callCount > 0 ? 'Using terminal mode' : 'No messages yet'}
               </div>
             ) : (
@@ -87,13 +87,13 @@ export default function HistoryWidget({ sessionId, session, size, messages, call
                 <button
                   key={msg.id}
                   onClick={() => setChatJumpTarget(sessionId, msg.id)}
-                  className="w-full text-left flex items-start gap-1.5 px-2 py-1 rounded hover:bg-gray-800/50 group transition-colors"
+                  className="w-full text-left flex items-start gap-1.5 px-2 py-1 rounded hover:bg-cc-bg-surface/50 group transition-colors"
                 >
-                  <User size={9} className="text-blue-400 shrink-0 mt-0.5" />
-                  <span className="text-xs text-gray-400 group-hover:text-gray-300 truncate leading-relaxed flex-1">
+                  <User size={9} className="text-cc-blue-text shrink-0 mt-0.5" />
+                  <span className="text-xs text-cc-text-secondary group-hover:text-cc-text truncate leading-relaxed flex-1">
                     {msg.content.replace(/\n/g, ' ')}
                   </span>
-                  <span className="text-[10px] text-gray-600 shrink-0 ml-1">
+                  <span className="text-[10px] text-cc-text-muted shrink-0 ml-1">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </button>

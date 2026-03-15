@@ -9,20 +9,20 @@ export default function UsageChart({ data, dataKey = 'cost' }: Props) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data}>
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} />
-        <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--cc-text-muted)' }} />
+        <YAxis tick={{ fontSize: 11, fill: 'var(--cc-text-muted)' }} />
         <Tooltip
           contentStyle={{
-            background: '#1f2937',
-            border: '1px solid #374151',
+            background: 'var(--cc-bg-surface)',
+            border: '1px solid var(--cc-border)',
             borderRadius: 8,
           }}
-          labelStyle={{ color: '#9ca3af' }}
+          labelStyle={{ color: 'var(--cc-text-secondary)' }}
         />
         <Line
           type="monotone"
           dataKey={dataKey}
-          stroke="#3b82f6"
+          stroke="var(--cc-accent)"
           strokeWidth={2}
           dot={false}
         />

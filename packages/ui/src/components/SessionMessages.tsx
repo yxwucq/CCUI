@@ -43,10 +43,10 @@ export default function SessionMessages({ session, isRunning, messages: sessionM
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 border-r border-gray-800">
+    <div className="flex-1 flex flex-col min-w-0 border-r border-cc-border">
       <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {sessionMessages.length === 0 && !streaming && (
-          <div className="text-center text-gray-600 text-sm py-8">
+          <div className="text-center text-cc-text-muted text-sm py-8">
             {session.status !== 'terminated' ? 'Send a message to start.' : 'No messages.'}
           </div>
         )}
@@ -68,7 +68,7 @@ export default function SessionMessages({ session, isRunning, messages: sessionM
         <div ref={messagesEndRef} />
       </div>
       {session.status !== 'terminated' && (
-        <div className="border-t border-gray-800/50 p-3 shrink-0">
+        <div className="border-t border-cc-border/50 p-3 shrink-0">
           <div className="flex gap-2">
             <textarea
               value={input}
@@ -77,12 +77,12 @@ export default function SessionMessages({ session, isRunning, messages: sessionM
               placeholder={isRunning ? 'Claude is working...' : 'Type a message... (Shift+Enter for newline)'}
               rows={1}
               disabled={isRunning}
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500 disabled:opacity-50"
+              className="flex-1 bg-cc-bg-surface border border-cc-border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-cc-accent disabled:opacity-50"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || isRunning}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 rounded-lg transition-colors"
+              className="bg-cc-accent hover:bg-cc-accent-hover disabled:opacity-50 px-4 rounded-lg transition-colors"
             >
               <Send size={16} />
             </button>

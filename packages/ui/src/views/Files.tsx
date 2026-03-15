@@ -19,10 +19,10 @@ const STATUS_ICON: Record<string, typeof FileEdit> = {
   untracked: FileQuestion,
 };
 const STATUS_COLOR: Record<string, string> = {
-  modified: 'text-yellow-400',
-  added: 'text-green-400',
-  deleted: 'text-red-400',
-  untracked: 'text-gray-500',
+  modified: 'text-cc-yellow-text',
+  added: 'text-cc-green-text',
+  deleted: 'text-cc-red-text',
+  untracked: 'text-cc-text-muted',
 };
 
 const EMPTY: never[] = [];
@@ -206,12 +206,12 @@ export default function Files() {
   return (
     <div className="flex h-full flex-col">
       {/* Header: session selector + view mode */}
-      <div className="border-b border-gray-800 px-4 py-2 flex items-center gap-3 shrink-0">
-        <FolderOpen size={14} className="text-gray-500" />
+      <div className="border-b border-cc-border px-4 py-2 flex items-center gap-3 shrink-0">
+        <FolderOpen size={14} className="text-cc-text-muted" />
         <select
           value={sessionId || ''}
           onChange={(e) => setSelectedSessionId(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
+          className="bg-cc-bg-surface border border-cc-border rounded px-2 py-1 text-sm text-cc-text-secondary focus:outline-none focus:border-cc-accent"
         >
           {activeSessions.length === 0 && (
             <option value="">No active sessions</option>
@@ -224,30 +224,30 @@ export default function Files() {
         </select>
 
         {selectedSession?.branch && (
-          <span className="flex items-center gap-1 text-xs text-purple-400 bg-purple-900/20 px-2 py-0.5 rounded-full">
+          <span className="flex items-center gap-1 text-xs text-cc-purple-text bg-cc-purple-bg px-2 py-0.5 rounded-full">
             <GitBranch size={11} />
             {selectedSession.branch}
           </span>
         )}
 
         <div className="ml-auto flex items-center gap-1">
-          <div className="flex bg-gray-800 rounded p-0.5">
+          <div className="flex bg-cc-bg-surface rounded p-0.5">
             <button
               onClick={() => setViewMode('changes')}
-              className={`px-2 py-0.5 rounded text-xs transition-colors ${viewMode === 'changes' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${viewMode === 'changes' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text'}`}
             >
               Changes{changes.length > 0 ? ` (${changes.length})` : ''}
             </button>
             <button
               onClick={() => setViewMode('tree')}
-              className={`px-2 py-0.5 rounded text-xs transition-colors ${viewMode === 'tree' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${viewMode === 'tree' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text'}`}
             >
               Browse
             </button>
           </div>
           <button
             onClick={handleRefresh}
-            className="p-1 text-gray-600 hover:text-gray-400 transition-colors"
+            className="p-1 text-cc-text-muted hover:text-cc-text-secondary transition-colors"
             title="Refresh"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
@@ -256,17 +256,17 @@ export default function Files() {
       </div>
 
       {!selectedSession ? (
-        <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">
+        <div className="flex-1 flex items-center justify-center text-cc-text-muted text-sm">
           No active sessions. Create a session first.
         </div>
       ) : (
         <div className="flex flex-1 min-h-0">
           {/* Left panel: tree or changes list */}
-          <div className="w-72 border-r border-gray-800 overflow-y-auto flex flex-col shrink-0">
+          <div className="w-72 border-r border-cc-border overflow-y-auto flex flex-col shrink-0">
             {viewMode === 'tree' && (
               <div className="p-2 flex-1 overflow-y-auto">
                 {treeLoading ? (
-                  <div className="text-xs text-gray-600 p-2">Loading...</div>
+                  <div className="text-xs text-cc-text-muted p-2">Loading...</div>
                 ) : (
                   <FileTree nodes={tree} onSelect={loadFile} selectedPath={selectedAbsPath} />
                 )}
@@ -276,7 +276,7 @@ export default function Files() {
             {viewMode === 'changes' && (
               <div className="p-2 flex-1 overflow-y-auto">
                 {changes.length === 0 ? (
-                  <div className="text-xs text-gray-600 p-2 text-center">Working tree clean</div>
+                  <div className="text-xs text-cc-text-muted p-2 text-center">Working tree clean</div>
                 ) : (
                   <div className="space-y-0.5">
                     {changes.map((c) => {
@@ -286,13 +286,13 @@ export default function Files() {
                         <button
                           key={c.file}
                           onClick={() => handleChangedFileClick(c.file)}
-                          className={`w-full flex items-center gap-1.5 text-xs py-1 px-1.5 rounded transition-colors text-left ${isOpen ? 'bg-gray-800' : 'hover:bg-gray-800/50'}`}
+                          className={`w-full flex items-center gap-1.5 text-xs py-1 px-1.5 rounded transition-colors text-left ${isOpen ? 'bg-cc-bg-surface' : 'hover:bg-cc-bg-surface/50'}`}
                         >
                           {isOpen
-                            ? <ChevronDown size={10} className="text-gray-600 shrink-0" />
-                            : <ChevronRight size={10} className="text-gray-600 shrink-0" />}
-                          <Icon size={11} className={`shrink-0 ${STATUS_COLOR[c.status] || 'text-gray-400'}`} />
-                          <span className="text-gray-300 truncate">{c.file}</span>
+                            ? <ChevronDown size={10} className="text-cc-text-muted shrink-0" />
+                            : <ChevronRight size={10} className="text-cc-text-muted shrink-0" />}
+                          <Icon size={11} className={`shrink-0 ${STATUS_COLOR[c.status] || 'text-cc-text-secondary'}`} />
+                          <span className="text-cc-text-secondary truncate">{c.file}</span>
                         </button>
                       );
                     })}
@@ -308,8 +308,8 @@ export default function Files() {
               // Diff viewer
               expandedDiff ? (
                 <>
-                  <div className="border-b border-gray-800 px-4 py-2 flex items-center gap-2 shrink-0">
-                    <span className="text-sm text-gray-400 truncate">{expandedDiff}</span>
+                  <div className="border-b border-cc-border px-4 py-2 flex items-center gap-2 shrink-0">
+                    <span className="text-sm text-cc-text-secondary truncate">{expandedDiff}</span>
                     <button
                       onClick={() => {
                         // Switch to tree mode and open this file for editing
@@ -317,21 +317,21 @@ export default function Files() {
                         loadFile(cwd + '/' + expandedDiff);
                         setViewMode('tree');
                       }}
-                      className="ml-auto text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                      className="ml-auto text-xs text-cc-blue-text hover:text-cc-blue-text transition-colors"
                     >
                       Open in editor
                     </button>
                   </div>
-                  <div className="flex-1 overflow-auto bg-gray-950/50">
+                  <div className="flex-1 overflow-auto bg-cc-bg/50">
                     {diffLoading ? (
-                      <div className="p-4 text-sm text-gray-600">Loading diff...</div>
+                      <div className="p-4 text-sm text-cc-text-muted">Loading diff...</div>
                     ) : (
                       <DiffView diff={diffContent} />
                     )}
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">
+                <div className="flex-1 flex items-center justify-center text-cc-text-muted text-sm">
                   Select a changed file to view diff
                 </div>
               )
@@ -339,15 +339,15 @@ export default function Files() {
               // File editor
               selectedFile ? (
                 <>
-                  <div className="border-b border-gray-800 px-4 py-2 flex items-center justify-between shrink-0">
-                    <span className="text-sm text-gray-400 truncate">{selectedFile}</span>
+                  <div className="border-b border-cc-border px-4 py-2 flex items-center justify-between shrink-0">
+                    <span className="text-sm text-cc-text-secondary truncate">{selectedFile}</span>
                     <div className="flex items-center gap-2">
-                      {modified && <span className="text-xs text-yellow-400">Modified</span>}
+                      {modified && <span className="text-xs text-cc-yellow-text">Modified</span>}
                       {!binary && (
                         <button
                           onClick={() => setEditing((v) => !v)}
                           className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${
-                            editing ? 'bg-amber-700 hover:bg-amber-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            editing ? 'bg-cc-amber-text hover:bg-cc-amber-text text-cc-text' : 'bg-cc-bg-overlay hover:bg-cc-bg-overlay text-cc-text-secondary'
                           }`}
                         >
                           {editing ? <><Eye size={12} /> View</> : <><Pencil size={12} /> Edit</>}
@@ -357,7 +357,7 @@ export default function Files() {
                         <button
                           onClick={saveFile}
                           disabled={!modified}
-                          className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-2 py-1 rounded transition-colors"
+                          className="flex items-center gap-1 text-xs bg-cc-accent hover:bg-cc-accent-hover disabled:opacity-50 px-2 py-1 rounded transition-colors"
                         >
                           <Save size={12} /> Save
                         </button>
@@ -365,7 +365,7 @@ export default function Files() {
                     </div>
                   </div>
                   {binary ? (
-                    <div className="flex-1 flex items-center justify-center text-gray-600">
+                    <div className="flex-1 flex items-center justify-center text-cc-text-muted">
                       Binary file — cannot display
                     </div>
                   ) : editing ? (
@@ -385,7 +385,7 @@ export default function Files() {
                   )}
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">
+                <div className="flex-1 flex items-center justify-center text-cc-text-muted text-sm">
                   Select a file to view
                 </div>
               )
@@ -400,7 +400,7 @@ export default function Files() {
 /** Diff viewer with line-level coloring and line numbers */
 function DiffView({ diff }: { diff: string }) {
   if (!diff || diff.startsWith('(')) {
-    return <div className="p-4 text-sm text-gray-600">{diff}</div>;
+    return <div className="p-4 text-sm text-cc-text-muted">{diff}</div>;
   }
 
   const lines = diff.split('\n');
@@ -410,7 +410,7 @@ function DiffView({ diff }: { diff: string }) {
   return (
     <div className="text-xs font-mono leading-relaxed">
       {lines.map((line, i) => {
-        let cls = 'text-gray-500';
+        let cls = 'text-cc-text-muted';
         let oldNum = '';
         let newNum = '';
 
@@ -419,15 +419,15 @@ function DiffView({ diff }: { diff: string }) {
         if (hunkMatch) {
           oldLine = parseInt(hunkMatch[1]);
           newLine = parseInt(hunkMatch[2]);
-          cls = 'text-cyan-400 bg-cyan-900/10';
+          cls = 'text-cc-cyan-text bg-cc-cyan-bg';
         } else if (line.startsWith('+') && !line.startsWith('+++')) {
-          cls = 'text-green-400 bg-green-900/15';
+          cls = 'text-cc-green-text bg-cc-green-bg';
           newNum = String(newLine++);
         } else if (line.startsWith('-') && !line.startsWith('---')) {
-          cls = 'text-red-400 bg-red-900/15';
+          cls = 'text-cc-red-text bg-cc-red-bg';
           oldNum = String(oldLine++);
         } else if (line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++')) {
-          cls = 'text-gray-600';
+          cls = 'text-cc-text-muted';
         } else if (!hunkMatch) {
           // Context line
           oldNum = String(oldLine++);
@@ -440,8 +440,8 @@ function DiffView({ diff }: { diff: string }) {
               <span className="px-4 py-px whitespace-pre flex-1">{line || ' '}</span>
             ) : (
               <>
-                <span className="w-10 shrink-0 text-right pr-1 text-gray-700 select-none">{oldNum}</span>
-                <span className="w-10 shrink-0 text-right pr-1 text-gray-700 select-none border-r border-gray-800/50">{newNum}</span>
+                <span className="w-10 shrink-0 text-right pr-1 text-cc-text-muted select-none">{oldNum}</span>
+                <span className="w-10 shrink-0 text-right pr-1 text-cc-text-muted select-none border-r border-cc-border/50">{newNum}</span>
                 <span className="px-3 py-px whitespace-pre flex-1">{line || ' '}</span>
               </>
             )}

@@ -47,21 +47,21 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2">
         <Cpu size={12} />
         <span>Context</span>
-        {stats.isReal && <span className="ml-auto text-green-600 text-xs font-normal">actual</span>}
+        {stats.isReal && <span className="ml-auto text-cc-green-text text-xs font-normal">actual</span>}
       </div>
 
       {/* Progress bar — always shown */}
       <div className={renderSize === 'sm' ? '' : 'mb-3'}>
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <div className="flex justify-between text-xs text-cc-text-secondary mb-1">
           <span>{stats.pct}%</span>
           {renderSize === 'sm' && (
-            <span className="text-gray-600">{formatTokens(stats.remaining)} left</span>
+            <span className="text-cc-text-muted">{formatTokens(stats.remaining)} left</span>
           )}
         </div>
-        <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-cc-bg-surface rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${barColor}`}
             style={{ width: `${Math.min(stats.pct, 100)}%` }}
@@ -72,13 +72,13 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
       {/* lg only: stat boxes */}
       {renderSize === 'lg' && (
         <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="bg-gray-800/50 rounded p-2">
-            <div className="text-lg font-mono text-gray-200">{formatTokens(stats.usedTokens)}</div>
-            <div className="text-xs text-gray-500">Used</div>
+          <div className="bg-cc-bg-surface/50 rounded p-2">
+            <div className="text-lg font-mono text-cc-text">{formatTokens(stats.usedTokens)}</div>
+            <div className="text-xs text-cc-text-muted">Used</div>
           </div>
-          <div className="bg-gray-800/50 rounded p-2">
-            <div className="text-lg font-mono text-gray-200">{formatTokens(stats.remaining)}</div>
-            <div className="text-xs text-gray-500">Left</div>
+          <div className="bg-cc-bg-surface/50 rounded p-2">
+            <div className="text-lg font-mono text-cc-text">{formatTokens(stats.remaining)}</div>
+            <div className="text-xs text-cc-text-muted">Left</div>
           </div>
         </div>
       )}

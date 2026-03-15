@@ -16,8 +16,8 @@ function fmtK(n: number) {
 type SortKey = 'totalCost' | 'callCount' | 'totalInput' | 'totalOutput';
 
 function SortIcon({ col, sortKey, dir }: { col: SortKey; sortKey: SortKey; dir: 'asc' | 'desc' }) {
-  if (col !== sortKey) return <ChevronsUpDown size={11} className="text-gray-600" />;
-  return dir === 'desc' ? <ChevronDown size={11} className="text-blue-400" /> : <ChevronUp size={11} className="text-blue-400" />;
+  if (col !== sortKey) return <ChevronsUpDown size={11} className="text-cc-text-muted" />;
+  return dir === 'desc' ? <ChevronDown size={11} className="text-cc-blue-text" /> : <ChevronUp size={11} className="text-cc-blue-text" />;
 }
 
 export default function Dashboard() {
@@ -79,20 +79,20 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold">Dashboard</h2>
           {selectedSession && (
-            <span className="flex items-center gap-1.5 text-sm bg-blue-900/40 border border-blue-700/50 text-blue-300 px-2.5 py-1 rounded-full">
+            <span className="flex items-center gap-1.5 text-sm bg-cc-blue-bg border border-cc-blue-border text-cc-blue-text px-2.5 py-1 rounded-full">
               {selectedSession.sessionName}
-              <button onClick={() => setSelectedSession(null)} className="hover:text-white transition-colors" title="Clear filter">
+              <button onClick={() => setSelectedSession(null)} className="hover:text-cc-text transition-colors" title="Clear filter">
                 <X size={12} />
               </button>
             </span>
           )}
         </div>
-        <div className="flex gap-1 bg-gray-800 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-cc-bg-surface rounded-lg p-0.5">
           {ranges.map((r) => (
             <button
               key={r.value}
               onClick={() => setRange(r.value)}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${range === r.value ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${range === r.value ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text'}`}
             >
               {r.label}
             </button>
@@ -103,26 +103,26 @@ export default function Dashboard() {
       {/* Summary cards */}
       {summary && (
         <div className="grid grid-cols-5 gap-4">
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Total Cost</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Total Cost</p>
             <p className="text-2xl font-bold mt-1">${totalCost.toFixed(4)}</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Input Tokens</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Input Tokens</p>
             <p className="text-2xl font-bold mt-1">{fmtK(summary.totalInputTokens)}</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Output Tokens</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Output Tokens</p>
             <p className="text-2xl font-bold mt-1">{fmtK(summary.totalOutputTokens)}</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">{selectedSessionId ? 'API Calls' : 'Sessions'}</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">{selectedSessionId ? 'API Calls' : 'Sessions'}</p>
             <p className="text-2xl font-bold mt-1">
               {selectedSessionId ? (selectedSession?.callCount ?? 0) : summary.sessionCount}
             </p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Avg Cost / Call</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Avg Cost / Call</p>
             <p className="text-2xl font-bold mt-1">${avgCostPerCall.toFixed(4)}</p>
           </div>
         </div>
@@ -130,8 +130,8 @@ export default function Dashboard() {
 
       {/* Cost trend (Area) + Token usage side by side */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <h3 className="text-sm font-medium text-gray-400 mb-4">Cost Trend</h3>
+        <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+          <h3 className="text-sm font-medium text-cc-text-secondary mb-4">Cost Trend</h3>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={daily}>
               <defs>
@@ -140,23 +140,23 @@ export default function Dashboard() {
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} />
-              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
-              <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#9ca3af' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-border-subtle)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
+              <Tooltip contentStyle={{ background: 'var(--cc-bg-surface)', border: '1px solid var(--cc-border)', borderRadius: 8 }} labelStyle={{ color: 'var(--cc-text-secondary)' }} />
               <Area type="monotone" dataKey="cost" stroke="#3b82f6" strokeWidth={2} fill="url(#costGrad)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <h3 className="text-sm font-medium text-gray-400 mb-4">Daily Token Usage</h3>
+        <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+          <h3 className="text-sm font-medium text-cc-text-secondary mb-4">Daily Token Usage</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={daily}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} />
-              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
-              <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#9ca3af' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-border-subtle)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
+              <Tooltip contentStyle={{ background: 'var(--cc-bg-surface)', border: '1px solid var(--cc-border)', borderRadius: 8 }} labelStyle={{ color: 'var(--cc-text-secondary)' }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="inputTokens" name="Input" fill="#3b82f6" stackId="a" />
               <Bar dataKey="outputTokens" name="Output" fill="#10b981" stackId="a" />
@@ -169,9 +169,9 @@ export default function Dashboard() {
 
       {/* Cache hit rate + Session cost bar chart side by side */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <h3 className="text-sm font-medium text-gray-400 mb-1">Cache Hit Rate</h3>
-          <p className="text-xs text-gray-600 mb-3">cache_read / (cache_read + input) per day</p>
+        <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+          <h3 className="text-sm font-medium text-cc-text-secondary mb-1">Cache Hit Rate</h3>
+          <p className="text-xs text-cc-text-muted mb-3">cache_read / (cache_read + input) per day</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={cacheRateData}>
               <defs>
@@ -180,12 +180,12 @@ export default function Dashboard() {
                   <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} />
-              <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 10, fill: '#6b7280' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-border-subtle)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
+              <YAxis unit="%" domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
               <Tooltip
-                contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8 }}
-                labelStyle={{ color: '#9ca3af' }}
+                contentStyle={{ background: 'var(--cc-bg-surface)', border: '1px solid var(--cc-border)', borderRadius: 8 }}
+                labelStyle={{ color: 'var(--cc-text-secondary)' }}
                 formatter={(v: any) => [`${v}%`, 'Cache Hit Rate']}
               />
               <Area type="monotone" dataKey="cacheHitRate" stroke="#f59e0b" strokeWidth={2} fill="url(#cacheGrad)" dot={false} />
@@ -193,17 +193,17 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <h3 className="text-sm font-medium text-gray-400 mb-1">Top Sessions by Cost</h3>
-          <p className="text-xs text-gray-600 mb-3">top {topSessions.length}</p>
+        <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+          <h3 className="text-sm font-medium text-cc-text-secondary mb-1">Top Sessions by Cost</h3>
+          <p className="text-xs text-cc-text-muted mb-3">top {topSessions.length}</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={topSessions} layout="vertical" margin={{ left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: '#6b7280' }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} width={110} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-border-subtle)" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--cc-text-muted)' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'var(--cc-text-secondary)' }} width={110} />
               <Tooltip
-                contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8 }}
-                labelStyle={{ color: '#9ca3af' }}
+                contentStyle={{ background: 'var(--cc-bg-surface)', border: '1px solid var(--cc-border)', borderRadius: 8 }}
+                labelStyle={{ color: 'var(--cc-text-secondary)' }}
                 formatter={(v: any) => [`$${(v as number).toFixed(4)}`, 'Cost']}
               />
               <Bar dataKey="cost" fill="#3b82f6" radius={[0, 3, 3, 0]} />
@@ -214,13 +214,13 @@ export default function Dashboard() {
 
       {/* Model breakdown */}
       {modelUsage.length > 0 && (
-        <div className="bg-gray-900 rounded-lg border border-gray-800">
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-sm font-medium text-gray-400">Model Breakdown</h3>
+        <div className="bg-cc-bg rounded-lg border border-cc-border">
+          <div className="p-4 border-b border-cc-border">
+            <h3 className="text-sm font-medium text-cc-text-secondary">Model Breakdown</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-gray-500 border-b border-gray-800">
+              <tr className="text-cc-text-muted border-b border-cc-border">
                 <th className="text-left px-4 py-2">Model</th>
                 <th className="text-right px-4 py-2">Requests</th>
                 <th className="text-right px-4 py-2">Input Tokens</th>
@@ -228,14 +228,14 @@ export default function Dashboard() {
                 <th className="text-right px-4 py-2">Cost</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-cc-border">
               {modelUsage.map((m: any) => (
                 <tr key={m.model}>
-                  <td className="px-4 py-2 text-gray-300">{m.model}</td>
-                  <td className="px-4 py-2 text-right text-gray-400">{m.requests}</td>
-                  <td className="px-4 py-2 text-right text-gray-400">{m.inputTokens?.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-gray-400">{m.outputTokens?.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-gray-300">${(m.cost || 0).toFixed(4)}</td>
+                  <td className="px-4 py-2 text-cc-text-secondary">{m.model}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">{m.requests}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">{m.inputTokens?.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">{m.outputTokens?.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">${(m.cost || 0).toFixed(4)}</td>
                 </tr>
               ))}
             </tbody>
@@ -245,78 +245,78 @@ export default function Dashboard() {
 
       {/* Per-session breakdown */}
       {perSession.length > 0 && (
-        <div className="bg-gray-900 rounded-lg border border-gray-800">
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-sm font-medium text-gray-400">
+        <div className="bg-cc-bg rounded-lg border border-cc-border">
+          <div className="p-4 border-b border-cc-border">
+            <h3 className="text-sm font-medium text-cc-text-secondary">
               Per-Session Breakdown
-              <span className="ml-2 text-gray-600 font-normal text-xs">click row to filter · click header to sort</span>
+              <span className="ml-2 text-cc-text-muted font-normal text-xs">click row to filter · click header to sort</span>
             </h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-gray-500 border-b border-gray-800 select-none">
+              <tr className="text-cc-text-muted border-b border-cc-border select-none">
                 <th className="text-left px-4 py-2">Session</th>
-                <th className="text-right px-4 py-2 cursor-pointer hover:text-gray-300" onClick={() => toggleSort('callCount')}>
+                <th className="text-right px-4 py-2 cursor-pointer hover:text-cc-text" onClick={() => toggleSort('callCount')}>
                   <span className="inline-flex items-center gap-1 justify-end">Calls <SortIcon col="callCount" sortKey={sortKey} dir={sortDir} /></span>
                 </th>
-                <th className="text-right px-4 py-2 cursor-pointer hover:text-gray-300" onClick={() => toggleSort('totalInput')}>
+                <th className="text-right px-4 py-2 cursor-pointer hover:text-cc-text" onClick={() => toggleSort('totalInput')}>
                   <span className="inline-flex items-center gap-1 justify-end">Input <SortIcon col="totalInput" sortKey={sortKey} dir={sortDir} /></span>
                 </th>
-                <th className="text-right px-4 py-2 cursor-pointer hover:text-gray-300" onClick={() => toggleSort('totalOutput')}>
+                <th className="text-right px-4 py-2 cursor-pointer hover:text-cc-text" onClick={() => toggleSort('totalOutput')}>
                   <span className="inline-flex items-center gap-1 justify-end">Output <SortIcon col="totalOutput" sortKey={sortKey} dir={sortDir} /></span>
                 </th>
                 <th className="text-right px-4 py-2">Cache</th>
-                <th className="text-right px-4 py-2 cursor-pointer hover:text-gray-300" onClick={() => toggleSort('totalCost')}>
+                <th className="text-right px-4 py-2 cursor-pointer hover:text-cc-text" onClick={() => toggleSort('totalCost')}>
                   <span className="inline-flex items-center gap-1 justify-end">Cost <SortIcon col="totalCost" sortKey={sortKey} dir={sortDir} /></span>
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-cc-border">
               {sortedRows.map((row: SessionUsageRow) => {
                 const isSelected = selectedSessionId === row.sessionId;
                 return (
                   <tr
                     key={row.sessionId}
                     onClick={() => setSelectedSession(isSelected ? null : row.sessionId)}
-                    className={`cursor-pointer transition-colors ${isSelected ? 'bg-blue-900/25 hover:bg-blue-900/30' : 'hover:bg-gray-800/60'}`}
+                    className={`cursor-pointer transition-colors ${isSelected ? 'bg-cc-blue-bg hover:bg-cc-blue-bg' : 'hover:bg-cc-bg-surface/60'}`}
                   >
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          row.sessionStatus === 'active' ? 'bg-amber-400' :
-                          row.sessionStatus === 'idle' ? 'bg-green-600' : 'bg-gray-600'
+                          row.sessionStatus === 'active' ? 'bg-cc-amber-text' :
+                          row.sessionStatus === 'idle' ? 'bg-cc-green-text' : 'bg-cc-text-muted'
                         }`} />
-                        <span className={`font-medium truncate max-w-[200px] ${isSelected ? 'text-blue-300' : 'text-gray-200'}`}>
+                        <span className={`font-medium truncate max-w-[200px] ${isSelected ? 'text-cc-blue-text' : 'text-cc-text'}`}>
                           {row.sessionName}
                         </span>
                         {row.model && (
-                          <span className="text-xs text-gray-600 truncate hidden xl:block">
+                          <span className="text-xs text-cc-text-muted truncate hidden xl:block">
                             {row.model.replace(/-\d{8}$/, '')}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-right text-gray-400">{row.callCount}</td>
-                    <td className="px-4 py-2 text-right text-gray-400">{fmtK(row.totalInput)}</td>
-                    <td className="px-4 py-2 text-right text-gray-400">{fmtK(row.totalOutput)}</td>
-                    <td className="px-4 py-2 text-right text-gray-500 text-xs">
+                    <td className="px-4 py-2 text-right text-cc-text-secondary">{row.callCount}</td>
+                    <td className="px-4 py-2 text-right text-cc-text-secondary">{fmtK(row.totalInput)}</td>
+                    <td className="px-4 py-2 text-right text-cc-text-secondary">{fmtK(row.totalOutput)}</td>
+                    <td className="px-4 py-2 text-right text-cc-text-muted text-xs">
                       {fmtK(row.totalCacheRead)}r / {fmtK(row.totalCacheWrite)}w
                     </td>
-                    <td className="px-4 py-2 text-right font-medium text-gray-200">
+                    <td className="px-4 py-2 text-right font-medium text-cc-text">
                       ${row.totalCost.toFixed(4)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
-            <tfoot className="border-t border-gray-700">
-              <tr className="text-gray-400 text-xs">
-                <td className="px-4 py-2 text-gray-500">{perSession.length} sessions total</td>
+            <tfoot className="border-t border-cc-border">
+              <tr className="text-cc-text-secondary text-xs">
+                <td className="px-4 py-2 text-cc-text-muted">{perSession.length} sessions total</td>
                 <td className="px-4 py-2 text-right">{perSession.reduce((s, r) => s + r.callCount, 0)}</td>
                 <td className="px-4 py-2 text-right">{fmtK(perSession.reduce((s, r) => s + r.totalInput, 0))}</td>
                 <td className="px-4 py-2 text-right">{fmtK(perSession.reduce((s, r) => s + r.totalOutput, 0))}</td>
                 <td />
-                <td className="px-4 py-2 text-right font-bold text-sm text-gray-200">
+                <td className="px-4 py-2 text-right font-bold text-sm text-cc-text">
                   ${perSession.reduce((s, r) => s + r.totalCost, 0).toFixed(4)}
                 </td>
               </tr>

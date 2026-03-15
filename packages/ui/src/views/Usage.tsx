@@ -38,11 +38,11 @@ export default function Usage() {
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold">Usage Analytics</h2>
           {selectedSession && (
-            <span className="flex items-center gap-1.5 text-sm bg-blue-900/40 border border-blue-700/50 text-blue-300 px-2.5 py-1 rounded-full">
+            <span className="flex items-center gap-1.5 text-sm bg-cc-blue-bg border border-cc-blue-border text-cc-blue-text px-2.5 py-1 rounded-full">
               {selectedSession.sessionName}
               <button
                 onClick={() => setSelectedSession(null)}
-                className="hover:text-white transition-colors"
+                className="hover:text-cc-text transition-colors"
                 title="Clear filter"
               >
                 <X size={12} />
@@ -50,15 +50,15 @@ export default function Usage() {
             </span>
           )}
         </div>
-        <div className="flex gap-1 bg-gray-800 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-cc-bg-surface rounded-lg p-0.5">
           {ranges.map((r) => (
             <button
               key={r.value}
               onClick={() => setRange(r.value)}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
                 range === r.value
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-cc-bg-overlay text-cc-text'
+                  : 'text-cc-text-muted hover:text-cc-text'
               }`}
             >
               {r.label}
@@ -70,20 +70,20 @@ export default function Usage() {
       {/* Summary cards */}
       {summary && (
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Total Cost</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Total Cost</p>
             <p className="text-2xl font-bold mt-1">${summary.totalCost.toFixed(4)}</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Input Tokens</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Input Tokens</p>
             <p className="text-2xl font-bold mt-1">{summary.totalInputTokens.toLocaleString()}</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">Output Tokens</p>
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">Output Tokens</p>
             <p className="text-2xl font-bold mt-1">{summary.totalOutputTokens.toLocaleString()}</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 uppercase">
+          <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+            <p className="text-xs text-cc-text-muted uppercase">
               {selectedSessionId ? 'API Calls' : 'Sessions'}
             </p>
             <p className="text-2xl font-bold mt-1">
@@ -96,15 +96,15 @@ export default function Usage() {
       )}
 
       {/* Cost trend chart */}
-      <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-400 mb-4">Cost Trend</h3>
+      <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+        <h3 className="text-sm font-medium text-cc-text-secondary mb-4">Cost Trend</h3>
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={daily}>
-            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--cc-text-muted)' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--cc-text-muted)' }} />
             <Tooltip
-              contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8 }}
-              labelStyle={{ color: '#9ca3af' }}
+              contentStyle={{ background: 'var(--cc-bg-surface)', border: '1px solid var(--cc-border)', borderRadius: 8 }}
+              labelStyle={{ color: 'var(--cc-text-secondary)' }}
             />
             <Line type="monotone" dataKey="cost" stroke="#3b82f6" strokeWidth={2} dot={false} />
           </LineChart>
@@ -112,15 +112,15 @@ export default function Usage() {
       </div>
 
       {/* Token usage bar chart */}
-      <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-400 mb-4">Daily Token Usage</h3>
+      <div className="bg-cc-bg rounded-lg p-4 border border-cc-border">
+        <h3 className="text-sm font-medium text-cc-text-secondary mb-4">Daily Token Usage</h3>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={daily}>
-            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--cc-text-muted)' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--cc-text-muted)' }} />
             <Tooltip
-              contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8 }}
-              labelStyle={{ color: '#9ca3af' }}
+              contentStyle={{ background: 'var(--cc-bg-surface)', border: '1px solid var(--cc-border)', borderRadius: 8 }}
+              labelStyle={{ color: 'var(--cc-text-secondary)' }}
             />
             <Bar dataKey="inputTokens" fill="#3b82f6" name="Input" stackId="a" />
             <Bar dataKey="outputTokens" fill="#10b981" name="Output" stackId="a" />
@@ -130,13 +130,13 @@ export default function Usage() {
 
       {/* Model breakdown */}
       {modelUsage.length > 0 && (
-        <div className="bg-gray-900 rounded-lg border border-gray-800">
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-sm font-medium text-gray-400">Model Breakdown</h3>
+        <div className="bg-cc-bg rounded-lg border border-cc-border">
+          <div className="p-4 border-b border-cc-border">
+            <h3 className="text-sm font-medium text-cc-text-secondary">Model Breakdown</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-gray-500 border-b border-gray-800">
+              <tr className="text-cc-text-muted border-b border-cc-border">
                 <th className="text-left px-4 py-2">Model</th>
                 <th className="text-right px-4 py-2">Requests</th>
                 <th className="text-right px-4 py-2">Input Tokens</th>
@@ -144,14 +144,14 @@ export default function Usage() {
                 <th className="text-right px-4 py-2">Cost</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-cc-border">
               {modelUsage.map((m: any) => (
                 <tr key={m.model}>
-                  <td className="px-4 py-2 text-gray-300">{m.model}</td>
-                  <td className="px-4 py-2 text-right text-gray-400">{m.requests}</td>
-                  <td className="px-4 py-2 text-right text-gray-400">{m.inputTokens?.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-gray-400">{m.outputTokens?.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-gray-300">${(m.cost || 0).toFixed(4)}</td>
+                  <td className="px-4 py-2 text-cc-text-secondary">{m.model}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">{m.requests}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">{m.inputTokens?.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">{m.outputTokens?.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-cc-text-secondary">${(m.cost || 0).toFixed(4)}</td>
                 </tr>
               ))}
             </tbody>
@@ -161,16 +161,16 @@ export default function Usage() {
 
       {/* Per-session breakdown */}
       {perSession.length > 0 && (
-        <div className="bg-gray-900 rounded-lg border border-gray-800">
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-sm font-medium text-gray-400">
+        <div className="bg-cc-bg rounded-lg border border-cc-border">
+          <div className="p-4 border-b border-cc-border">
+            <h3 className="text-sm font-medium text-cc-text-secondary">
               Per-Session Breakdown
-              <span className="ml-2 text-gray-600 font-normal text-xs">click a row to filter charts above</span>
+              <span className="ml-2 text-cc-text-muted font-normal text-xs">click a row to filter charts above</span>
             </h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-gray-500 border-b border-gray-800">
+              <tr className="text-cc-text-muted border-b border-cc-border">
                 <th className="text-left px-4 py-2">Session</th>
                 <th className="text-right px-4 py-2">Calls</th>
                 <th className="text-right px-4 py-2">Input</th>
@@ -179,7 +179,7 @@ export default function Usage() {
                 <th className="text-right px-4 py-2">Cost</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-cc-border">
               {perSession.map((row) => {
                 const isSelected = selectedSessionId === row.sessionId;
                 return (
@@ -188,47 +188,47 @@ export default function Usage() {
                     onClick={() => setSelectedSession(isSelected ? null : row.sessionId)}
                     className={`cursor-pointer transition-colors ${
                       isSelected
-                        ? 'bg-blue-900/25 hover:bg-blue-900/30'
-                        : 'hover:bg-gray-800/60'
+                        ? 'bg-cc-blue-bg hover:bg-cc-blue-bg'
+                        : 'hover:bg-cc-bg-surface/60'
                     }`}
                   >
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          row.sessionStatus === 'active' ? 'bg-amber-400' :
-                          row.sessionStatus === 'idle' ? 'bg-green-600' : 'bg-gray-600'
+                          row.sessionStatus === 'active' ? 'bg-cc-amber-text' :
+                          row.sessionStatus === 'idle' ? 'bg-cc-green-text' : 'bg-cc-text-muted'
                         }`} />
-                        <span className={`font-medium truncate max-w-[200px] ${isSelected ? 'text-blue-300' : 'text-gray-200'}`}>
+                        <span className={`font-medium truncate max-w-[200px] ${isSelected ? 'text-cc-blue-text' : 'text-cc-text'}`}>
                           {row.sessionName}
                         </span>
                         {row.model && (
-                          <span className="text-xs text-gray-600 truncate hidden xl:block">
+                          <span className="text-xs text-cc-text-muted truncate hidden xl:block">
                             {row.model.replace(/-\d{8}$/, '')}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-right text-gray-400">{row.callCount}</td>
-                    <td className="px-4 py-2 text-right text-gray-400">{fmtK(row.totalInput)}</td>
-                    <td className="px-4 py-2 text-right text-gray-400">{fmtK(row.totalOutput)}</td>
-                    <td className="px-4 py-2 text-right text-gray-500 text-xs">
+                    <td className="px-4 py-2 text-right text-cc-text-secondary">{row.callCount}</td>
+                    <td className="px-4 py-2 text-right text-cc-text-secondary">{fmtK(row.totalInput)}</td>
+                    <td className="px-4 py-2 text-right text-cc-text-secondary">{fmtK(row.totalOutput)}</td>
+                    <td className="px-4 py-2 text-right text-cc-text-muted text-xs">
                       {fmtK(row.totalCacheRead)}r / {fmtK(row.totalCacheWrite)}w
                     </td>
-                    <td className="px-4 py-2 text-right font-medium text-gray-200">
+                    <td className="px-4 py-2 text-right font-medium text-cc-text">
                       ${row.totalCost.toFixed(4)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
-            <tfoot className="border-t border-gray-700">
-              <tr className="text-gray-400 text-xs">
-                <td className="px-4 py-2 text-gray-500">{perSession.length} sessions total</td>
+            <tfoot className="border-t border-cc-border">
+              <tr className="text-cc-text-secondary text-xs">
+                <td className="px-4 py-2 text-cc-text-muted">{perSession.length} sessions total</td>
                 <td className="px-4 py-2 text-right">{perSession.reduce((s, r) => s + r.callCount, 0)}</td>
                 <td className="px-4 py-2 text-right">{fmtK(perSession.reduce((s, r) => s + r.totalInput, 0))}</td>
                 <td className="px-4 py-2 text-right">{fmtK(perSession.reduce((s, r) => s + r.totalOutput, 0))}</td>
                 <td />
-                <td className="px-4 py-2 text-right font-bold text-sm text-gray-200">
+                <td className="px-4 py-2 text-right font-bold text-sm text-cc-text">
                   ${perSession.reduce((s, r) => s + r.totalCost, 0).toFixed(4)}
                 </td>
               </tr>

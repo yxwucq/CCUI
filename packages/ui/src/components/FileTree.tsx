@@ -53,8 +53,8 @@ function FileTreeNode({
           if (isDir) setExpanded(!expanded);
           else onSelect(node.path);
         }}
-        className={`w-full text-left flex items-center gap-1 px-2 py-0.5 text-sm rounded hover:bg-gray-800/50 transition-colors ${
-          isSelected ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400'
+        className={`w-full text-left flex items-center gap-1 px-2 py-0.5 text-sm rounded hover:bg-cc-bg-surface/50 transition-colors ${
+          isSelected ? 'bg-cc-accent-muted text-cc-accent' : 'text-cc-text-secondary'
         }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
@@ -64,9 +64,9 @@ function FileTreeNode({
           <span className="w-3.5" />
         )}
         {isDir ? (
-          <Folder size={14} className="text-yellow-500" />
+          <Folder size={14} className="text-cc-yellow-text" />
         ) : (
-          <File size={14} className="text-gray-500" />
+          <File size={14} className="text-cc-text-muted" />
         )}
         <span className="truncate">{node.name}</span>
       </button>

@@ -68,20 +68,20 @@ export default function NotesWidget({ sessionId, size }: Props) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        h1: ({ children }) => <h1 className="text-sm font-semibold text-gray-100 mb-1 mt-1">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-xs font-semibold text-gray-200 mb-1 mt-1">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-xs font-medium text-gray-300 mb-0.5 mt-0.5">{children}</h3>,
-        p: ({ children }) => <p className="mb-1.5 text-gray-300 leading-relaxed">{children}</p>,
+        h1: ({ children }) => <h1 className="text-sm font-semibold text-cc-text mb-1 mt-1">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-xs font-semibold text-cc-text mb-1 mt-1">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-xs font-medium text-cc-text-secondary mb-0.5 mt-0.5">{children}</h3>,
+        p: ({ children }) => <p className="mb-1.5 text-cc-text-secondary leading-relaxed">{children}</p>,
         ul: ({ children }) => <ul className="mb-1.5 space-y-0.5 pl-3">{children}</ul>,
         ol: ({ children }) => <ol className="mb-1.5 space-y-0.5 pl-3 list-decimal">{children}</ol>,
-        li: ({ children }) => <li className="text-gray-300 list-disc">{children}</li>,
-        code: ({ children }) => <code className="bg-gray-800 px-1 rounded text-xs text-green-400 font-mono">{children}</code>,
-        pre: ({ children }) => <pre className="bg-gray-800 rounded p-2 mb-1.5 overflow-x-auto text-xs font-mono">{children}</pre>,
-        strong: ({ children }) => <strong className="text-gray-100 font-semibold">{children}</strong>,
-        em: ({ children }) => <em className="text-gray-400">{children}</em>,
-        blockquote: ({ children }) => <blockquote className="border-l-2 border-gray-600 pl-2 text-gray-500 italic mb-1.5">{children}</blockquote>,
-        a: ({ href, children }) => <a href={href} className="text-blue-400 hover:underline" target="_blank" rel="noreferrer">{children}</a>,
-        hr: () => <hr className="border-gray-700 my-2" />,
+        li: ({ children }) => <li className="text-cc-text-secondary list-disc">{children}</li>,
+        code: ({ children }) => <code className="bg-cc-bg-surface px-1 rounded text-xs text-cc-green-text font-mono">{children}</code>,
+        pre: ({ children }) => <pre className="bg-cc-bg-surface rounded p-2 mb-1.5 overflow-x-auto text-xs font-mono">{children}</pre>,
+        strong: ({ children }) => <strong className="text-cc-text font-semibold">{children}</strong>,
+        em: ({ children }) => <em className="text-cc-text-secondary">{children}</em>,
+        blockquote: ({ children }) => <blockquote className="border-l-2 border-cc-border pl-2 text-cc-text-muted italic mb-1.5">{children}</blockquote>,
+        a: ({ href, children }) => <a href={href} className="text-cc-blue-text hover:underline" target="_blank" rel="noreferrer">{children}</a>,
+        hr: () => <hr className="border-cc-border my-2" />,
       }}
     >
       {notes}
@@ -90,14 +90,14 @@ export default function NotesWidget({ sessionId, size }: Props) {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2 shrink-0">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2 shrink-0">
         <NotebookPen size={12} />
         <span>Notes</span>
         {editing && (
-          <span className="ml-auto text-xs text-gray-600 font-normal">Ctrl+Enter to save · Esc to cancel</span>
+          <span className="ml-auto text-xs text-cc-text-muted font-normal">Ctrl+Enter to save · Esc to cancel</span>
         )}
         {!editing && saveState !== 'saved' && (
-          <span className={`ml-auto text-xs font-normal ${saveState === 'saving' ? 'text-gray-500' : 'text-yellow-600'}`}>
+          <span className={`ml-auto text-xs font-normal ${saveState === 'saving' ? 'text-cc-text-muted' : 'text-cc-yellow-text'}`}>
             {saveState === 'saving' ? 'saving…' : 'unsaved'}
           </span>
         )}
@@ -114,7 +114,7 @@ export default function NotesWidget({ sessionId, size }: Props) {
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Write your goals…\n\nSupports **markdown** syntax.`}
-            className="flex-1 w-full bg-gray-900/50 border border-gray-700 rounded p-2 text-xs text-gray-200 resize-none focus:outline-none focus:border-gray-600 font-mono leading-relaxed"
+            className="flex-1 w-full bg-cc-bg/50 border border-cc-border rounded p-2 text-xs text-cc-text resize-none focus:outline-none focus:border-cc-accent font-mono leading-relaxed"
           />
         ) : (
           <div
@@ -126,7 +126,7 @@ export default function NotesWidget({ sessionId, size }: Props) {
                 {mdContent}
               </div>
             ) : (
-              <div className="text-gray-700 text-xs text-center pt-2">
+              <div className="text-cc-text-muted text-xs text-center pt-2">
                 Double-click to add notes…
               </div>
             )}

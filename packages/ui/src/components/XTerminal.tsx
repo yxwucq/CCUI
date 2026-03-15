@@ -4,7 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import { sendWsMessage } from '../hooks/useWebSocket';
-import { terminalTheme } from '../theme';
+import { getTerminalTheme, onThemeChange } from '../theme';
 import { useWidgetStore } from '../stores/widgetStore';
 import { RotateCcw } from 'lucide-react';
 
@@ -66,7 +66,7 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
       letterSpacing: 0.5,
       fontFamily: font.fontFamily,
       scrollback: 5000,
-      theme: terminalTheme,
+      theme: getTerminalTheme(),
     });
 
     const fitAddon = new FitAddon();
@@ -87,6 +87,11 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
       textarea.addEventListener('focus', onFocus);
       textarea.addEventListener('blur', onBlur);
     }
+
+    // Listen for theme changes and update terminal colors
+    const unsubTheme = onThemeChange(() => {
+      term.options.theme = getTerminalTheme();
+    });
 
     // WebGL renderer (dynamic import, auto-fallback to DOM)
     (async () => {
@@ -120,6 +125,7 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
       clearTimeout(createTimer);
       observer.disconnect();
       inputDisposable.dispose();
+      unsubTheme();
       if (textarea) {
         textarea.removeEventListener('focus', onFocus);
         textarea.removeEventListener('blur', onBlur);
@@ -152,7 +158,7 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
   }, [sessionId]);
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--cc-bg, #09090b)' }}>
+    <div className="flex flex-col h-full bg-cc-bg">
       {/* Terminal body — fills entire area */}
       <div className={`flex-1 min-h-0 relative xterm-container ${isFocused ? 'focused' : ''}`}>
         <div ref={containerRef} className="absolute inset-0" />
@@ -160,10 +166,10 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
         {status === 'exited' && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
-              <span className="text-sm text-zinc-400">Process exited</span>
+              <span className="text-sm text-cc-text-secondary">Process exited</span>
               <button
                 onClick={restart}
-                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-cc-accent hover:bg-cc-accent-hover text-cc-text text-sm rounded-lg transition-colors"
               >
                 <RotateCcw size={14} />
                 Restart
@@ -176,9 +182,9 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
       {/* Hint bar — borderless, transparent, with status dot */}
       <div className="flex items-center gap-3 px-3 py-1 shrink-0 overflow-x-auto">
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-          status === 'exited' ? 'bg-red-500' :
-          status === 'connected' ? 'bg-green-500' :
-          'bg-yellow-500 animate-pulse'
+          status === 'exited' ? 'bg-cc-red-text' :
+          status === 'connected' ? 'bg-cc-green-text' :
+          'bg-cc-yellow-text animate-pulse'
         }`} />
         {['/help', '/compact', '/clear', '/model', '/cost', '/memory'].map((cmd) => (
           <button
@@ -187,7 +193,7 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
               sendWsMessage({ type: 'terminal:input', sessionId, data: cmd + '\r' });
               termRef.current?.focus();
             }}
-            className="text-xs text-zinc-600 hover:text-violet-400 font-mono whitespace-nowrap transition-colors"
+            className="text-xs text-cc-text-muted hover:text-cc-accent font-mono whitespace-nowrap transition-colors"
           >
             {cmd}
           </button>

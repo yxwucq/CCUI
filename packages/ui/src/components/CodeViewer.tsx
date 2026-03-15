@@ -81,7 +81,7 @@ interface Props {
 export default function CodeViewer({ content, filePath }: Props) {
   if (isMarkdown(filePath)) {
     return (
-      <div className="p-4 prose prose-invert prose-sm max-w-none [&_pre]:bg-gray-900 [&_pre]:rounded [&_pre]:p-3 [&_code]:text-blue-300 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-700 [&_th]:px-3 [&_th]:py-1.5 [&_td]:border [&_td]:border-gray-700 [&_td]:px-3 [&_td]:py-1.5 [&_img]:max-w-full [&_blockquote]:border-l-2 [&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:text-gray-400">
+      <div className="p-4 prose prose-invert prose-sm max-w-none [&_pre]:bg-cc-bg [&_pre]:rounded [&_pre]:p-3 [&_code]:text-cc-blue-text [&_table]:border-collapse [&_th]:border [&_th]:border-cc-border [&_th]:px-3 [&_th]:py-1.5 [&_td]:border [&_td]:border-cc-border [&_td]:px-3 [&_td]:py-1.5 [&_img]:max-w-full [&_blockquote]:border-l-2 [&_blockquote]:border-cc-border [&_blockquote]:pl-4 [&_blockquote]:text-cc-text-secondary">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -124,14 +124,14 @@ export default function CodeViewer({ content, filePath }: Props) {
   return (
     <div className="text-xs font-mono leading-relaxed">
       {lines.map((line, i) => (
-        <div key={i} className="flex hover:bg-gray-800/30">
-          <span className="w-12 shrink-0 text-right pr-3 text-gray-600 select-none border-r border-gray-800/50">
+        <div key={i} className="flex hover:bg-cc-bg-surface/30">
+          <span className="w-12 shrink-0 text-right pr-3 text-cc-text-muted select-none border-r border-cc-border/50">
             {i + 1}
           </span>
           {highlighted ? (
             <span className="px-3 whitespace-pre" dangerouslySetInnerHTML={{ __html: line || ' ' }} />
           ) : (
-            <span className="px-3 whitespace-pre text-gray-300">{line || ' '}</span>
+            <span className="px-3 whitespace-pre text-cc-text-secondary">{line || ' '}</span>
           )}
         </div>
       ))}

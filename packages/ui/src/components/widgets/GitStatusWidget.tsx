@@ -24,10 +24,10 @@ const STATUS_ICON: Record<string, typeof FileEdit> = {
   renamed: FileEdit,
 };
 const STATUS_COLOR: Record<string, string> = {
-  modified: 'text-yellow-400',
-  added: 'text-green-400',
-  deleted: 'text-red-400',
-  renamed: 'text-blue-400',
+  modified: 'text-cc-yellow-text',
+  added: 'text-cc-green-text',
+  deleted: 'text-cc-red-text',
+  renamed: 'text-cc-blue-text',
 };
 
 export default function GitStatusWidget({ sessionId, session, size }: Props) {
@@ -69,13 +69,13 @@ export default function GitStatusWidget({ sessionId, session, size }: Props) {
   return (
     <div ref={containerRef} className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2">
         <GitBranch size={12} />
-        <span className="font-mono text-purple-400">{session.branch || '?'}</span>
-        {session.worktreePath && <span className="text-xs font-normal text-gray-600">worktree</span>}
+        <span className="font-mono text-cc-purple-text">{session.branch || '?'}</span>
+        {session.worktreePath && <span className="text-xs font-normal text-cc-text-muted">worktree</span>}
         <button
           onClick={handleRefresh}
-          className="ml-auto p-0.5 text-gray-600 hover:text-gray-400 transition-colors"
+          className="ml-auto p-0.5 text-cc-text-muted hover:text-cc-text-secondary transition-colors"
           title="Refresh"
         >
           <RefreshCw size={10} className={refreshing ? 'animate-spin' : ''} />
@@ -84,16 +84,16 @@ export default function GitStatusWidget({ sessionId, session, size }: Props) {
 
       {/* sm: compact summary */}
       {renderSize === 'sm' && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-cc-text-secondary">
           {isClean ? (
-            <span className="text-green-400">Clean</span>
+            <span className="text-cc-green-text">Clean</span>
           ) : (
             <span>
-              {staged.length > 0 && <span className="text-green-400">{staged.length} staged</span>}
-              {staged.length > 0 && (unstaged.length > 0 || untracked.length > 0) && <span className="text-gray-600"> · </span>}
-              {unstaged.length > 0 && <span className="text-yellow-400">{unstaged.length} modified</span>}
-              {unstaged.length > 0 && untracked.length > 0 && <span className="text-gray-600"> · </span>}
-              {untracked.length > 0 && <span className="text-gray-500">{untracked.length} untracked</span>}
+              {staged.length > 0 && <span className="text-cc-green-text">{staged.length} staged</span>}
+              {staged.length > 0 && (unstaged.length > 0 || untracked.length > 0) && <span className="text-cc-text-muted"> · </span>}
+              {unstaged.length > 0 && <span className="text-cc-yellow-text">{unstaged.length} modified</span>}
+              {unstaged.length > 0 && untracked.length > 0 && <span className="text-cc-text-muted"> · </span>}
+              {untracked.length > 0 && <span className="text-cc-text-muted">{untracked.length} untracked</span>}
             </span>
           )}
         </div>
@@ -103,26 +103,26 @@ export default function GitStatusWidget({ sessionId, session, size }: Props) {
       {renderSize === 'lg' && (
         <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
           {isClean && (
-            <p className="text-xs text-gray-600">Working tree clean</p>
+            <p className="text-xs text-cc-text-muted">Working tree clean</p>
           )}
 
           {staged.length > 0 && (
-            <FileGroup label="Staged" labelColor="text-green-500" files={staged} dot="bg-green-500" />
+            <FileGroup label="Staged" labelColor="text-cc-green-text" files={staged} dot="bg-cc-green-text" />
           )}
           {unstaged.length > 0 && (
-            <FileGroup label="Changes" labelColor="text-yellow-500" files={unstaged} dot="bg-yellow-500" />
+            <FileGroup label="Changes" labelColor="text-cc-yellow-text" files={unstaged} dot="bg-cc-yellow-text" />
           )}
           {untracked.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0" />
-                <span className="text-xs text-gray-500 uppercase tracking-wider">Untracked</span>
-                <span className="text-xs text-gray-600">({untracked.length})</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-cc-text-muted shrink-0" />
+                <span className="text-xs text-cc-text-muted uppercase tracking-wider">Untracked</span>
+                <span className="text-xs text-cc-text-muted">({untracked.length})</span>
               </div>
               {untracked.map((file) => (
                 <div key={file} className="flex items-center gap-1.5 text-xs py-px pl-3">
-                  <FileQuestion size={11} className="text-gray-500 shrink-0" />
-                  <span className="text-gray-400 truncate font-mono">{file}</span>
+                  <FileQuestion size={11} className="text-cc-text-muted shrink-0" />
+                  <span className="text-cc-text-secondary truncate font-mono">{file}</span>
                 </div>
               ))}
             </div>
@@ -144,15 +144,15 @@ function FileGroup({ label, labelColor, files, dot }: {
       <div className="flex items-center gap-1.5 mb-1">
         <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
         <span className={`text-xs uppercase tracking-wider ${labelColor}`}>{label}</span>
-        <span className="text-xs text-gray-600">({files.length})</span>
+        <span className="text-xs text-cc-text-muted">({files.length})</span>
       </div>
       {files.map((f) => {
         const Icon = STATUS_ICON[f.status] || FileEdit;
-        const color = STATUS_COLOR[f.status] || 'text-gray-400';
+        const color = STATUS_COLOR[f.status] || 'text-cc-text-secondary';
         return (
           <div key={f.file + f.status} className="flex items-center gap-1.5 text-xs py-px pl-3">
             <Icon size={11} className={`shrink-0 ${color}`} />
-            <span className="text-gray-300 truncate font-mono">{f.file}</span>
+            <span className="text-cc-text-secondary truncate font-mono">{f.file}</span>
           </div>
         );
       })}

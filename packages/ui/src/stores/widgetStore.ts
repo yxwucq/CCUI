@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as configApi from '../api/config';
 import type { TerminalConfig } from '@ccui/shared';
+import { applyTheme } from '../theme';
 
 export interface WidgetDef {
   id: string;
@@ -36,10 +37,19 @@ function migrateWidgets(raw: any[]): WidgetConfig[] {
   );
 }
 
+/** Detect system color scheme preference */
+function getSystemTheme(): string {
+  if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: light)').matches) {
+    return 'light';
+  }
+  return 'dark';
+}
+
 interface WidgetStore {
   sessionWidgets: Record<string, WidgetConfig[]>;
   defaultWidgets: WidgetConfig[];
   appName: string;
+  themeId: string;
   terminalConfig: TerminalConfig;
   loaded: boolean;
 
@@ -48,6 +58,7 @@ interface WidgetStore {
   toggleWidget: (sessionId: string, widgetId: string) => void;
   setWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
   setAppName: (name: string) => void;
+  setTheme: (themeId: string) => void;
   saveConfig: () => Promise<void>;
 }
 
@@ -57,6 +68,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   sessionWidgets: {},
   defaultWidgets: DEFAULT_WIDGETS,
   appName: DEFAULT_APP_NAME,
+  themeId: 'dark',
   terminalConfig: {},
   loaded: false,
 
@@ -64,9 +76,12 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     try {
       const config = await configApi.loadConfig();
       const appName = config.appName || DEFAULT_APP_NAME;
+      const themeId = config.theme || getSystemTheme();
       document.title = appName;
+      applyTheme(themeId);
       set({
         appName,
+        themeId,
         terminalConfig: config.terminal || {},
         defaultWidgets: config.defaultWidgets
           ? migrateWidgets(config.defaultWidgets)
@@ -115,10 +130,17 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     get().saveConfig();
   },
 
+  setTheme: (themeId) => {
+    applyTheme(themeId);
+    set({ themeId });
+    get().saveConfig();
+  },
+
   saveConfig: async () => {
-    const { defaultWidgets, sessionWidgets, appName, terminalConfig } = get();
+    const { defaultWidgets, sessionWidgets, appName, themeId, terminalConfig } = get();
     const config: Record<string, any> = {
       appName,
+      theme: themeId,
       defaultWidgets,
       sessions: Object.fromEntries(
         Object.entries(sessionWidgets).map(([k, v]) => [k, { widgets: v }])

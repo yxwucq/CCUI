@@ -25,10 +25,10 @@ export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }:
   const activeSessions = sessions.filter((s) => s.status === 'active');
 
   return (
-    <aside className="w-56 border-r border-gray-800 flex flex-col shrink-0">
-      <div className="p-4 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-white">CCUI</h1>
-        <p className="text-xs text-gray-500">Claude Code WebUI</p>
+    <aside className="w-56 border-r border-cc-border flex flex-col shrink-0">
+      <div className="p-4 border-b border-cc-border">
+        <h1 className="text-lg font-bold text-cc-text">CCUI</h1>
+        <p className="text-xs text-cc-text-muted">Claude Code WebUI</p>
       </div>
 
       <nav className="flex-1 p-2 space-y-1">
@@ -40,8 +40,8 @@ export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }:
             className={({ isActive }) =>
               `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                  ? 'bg-cc-bg-surface text-cc-text'
+                  : 'text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-surface/50'
               }`
             }
           >
@@ -52,8 +52,8 @@ export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }:
       </nav>
 
       {/* Active sessions quick list */}
-      <div className="border-t border-gray-800 p-2">
-        <p className="px-3 py-1 text-xs text-gray-500 uppercase tracking-wider">
+      <div className="border-t border-cc-border p-2">
+        <p className="px-3 py-1 text-xs text-cc-text-muted uppercase tracking-wider">
           Active ({activeSessions.length})
         </p>
         <div className="max-h-48 overflow-y-auto space-y-0.5">
@@ -66,16 +66,16 @@ export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }:
               }}
               className={`w-full text-left px-3 py-1.5 rounded text-xs transition-colors ${
                 activeSessionId === s.id
-                  ? 'bg-blue-600/20 text-blue-400'
-                  : 'text-gray-400 hover:bg-gray-800/50'
+                  ? 'bg-cc-accent-muted text-cc-accent'
+                  : 'text-cc-text-secondary hover:bg-cc-bg-surface/50'
               }`}
             >
               <div className="flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 bg-green-500" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 bg-cc-green-text" />
                 <span className="truncate">{s.name}</span>
               </div>
               {s.branch && (
-                <div className="flex items-center gap-1 text-purple-400/70 mt-0.5 ml-3">
+                <div className="flex items-center gap-1 text-cc-purple-text/70 mt-0.5 ml-3">
                   <GitBranch size={10} />
                   <span className="truncate">{s.branch}</span>
                 </div>

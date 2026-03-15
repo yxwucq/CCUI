@@ -6,10 +6,61 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useEffect } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Sun, Moon, Palette } from 'lucide-react';
 import QuotaGauge from '../components/QuotaGauge';
 import ToastContainer from '../components/ToastContainer';
-import { injectThemeVars } from '../theme';
+import { applyTheme, themes } from '../theme';
+
+function ThemeSwitcher() {
+  const themeId = useWidgetStore((s) => s.themeId);
+  const setTheme = useWidgetStore((s) => s.setTheme);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const themeList = Object.values(themes);
+  const icon = themeId === 'light' ? <Sun size={14} /> : themeId === 'dark' ? <Moon size={14} /> : <Palette size={14} />;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="p-1 text-cc-text-muted hover:text-cc-text rounded transition-colors"
+        title="Switch theme"
+      >
+        {icon}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-cc-bg-surface border border-cc-border rounded shadow-lg py-1 z-50 min-w-[120px]">
+          {themeList.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => { setTheme(t.id); setOpen(false); }}
+              className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                t.id === themeId
+                  ? 'text-cc-accent bg-cc-accent-muted'
+                  : 'text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-overlay'
+              }`}
+            >
+              {t.id === 'light' && <Sun size={12} className="inline mr-1.5 -mt-0.5" />}
+              {t.id === 'dark' && <Moon size={12} className="inline mr-1.5 -mt-0.5" />}
+              {t.id !== 'light' && t.id !== 'dark' && <Palette size={12} className="inline mr-1.5 -mt-0.5" />}
+              {t.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function MainLayout() {
   const { status } = useWebSocket();
@@ -33,23 +84,23 @@ export default function MainLayout() {
   const isSessionsPage = location.pathname === '/';
 
   useEffect(() => {
-    injectThemeVars();
+    applyTheme('dark'); // initial paint before config loads
     fetchSessions();
     loadConfig();
   }, [fetchSessions, loadConfig]);
 
   return (
-    <div className="flex h-screen text-gray-100" style={{ backgroundColor: 'var(--cc-bg, #09090b)' }}>
+    <div className="flex h-screen bg-cc-bg text-cc-text">
       {/* Sidebar — collapsible */}
       {sidebarOpen && <Sidebar sessions={sessions} activeSessionId={activeSessionId} onToggleExpanded={toggleExpanded} />}
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <header className="h-10 border-b border-gray-800 flex items-center justify-between px-3 shrink-0">
+        <header className="h-10 border-b border-cc-border flex items-center justify-between px-3 shrink-0">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              className="p-1 text-gray-500 hover:text-gray-300 rounded transition-colors"
+              className="p-1 text-cc-text-muted hover:text-cc-text-secondary rounded transition-colors"
               title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
             >
               {sidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
@@ -61,11 +112,11 @@ export default function MainLayout() {
                 autoFocus
                 onBlur={commitName}
                 onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') setEditing(false); }}
-                className="text-xs font-semibold text-gray-300 bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 w-24 focus:outline-none focus:border-blue-500"
+                className="text-xs font-semibold text-cc-text-secondary bg-cc-bg-surface border border-cc-border rounded px-1.5 py-0.5 w-24 focus:outline-none focus:border-cc-accent"
               />
             ) : (
               <span
-                className="text-xs font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors"
+                className="text-xs font-semibold text-cc-text-muted cursor-pointer hover:text-cc-text-secondary transition-colors"
                 onDoubleClick={() => setEditing(true)}
                 title="Double-click to rename"
               >{appName}</span>
@@ -73,12 +124,13 @@ export default function MainLayout() {
           </div>
           <div className="flex items-center gap-3">
             <QuotaGauge usageRefreshKey={usageRefreshKey} />
+            <ThemeSwitcher />
             <div className="flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${
-                status === 'connected' ? 'bg-green-500' :
-                status === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+                status === 'connected' ? 'bg-cc-green-text' :
+                status === 'connecting' ? 'bg-cc-yellow-text' : 'bg-cc-red-text'
               }`} />
-              <span className="text-xs text-gray-500">{status}</span>
+              <span className="text-xs text-cc-text-muted">{status}</span>
             </div>
           </div>
         </header>

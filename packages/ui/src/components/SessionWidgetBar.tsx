@@ -37,7 +37,7 @@ export default function SessionWidgetBar({ sessionId, session, enabledWidgets, m
 
   if (enabledWidgets.length === 0) {
     return emptyMessage ? (
-      <div className="flex-1 flex items-center justify-center text-xs text-gray-700">
+      <div className="flex-1 flex items-center justify-center text-xs text-cc-text-muted">
         {emptyMessage}
       </div>
     ) : null;
@@ -53,7 +53,7 @@ export default function SessionWidgetBar({ sessionId, session, enabledWidgets, m
             key={id}
             style={{ flex: size === 'lg' ? 3 : 1 }}
             className={`min-h-0 p-3 overflow-hidden ${
-              idx > 0 ? 'border-t border-gray-800/60' : ''
+              idx > 0 ? 'border-t border-cc-border/60' : ''
             }`}
           >
             <Widget

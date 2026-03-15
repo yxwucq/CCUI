@@ -48,24 +48,24 @@ export default function FileActivityWidget({ sessionId, session, size }: Props) 
 
   return (
     <div ref={containerRef} className="h-full flex flex-col">
-      <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-cc-text-secondary mb-2">
         <Activity size={12} />
         <span>Impact</span>
       </div>
 
       {!hasChanges ? (
-        <div className="text-xs text-gray-600 text-center pt-1">No changes yet</div>
+        <div className="text-xs text-cc-text-muted text-center pt-1">No changes yet</div>
       ) : (
         <>
           {/* Summary line */}
           <div className="flex items-center gap-3 mb-2">
-            <span className="flex items-center gap-1 text-xs text-green-400">
+            <span className="flex items-center gap-1 text-xs text-cc-green-text">
               <Plus size={10} />{totalAdded}
             </span>
-            <span className="flex items-center gap-1 text-xs text-red-400">
+            <span className="flex items-center gap-1 text-xs text-cc-red-text">
               <Minus size={10} />{totalDeleted}
             </span>
-            <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1 text-xs text-cc-text-secondary">
               <FileCode size={10} />{totalFiles} file{totalFiles !== 1 ? 's' : ''}
             </span>
           </div>
@@ -75,9 +75,9 @@ export default function FileActivityWidget({ sessionId, session, size }: Props) 
             <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
               {files.map((f) => (
                 <div key={f.file} className="flex items-center gap-1.5 text-xs">
-                  <span className="text-green-400 w-7 text-right shrink-0">+{f.added}</span>
-                  <span className="text-red-400 w-7 text-right shrink-0">-{f.deleted}</span>
-                  <span className="text-gray-400 truncate font-mono" title={f.file}>
+                  <span className="text-cc-green-text w-7 text-right shrink-0">+{f.added}</span>
+                  <span className="text-cc-red-text w-7 text-right shrink-0">-{f.deleted}</span>
+                  <span className="text-cc-text-secondary truncate font-mono" title={f.file}>
                     {shortPath(f.file)}
                   </span>
                 </div>
@@ -87,7 +87,7 @@ export default function FileActivityWidget({ sessionId, session, size }: Props) 
 
           {/* sm: just file list */}
           {renderSize === 'sm' && files.length > 0 && (
-            <div className="text-xs text-gray-500 truncate">
+            <div className="text-xs text-cc-text-muted truncate">
               {files.slice(0, 3).map((f) => shortName(f.file)).join(', ')}
               {files.length > 3 && ` +${files.length - 3}`}
             </div>

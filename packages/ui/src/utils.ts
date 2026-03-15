@@ -1,6 +1,6 @@
 /** Returns a Tailwind color class based on percentage thresholds (>80 red, >50 yellow, else green) */
 export function pctBarColor(pct: number): string {
-  return pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-yellow-500' : 'bg-green-500';
+  return pct > 80 ? 'bg-cc-red-text' : pct > 50 ? 'bg-cc-yellow-text' : 'bg-cc-green-text';
 }
 
 /** Human-readable relative time string */

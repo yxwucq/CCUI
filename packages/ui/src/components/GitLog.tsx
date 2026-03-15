@@ -21,27 +21,27 @@ function RefBadge({ value }: { value: string }) {
   if (value === 'HEAD') return null;
   if (value.startsWith('HEAD -> ')) {
     return (
-      <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-900/60 text-cyan-300 font-mono shrink-0">
+      <span className="px-1.5 py-0.5 rounded text-[10px] bg-cc-cyan-bg text-cc-cyan-text font-mono shrink-0">
         {value.slice(8)}
       </span>
     );
   }
   if (value.startsWith('tag: ')) {
     return (
-      <span className="px-1.5 py-0.5 rounded text-[10px] bg-yellow-900/50 text-yellow-300 font-mono shrink-0">
+      <span className="px-1.5 py-0.5 rounded text-[10px] bg-cc-yellow-bg text-cc-yellow-text font-mono shrink-0">
         {value.slice(5)}
       </span>
     );
   }
   if (value.includes('/')) {
     return (
-      <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-800 text-gray-500 font-mono shrink-0">
+      <span className="px-1.5 py-0.5 rounded text-[10px] bg-cc-bg-surface text-cc-text-muted font-mono shrink-0">
         {value}
       </span>
     );
   }
   return (
-    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-900/50 text-blue-300 font-mono shrink-0">
+    <span className="px-1.5 py-0.5 rounded text-[10px] bg-cc-blue-bg text-cc-blue-text font-mono shrink-0">
       {value}
     </span>
   );
@@ -53,7 +53,7 @@ function CommitRow({ node, graphWidth }: { node: CommitNode; graphWidth: number 
   const isMerge = node.parents.length > 1;
 
   return (
-    <div className="flex items-center hover:bg-gray-800/50 cursor-default" style={{ height: ROW_H }}>
+    <div className="flex items-center hover:bg-cc-bg-surface/50 cursor-default" style={{ height: ROW_H }}>
       {/* Node circle */}
       <svg width={graphWidth} height={ROW_H} className="shrink-0" style={{ minWidth: graphWidth }}>
         <circle
@@ -61,14 +61,14 @@ function CommitRow({ node, graphWidth }: { node: CommitNode; graphWidth: number 
           cy={cy}
           r={isMerge ? NODE_R + 1 : NODE_R}
           fill={node.color}
-          stroke={isMerge ? '#111827' : 'none'}
+          stroke={isMerge ? 'var(--cc-bg)' : 'none'}
           strokeWidth={1.5}
         />
       </svg>
 
       {/* Text content */}
       <div className="flex items-center gap-2 px-2 min-w-0 flex-1">
-        <span className="text-[10px] font-mono text-gray-600 shrink-0 w-[3.5rem]">
+        <span className="text-[10px] font-mono text-cc-text-muted shrink-0 w-[3.5rem]">
           {node.short}
         </span>
         {node.refs.length > 0 && (
@@ -76,9 +76,9 @@ function CommitRow({ node, graphWidth }: { node: CommitNode; graphWidth: number 
             {node.refs.map((r) => <RefBadge key={r} value={r} />)}
           </div>
         )}
-        <span className="text-xs text-gray-300 truncate flex-1">{node.message}</span>
-        <span className="text-[10px] text-gray-600 shrink-0 hidden xl:block">{node.author}</span>
-        <span className="text-[10px] text-gray-600 shrink-0">
+        <span className="text-xs text-cc-text-secondary truncate flex-1">{node.message}</span>
+        <span className="text-[10px] text-cc-text-muted shrink-0 hidden xl:block">{node.author}</span>
+        <span className="text-[10px] text-cc-text-muted shrink-0">
           {new Date(node.date).toLocaleDateString()}
         </span>
       </div>
@@ -102,8 +102,8 @@ export default function GitLog() {
   const graphWidth = PAD_X + (maxColumn + 1) * COL_W + PAD_X;
   const totalHeight = nodes.length * ROW_H;
 
-  if (loading) return <div className="p-4 text-sm text-gray-500">Loading…</div>;
-  if (!nodes.length) return <div className="p-4 text-sm text-gray-500">No commits found</div>;
+  if (loading) return <div className="p-4 text-sm text-cc-text-muted">Loading…</div>;
+  if (!nodes.length) return <div className="p-4 text-sm text-cc-text-muted">No commits found</div>;
 
   return (
     <div className="relative overflow-x-auto">
