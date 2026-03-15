@@ -68,14 +68,16 @@ function useCardStatus(session: Session, activity: SessionActivity | undefined):
 
     const isActive = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
     const wasActive = prev && prev !== 'idle' && prev !== 'waiting_input';
-    if (isActive && !wasActive) runStartedAtRef.current = Date.now();
+    if (isActive && !wasActive) {
+      runStartedAtRef.current = Date.now();
+      setJustDone(false);
+    }
 
     if (wasActive && activityState === 'idle' && session.status !== 'terminated') {
       const elapsed = runStartedAtRef.current ? Date.now() - runStartedAtRef.current : 0;
       if (elapsed >= 5000) {
         const timer = setTimeout(() => {
           setJustDone(true);
-          setTimeout(() => setJustDone(false), 3000);
         }, 500);
         return () => clearTimeout(timer);
       }

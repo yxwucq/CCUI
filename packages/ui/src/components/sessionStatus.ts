@@ -24,6 +24,7 @@ export function useDisplayStatus(session: Session, activity: SessionActivity | u
     const nowActive = activityState && activityState !== 'idle' && activityState !== 'waiting_input';
     if (nowActive && !wasActive) {
       runStartedAtRef.current = Date.now();
+      setJustDone(false);
     }
 
     // Detect transition: was running → now idle
@@ -36,7 +37,6 @@ export function useDisplayStatus(session: Session, activity: SessionActivity | u
         if (elapsed >= 5000) {
           const timer = setTimeout(() => {
             setJustDone(true);
-            setTimeout(() => setJustDone(false), 3000);
           }, 500);
           return () => clearTimeout(timer);
         }
