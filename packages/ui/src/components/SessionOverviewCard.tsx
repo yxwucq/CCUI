@@ -12,7 +12,7 @@ interface Props {
   onClick: () => void;
 }
 
-const MAX_CONTEXT = 200_000;
+const DEFAULT_CONTEXT = 200_000;
 
 function StatusDot({ session, activity, cardStatus }: { session: Session; activity: SessionActivity | undefined; cardStatus: CardStatus }) {
   if (session.status === 'terminated') return <Unplug size={11} className="text-gray-600" />;
@@ -132,8 +132,9 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
   const cardStatus = useCardStatus(session, activity);
   const sc = CARD_STATUS[cardStatus];
 
+  const maxContext = usage?.contextWindow ?? DEFAULT_CONTEXT;
   const contextPct = usage?.latestInputTokens
-    ? Math.min(100, Math.round((usage.latestInputTokens / MAX_CONTEXT) * 100))
+    ? Math.min(100, Math.round((usage.latestInputTokens / maxContext) * 100))
     : 0;
   const label = activityLabel(activity);
   const isTerminated = session.status === 'terminated';
