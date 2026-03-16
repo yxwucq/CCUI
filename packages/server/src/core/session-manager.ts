@@ -75,6 +75,43 @@ class SessionManager {
     this.sessionActivity.set(sessionId, { activity, timer });
   }
 
+  /**
+   * Initialize or update the head session for the project.
+   * Called at server startup — creates one if missing, updates branch if existing.
+   */
+  initHeadSession(projectPath: string): Session {
+    const db = getDB();
+    const currentBranch = getCurrentBranch(projectPath);
+    const existing = db.prepare("SELECT * FROM sessions WHERE session_type = 'head' AND project_path = ?").get(projectPath) as any;
+
+    if (existing) {
+      // Update branch and ensure idle status
+      db.prepare('UPDATE sessions SET branch = ?, status = ?, last_active_at = ? WHERE id = ?')
+        .run(currentBranch, 'idle', new Date().toISOString(), existing.id);
+      console.log(`Head session updated: ${existing.id} (${currentBranch})`);
+      return this.mapSession({ ...existing, branch: currentBranch, status: 'idle' });
+    }
+
+    // Create new head session
+    const id = uuid();
+    const now = new Date().toISOString();
+    const session: Session = {
+      id, name: 'HEAD', projectPath,
+      branch: currentBranch,
+      sessionType: 'head',
+      worktreeOwned: false,
+      skipPermissions: false,
+      status: 'idle', createdAt: now, lastActiveAt: now,
+    };
+
+    db.prepare(
+      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, 'HEAD', projectPath, currentBranch, null, null, null, 0, 'head', 0, 'idle', null, now, now);
+
+    console.log(`Head session created: ${id} (${currentBranch})`);
+    return session;
+  }
+
   createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }): Session {
     const id = uuid();
     const now = new Date().toISOString();
@@ -249,6 +286,7 @@ You are working on an existing branch (attached mode).
     const db = getDB();
     const row = db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as any;
     if (!row) return { error: 'Session not found' };
+    if (row.session_type === 'head') return { error: 'Cannot terminate the head session' };
 
     // For 'check', just return worktree status without terminating
     if (action === 'check' && row.worktree_path && row.branch && row.target_branch) {
@@ -320,13 +358,14 @@ You are working on an existing branch (attached mode).
    * Delete: permanently remove session and all related data from database.
    */
   deleteSession(sessionId: string) {
+    const db = getDB();
+    const row = db.prepare('SELECT project_path, worktree_path, branch, session_type, worktree_owned FROM sessions WHERE id = ?').get(sessionId) as any;
+    if (row?.session_type === 'head') return;
+
     // Stop any running processes first
     const proc = this.processes.get(sessionId);
     if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
     this.streamParser.clearSession(sessionId);
-
-    const db = getDB();
-    const row = db.prepare('SELECT project_path, worktree_path, branch, session_type, worktree_owned FROM sessions WHERE id = ?').get(sessionId) as any;
 
     // Clean up worktree if still exists
     if (row?.worktree_path) {

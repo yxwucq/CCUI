@@ -15,7 +15,7 @@ export interface Session {
   worktreePath?: string;
   agentId?: string;
   skipPermissions?: boolean;
-  sessionType?: 'fork' | 'attach';
+  sessionType?: 'fork' | 'attach' | 'head';
   worktreeOwned?: boolean;
   status: 'active' | 'idle' | 'terminated';
   cleanupStatus?: 'pending' | 'cleaned';

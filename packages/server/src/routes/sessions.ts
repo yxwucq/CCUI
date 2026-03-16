@@ -91,12 +91,16 @@ router.post('/:id/stop', (req, res) => {
 });
 
 router.post('/:id/terminate', (req, res) => {
+  const session = sessionManager.getSession(req.params.id);
+  if (session?.sessionType === 'head') return res.status(403).json({ error: 'Cannot terminate the head session' });
   const { action } = req.body || {};
   const result = sessionManager.terminateSession(req.params.id, action);
   res.json(result);
 });
 
 router.delete('/:id', (req, res) => {
+  const session = sessionManager.getSession(req.params.id);
+  if (session?.sessionType === 'head') return res.status(403).json({ error: 'Cannot delete the head session' });
   sessionManager.deleteSession(req.params.id);
   res.json({ ok: true });
 });

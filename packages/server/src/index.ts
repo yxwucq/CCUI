@@ -51,6 +51,9 @@ export async function createServer(options: ServerOptions) {
     console.log(`Reset ${stale.changes} stale session(s) to idle from previous run`);
   }
 
+  // Initialize head session (auto-create or update existing)
+  sessionManager.initHeadSession(projectPath);
+
   // Create Express app and HTTP server
   const app = createApp(projectPath);
   const server = createHttpServer(app);

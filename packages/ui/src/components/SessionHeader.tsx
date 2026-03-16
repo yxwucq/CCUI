@@ -76,12 +76,14 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
       {/* Branch — show target branch if available, otherwise work branch */}
       {(session.targetBranch || session.branch) && (
         <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${
-          session.sessionType === 'attach'
-            ? 'text-cc-blue-text bg-cc-blue-bg'
-            : 'text-cc-purple-text bg-cc-purple-bg'
+          session.sessionType === 'head'
+            ? 'text-cc-emerald-text bg-cc-emerald-bg'
+            : session.sessionType === 'attach'
+              ? 'text-cc-blue-text bg-cc-blue-bg'
+              : 'text-cc-purple-text bg-cc-purple-bg'
         }`}>
-          {session.sessionType === 'attach' ? <Link2 size={11} /> : <GitBranch size={11} />}
-          {session.targetBranch || session.branch}
+          {session.sessionType === 'head' ? <GitBranch size={11} /> : session.sessionType === 'attach' ? <Link2 size={11} /> : <GitBranch size={11} />}
+          {session.sessionType === 'head' ? `HEAD (${session.branch})` : (session.targetBranch || session.branch)}
         </span>
       )}
 
@@ -167,8 +169,8 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
             <Square size={13} />
           </button>
         )}
-        {/* Idle → Resume + Terminate buttons */}
-        {session.status === 'idle' && (
+        {/* Idle → Resume + Terminate buttons (not for head session) */}
+        {session.status === 'idle' && session.sessionType !== 'head' && (
           <>
             <button
               onClick={() => onTerminate(session.id)}
@@ -179,8 +181,8 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
             </button>
           </>
         )}
-        {/* Terminated → Resume + Delete buttons */}
-        {session.status === 'terminated' && (
+        {/* Terminated → Resume + Delete buttons (not for head session) */}
+        {session.status === 'terminated' && session.sessionType !== 'head' && (
           <>
             <button
               onClick={() => onResume(session.id).catch((e: any) => alert(e.message))}

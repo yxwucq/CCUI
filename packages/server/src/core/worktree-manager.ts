@@ -74,7 +74,7 @@ export function attachToBranch(
     });
   } catch (err: any) {
     // If branch is already checked out somewhere, use detach+checkout
-    if (err.message?.includes('already checked out')) {
+    if (err.message?.includes('already checked out') || err.message?.includes('already used by worktree')) {
       execSync(`git worktree add --detach "${worktreePath}"`, {
         cwd: projectPath,
         encoding: 'utf-8',
@@ -216,11 +216,21 @@ export function createIsolatedWorktree(
   const shortId = sessionId.slice(0, 6);
   const workBranch = `${targetBranch}--ccui-${shortId}`;
 
-  // Always create a new branch from targetBranch — no conflicts possible
-  execSync(`git worktree add -b "${workBranch}" "${worktreePath}" "${targetBranch}"`, {
-    cwd: projectPath,
-    encoding: 'utf-8',
-  });
+  // Create a new branch; use targetBranch as start point only if it exists
+  const branches = listBranches(projectPath);
+  const targetExists = branches.includes(targetBranch);
+  if (targetExists) {
+    execSync(`git worktree add -b "${workBranch}" "${worktreePath}" "${targetBranch}"`, {
+      cwd: projectPath,
+      encoding: 'utf-8',
+    });
+  } else {
+    // targetBranch doesn't exist yet — create from HEAD
+    execSync(`git worktree add -b "${workBranch}" "${worktreePath}"`, {
+      cwd: projectPath,
+      encoding: 'utf-8',
+    });
+  }
 
   // Create .claude directories for memory and rules
   const claudeDir = join(worktreePath, '.claude');

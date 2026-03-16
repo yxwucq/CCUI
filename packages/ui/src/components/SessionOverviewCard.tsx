@@ -184,8 +184,10 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
       {/* Branch */}
       {session.branch && (
         <div className="relative flex items-center gap-1 mb-2">
-          <GitBranch size={9} className="text-cc-text-muted shrink-0" />
-          <span className="text-xs text-cc-text-muted truncate">{session.branch}</span>
+          <GitBranch size={9} className={`shrink-0 ${session.sessionType === 'head' ? 'text-cc-emerald-text' : 'text-cc-text-muted'}`} />
+          <span className={`text-xs truncate ${session.sessionType === 'head' ? 'text-cc-emerald-text' : 'text-cc-text-muted'}`}>
+            {session.sessionType === 'head' ? `HEAD (${session.branch})` : session.branch}
+          </span>
         </div>
       )}
 
