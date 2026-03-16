@@ -9,6 +9,7 @@ import ProjectInitDialog from '../components/ProjectInitDialog';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Plus, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, ChevronRight } from 'lucide-react';
 import { Session } from '@ccui/shared';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProjectConfig } from '../api/projects';
 
 const EMPTY_MSGS: never[] = [];
@@ -266,9 +267,24 @@ export default function Chat() {
             {activeSessions.length > 0 && (
               <>
                 <p className="text-xs text-cc-text-muted uppercase tracking-wider px-1 mb-2">Active</p>
-                <div className="grid grid-cols-2 gap-2 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                  {activeSessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />)}
-                </div>
+                <motion.div
+                  className="grid grid-cols-2 gap-2 mb-4"
+                  style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}
+                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {activeSessions.map((s) => (
+                      <motion.div key={s.id} layout
+                        variants={{ hidden: { opacity: 0, scale: 0.95, y: 10 }, visible: { opacity: 1, scale: 1, y: 0 } }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                      >
+                        <SessionOverviewCard session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
               </>
             )}
             {terminatedSessions.length > 0 && (
@@ -284,11 +300,20 @@ export default function Chat() {
 
         {!isFocused && viewMode === 'list' && (
           <>
-            {activeSessions.map((s) => (
-              <ErrorBoundary key={s.id}>
-                <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
-              </ErrorBoundary>
-            ))}
+            <AnimatePresence mode="popLayout">
+              {activeSessions.map((s) => (
+                <motion.div key={s.id} layout
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ErrorBoundary>
+                    <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
+                  </ErrorBoundary>
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {terminatedSessions.length > 0 && (
               <TerminatedSection sessions={terminatedSessions} layoutMode={layoutMode}>
                 {(s) => (

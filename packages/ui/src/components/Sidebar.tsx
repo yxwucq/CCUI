@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, MessageSquare, FolderOpen, Bot,
   FileCode, GitBranch,
@@ -25,7 +26,7 @@ export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }:
   const activeSessions = sessions.filter((s) => s.status === 'active');
 
   return (
-    <aside className="w-56 border-r border-cc-border flex flex-col shrink-0">
+    <aside className="w-56 flex flex-col shrink-0">
       <div className="p-4 border-b border-cc-border">
         <h1 className="text-lg font-bold text-cc-text">CCUI</h1>
         <p className="text-xs text-cc-text-muted">Claude Code WebUI</p>
@@ -38,15 +39,27 @@ export default function Sidebar({ sessions, activeSessionId, onToggleExpanded }:
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+              `relative flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive
-                  ? 'bg-cc-bg-surface text-cc-text'
+                  ? 'text-cc-text'
                   : 'text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-surface/50'
               }`
             }
           >
-            <Icon size={16} />
-            {label}
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-nav-indicator"
+                    className="absolute inset-0 bg-cc-bg-surface rounded-md"
+                    style={{ zIndex: -1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <Icon size={16} />
+                {label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

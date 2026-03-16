@@ -6,6 +6,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useEffect } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useWidgetStore } from '../stores/widgetStore';
+import { motion } from 'framer-motion';
 import { PanelLeftClose, PanelLeftOpen, Sun, Moon, Palette } from 'lucide-react';
 import QuotaGauge from '../components/QuotaGauge';
 import ToastContainer from '../components/ToastContainer';
@@ -92,7 +93,13 @@ export default function MainLayout() {
   return (
     <div className="flex h-screen bg-cc-bg text-cc-text">
       {/* Sidebar — collapsible */}
-      {sidebarOpen && <Sidebar sessions={sessions} activeSessionId={activeSessionId} onToggleExpanded={toggleExpanded} />}
+      <motion.div
+        animate={{ width: sidebarOpen ? 224 : 0 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
+        className="shrink-0 overflow-hidden border-r border-cc-border"
+      >
+        <Sidebar sessions={sessions} activeSessionId={activeSessionId} onToggleExpanded={toggleExpanded} />
+      </motion.div>
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
@@ -135,17 +142,25 @@ export default function MainLayout() {
           </div>
         </header>
 
-        {/* Sessions view — always mounted, hidden via CSS when not on / */}
-        <div className="flex-1 min-h-0" style={{ display: isSessionsPage ? 'flex' : 'none', flexDirection: 'column' }}>
-          <Chat />
-        </div>
+        {/* Content area — cross-fade between Sessions and other views */}
+        <div className="flex-1 min-h-0 relative">
+          {/* Sessions view — always mounted, faded out when not active */}
+          <motion.div
+            animate={{ opacity: isSessionsPage ? 1 : 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 flex flex-col"
+            style={{ pointerEvents: isSessionsPage ? 'auto' : 'none' }}
+          >
+            <Chat />
+          </motion.div>
 
-        {/* Other views via Outlet */}
-        {!isSessionsPage && (
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
-        )}
+          {/* Other views via Outlet */}
+          {!isSessionsPage && (
+            <main className="absolute inset-0 overflow-auto">
+              <Outlet />
+            </main>
+          )}
+        </div>
       </div>
       <ToastContainer />
     </div>
