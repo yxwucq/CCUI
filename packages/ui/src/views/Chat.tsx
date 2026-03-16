@@ -147,7 +147,13 @@ export default function Chat() {
   const filtered = q
     ? sessions.filter((s) => s.name.toLowerCase().includes(q) || (s.branch || '').toLowerCase().includes(q))
     : sessions;
-  const activeSessions = filtered.filter((s) => s.status === 'active' || s.status === 'idle');
+  const activeSessions = filtered
+    .filter((s) => s.status === 'active' || s.status === 'idle')
+    .sort((a, b) => {
+      if (a.sessionType === 'head') return -1;
+      if (b.sessionType === 'head') return 1;
+      return 0;
+    });
   const terminatedSessions = filtered.filter((s) => s.status === 'terminated');
   const isFocused = !!focusedSessionId;
   const focusedSession = isFocused ? sessions.find((s) => s.id === focusedSessionId) : null;
