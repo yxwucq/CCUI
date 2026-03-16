@@ -1,9 +1,37 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
-import { mkdirSync, existsSync, rmSync, appendFileSync, writeFileSync } from 'fs';
+import { mkdirSync, existsSync, rmSync, appendFileSync, writeFileSync, readFileSync } from 'fs';
 import type { ProjectConfig } from '@ccui/shared';
 
 const WORKTREE_DIR = '.ccui/worktrees';
+
+/**
+ * Resolve the actual git metadata directory for a worktree by reading its .git file.
+ * Worktrees have a .git FILE (not directory) containing "gitdir: /path/to/.git/worktrees/<name>".
+ */
+function resolveWorktreeGitDir(worktreePath: string): string | null {
+  try {
+    const dotGit = join(worktreePath, '.git');
+    const content = readFileSync(dotGit, 'utf-8').trim();
+    const match = content.match(/^gitdir:\s*(.+)$/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Add entries to a worktree's local git exclude file (never committed).
+ */
+function addWorktreeExclude(worktreePath: string, patterns: string[]): void {
+  try {
+    const gitDir = resolveWorktreeGitDir(worktreePath);
+    if (!gitDir) return;
+    const infoDir = join(gitDir, 'info');
+    mkdirSync(infoDir, { recursive: true });
+    appendFileSync(join(infoDir, 'exclude'), '\n' + patterns.join('\n') + '\n');
+  } catch { /* best effort */ }
+}
 
 /**
  * Resolve the base directory for worktrees based on project config.
@@ -36,7 +64,7 @@ export function attachToBranch(
   const base = resolveWorktreeBase(projectPath, config);
   mkdirSync(base, { recursive: true });
   // Use a slug from the branch name for the worktree directory
-  const slug = branch.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const slug = branch.replace(/\//g, '--').replace(/[^a-zA-Z0-9_-]/g, '-');
   const worktreePath = join(base, slug);
 
   try {
@@ -59,6 +87,9 @@ export function attachToBranch(
       throw err;
     }
   }
+
+  // Exclude .claude/ from git status in this worktree
+  addWorktreeExclude(worktreePath, ['.claude/']);
 
   return { worktreePath, worktreeOwned: true };
 }
@@ -164,11 +195,7 @@ export function createWorktree(
   mkdirSync(memoryDir, { recursive: true });
 
   // Exclude memory dir from git via worktree-local exclude (never committed)
-  const infoDir = join(projectPath, '.git', 'worktrees', sessionId, 'info');
-  try {
-    mkdirSync(infoDir, { recursive: true });
-    appendFileSync(join(infoDir, 'exclude'), '\n.claude/memory/\n');
-  } catch { /* best effort */ }
+  addWorktreeExclude(worktreePath, ['.claude/memory/']);
 
   return worktreePath;
 }
@@ -240,11 +267,7 @@ Save discoveries about the codebase, decisions made, progress, and any context t
 `);
 
   // Exclude .claude/ from git via worktree-local exclude (never committed)
-  const infoDir = join(projectPath, '.git', 'worktrees', sessionId, 'info');
-  try {
-    mkdirSync(infoDir, { recursive: true });
-    appendFileSync(join(infoDir, 'exclude'), '\n.claude/\n');
-  } catch { /* best effort */ }
+  addWorktreeExclude(worktreePath, ['.claude/']);
 
   return { worktreePath, workBranch };
 }
