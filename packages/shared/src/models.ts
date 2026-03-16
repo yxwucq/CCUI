@@ -65,6 +65,6 @@ export function getContextWindow(model: string): number {
 //   Cache read (hit):     0.1x
 export const CACHE_MULTIPLIERS = {
   write5m: 1.25,
-  write1h: 2.0,
+  write1h: 1.25,
   read: 0.1,
 } as const;

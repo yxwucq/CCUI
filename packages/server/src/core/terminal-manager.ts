@@ -264,7 +264,7 @@ class TerminalManager {
 
   /** Watch Claude Code's JSONL session file for new usage records */
   private startJSONLWatch(ccuiSessionId: string, cwd: string, claudeSessionId: string) {
-    const slug = cwd.replace(/\//g, '-');
+    const slug = cwd.replace(/[\/\.]/g, '-');
     const filePath = join(homedir(), '.claude', 'projects', slug, `${claudeSessionId}.jsonl`);
 
     // Skip existing content — only track new data from this point forward
@@ -283,17 +283,33 @@ class TerminalManager {
         fs.readSync(fd, buf, 0, buf.length, state.offset);
         fs.closeSync(fd);
         state.offset = size;
+
+        // Collect the LAST entry per requestId (earlier entries are partial/streaming-start)
+        const lastByReqId = new Map<string, { usage: any; model: string }>();
+        const noReqId: Array<{ usage: any; model: string }> = [];
         for (const line of buf.toString('utf8').split('\n')) {
           if (!line.trim()) continue;
           try {
             const entry = JSON.parse(line);
             if (entry.type !== 'assistant' || !entry.message?.usage) continue;
             const reqId: string = entry.requestId || '';
-            // Deduplicate: parallel tool calls emit multiple lines with same requestId
-            if (reqId && state.seenRequestIds.has(reqId)) continue;
-            if (reqId) state.seenRequestIds.add(reqId);
-            usageTracker.recordFromClaude(ccuiSessionId, entry.message.usage, entry.message.model || '');
+            const record = { usage: entry.message.usage, model: entry.message.model || '' };
+            if (reqId) {
+              lastByReqId.set(reqId, record); // overwrite → keeps last
+            } else {
+              noReqId.push(record);
+            }
           } catch { /* malformed JSON line */ }
+        }
+
+        // Record only unseen requestIds (last/complete entry for each)
+        for (const [reqId, { usage, model }] of lastByReqId) {
+          if (state.seenRequestIds.has(reqId)) continue;
+          state.seenRequestIds.add(reqId);
+          usageTracker.recordFromClaude(ccuiSessionId, usage, model);
+        }
+        for (const { usage, model } of noReqId) {
+          usageTracker.recordFromClaude(ccuiSessionId, usage, model);
         }
       } catch { /* file not accessible yet */ }
     };
