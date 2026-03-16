@@ -129,11 +129,17 @@ export function setupWebSocket(server: Server) {
           sessionManager.stopSession(msg.sessionId);
           terminalManager.kill(msg.sessionId);
         } else if (msg.type === 'session:terminate') {
-          sessionManager.terminateSession(msg.sessionId, msg.action);
-          terminalManager.kill(msg.sessionId);
+          const session = sessionManager.getSession(msg.sessionId);
+          if (session?.sessionType !== 'head') {
+            sessionManager.terminateSession(msg.sessionId, msg.action);
+            terminalManager.kill(msg.sessionId);
+          }
         } else if (msg.type === 'session:delete') {
-          terminalManager.kill(msg.sessionId);
-          sessionManager.deleteSession(msg.sessionId);
+          const session = sessionManager.getSession(msg.sessionId);
+          if (session?.sessionType !== 'head') {
+            terminalManager.kill(msg.sessionId);
+            sessionManager.deleteSession(msg.sessionId);
+          }
         } else if (msg.type === 'terminal:create') {
           // Subscribe to this session
           if (!subscriptions.has(msg.sessionId)) subscriptions.set(msg.sessionId, new Set());
