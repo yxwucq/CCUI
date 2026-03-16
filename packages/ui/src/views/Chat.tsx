@@ -5,9 +5,11 @@ import { useWidgetStore } from '../stores/widgetStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import NewSessionForm from '../components/NewSessionForm';
+import ProjectInitDialog from '../components/ProjectInitDialog';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Plus, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, ChevronRight } from 'lucide-react';
 import { Session } from '@ccui/shared';
+import { fetchProjectConfig } from '../api/projects';
 
 const EMPTY_MSGS: never[] = [];
 const EMPTY_CALLS: never[] = [];
@@ -68,6 +70,7 @@ export default function Chat() {
   const defaultWidgets = useWidgetStore((s) => s.defaultWidgets);
 
   const [showNewSession, setShowNewSession] = useState(false);
+  const [showInitDialog, setShowInitDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const viewModeBeforeFocusRef = useRef<'list' | 'grid' | null>(null);
   const [layoutMode, setLayoutMode] = useState<'accordion' | 'scroll'>('accordion');
@@ -75,7 +78,14 @@ export default function Chat() {
   const [highlightIds, setHighlightIds] = useState<ReadonlySet<string>>(new Set());
   const prevStatusesRef = useRef<Record<string, string>>({});
 
-  useEffect(() => { fetchSessions(); }, []);
+  useEffect(() => {
+    fetchSessions();
+    fetchProjectConfig()
+      .then((config) => {
+        if (!config.initialized) setShowInitDialog(true);
+      })
+      .catch(() => {});
+  }, []);
 
   // Highlight sessions that just became active (status idle → active)
   useEffect(() => {
@@ -169,6 +179,11 @@ export default function Chat() {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Project init dialog */}
+      {showInitDialog && (
+        <ProjectInitDialog onInitialized={() => setShowInitDialog(false)} />
+      )}
+
       {/* Header — hidden in focus mode */}
       {!isFocused && (
         <div className="border-b border-cc-border px-5 py-3 flex items-center justify-between shrink-0">

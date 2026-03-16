@@ -1,7 +1,10 @@
 import { spawn, ChildProcess } from 'child_process';
+import { mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { getDB } from '../db/database.js';
-import { createIsolatedWorktree, removeWorktree, removeWorkBranch, getWorktreeStatus, mergeWorktree, getCurrentBranch } from './worktree-manager.js';
+import { createIsolatedWorktree, removeWorktree, removeWorkBranch, getWorktreeStatus, mergeWorktree, getCurrentBranch, attachToBranch, resolveWorktreeBase } from './worktree-manager.js';
+import { loadProjectConfig } from '../routes/project-config.js';
 import { BranchWatcher } from './branch-watcher.js';
 import { StreamParser } from './stream-parser.js';
 import type { Session, ChatMessage, SessionActivity, FileActivity } from '@ccui/shared';
@@ -72,28 +75,71 @@ class SessionManager {
     this.sessionActivity.set(sessionId, { activity, timer });
   }
 
-  createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean }): Session {
+  createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }): Session {
     const id = uuid();
     const now = new Date().toISOString();
-    const { agentId, branch, name, skipPermissions } = opts || {};
+    const { agentId, branch, name, skipPermissions, sessionType = 'fork' } = opts || {};
     const currentBranch = getCurrentBranch(projectPath);
     const targetBranch = branch || currentBranch;
+    const config = loadProjectConfig(projectPath);
 
-    // Always create isolated worktree with unique work branch
-    const { worktreePath, workBranch } = createIsolatedWorktree(projectPath, id, targetBranch);
+    let worktreePath: string | undefined;
+    let workBranch: string;
+    let worktreeOwned = true;
+    let effectiveSessionType = sessionType;
+
+    if (effectiveSessionType === 'attach') {
+      const result = attachToBranch(projectPath, targetBranch, config);
+      worktreePath = result.worktreePath || undefined;
+      worktreeOwned = result.worktreeOwned;
+      workBranch = targetBranch;
+
+      // Write session scope rules only if we own the worktree
+      if (worktreeOwned && worktreePath) {
+        const claudeDir = join(worktreePath, '.claude');
+        mkdirSync(join(claudeDir, 'memory'), { recursive: true });
+        mkdirSync(join(claudeDir, 'rules'), { recursive: true });
+        writeFileSync(join(claudeDir, 'rules', 'session-scope.md'), `---
+description: Session workspace rules (attached)
+---
+
+# Workspace
+
+You are working on an existing branch (attached mode).
+
+- Branch: ${workBranch}
+- Working directory: ${worktreePath}
+
+# Rules
+
+- All file modifications and writes must stay within this working directory
+- Stay on the current branch
+- You may read files outside this worktree if needed
+`);
+      }
+    } else {
+      // Fork mode: create isolated worktree with unique work branch
+      const base = resolveWorktreeBase(projectPath, config);
+      const result = createIsolatedWorktree(projectPath, id, targetBranch, base);
+      worktreePath = result.worktreePath;
+      workBranch = result.workBranch;
+      worktreeOwned = true;
+    }
 
     const sessionName = name || branch || `session-${id.slice(0, 8)}`;
     const session: Session = {
       id, name: sessionName, projectPath,
       branch: workBranch, targetBranch, worktreePath, agentId,
       skipPermissions: skipPermissions || false,
+      sessionType: effectiveSessionType,
+      worktreeOwned,
       status: 'idle', createdAt: now, lastActiveAt: now,
     };
 
     const db = getDB();
     db.prepare(
-      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(id, sessionName, projectPath, workBranch, targetBranch, worktreePath, agentId || null, skipPermissions ? 1 : 0, 'idle', null, now, now);
+      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, sessionName, projectPath, workBranch, targetBranch, worktreePath || null, agentId || null, skipPermissions ? 1 : 0, effectiveSessionType, worktreeOwned ? 1 : 0, 'idle', null, now, now);
     return session;
   }
 
@@ -215,8 +261,17 @@ class SessionManager {
     if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
     this.streamParser.clearSession(sessionId);
 
-    // Handle worktree based on action
-    if (row.worktree_path) {
+    // Handle worktree based on action and session type
+    const isAttach = row.session_type === 'attach';
+
+    if (isAttach) {
+      // Attach mode: never delete the branch, only remove worktree if we own it
+      if (row.worktree_path && row.worktree_owned) {
+        try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
+      }
+      // Always mark as cleaned for attach sessions
+    } else if (row.worktree_path) {
+      // Fork mode: original behavior
       if (action === 'merge' && row.branch && row.target_branch) {
         try {
           mergeWorktree(row.project_path, row.worktree_path, row.branch, row.target_branch);
@@ -254,7 +309,7 @@ class SessionManager {
     }
 
     const termNow = new Date().toISOString();
-    const cleanupStatus = (action === 'merge' || action === 'discard' || !row.worktree_path) ? 'cleaned' : null;
+    const cleanupStatus = (isAttach || action === 'merge' || action === 'discard' || !row.worktree_path) ? 'cleaned' : null;
     db.prepare('UPDATE sessions SET status = ?, cleanup_status = ?, last_active_at = ? WHERE id = ?')
       .run('terminated', cleanupStatus, termNow, sessionId);
     this.emitStatus(sessionId, 'terminated', termNow);
@@ -271,13 +326,21 @@ class SessionManager {
     this.streamParser.clearSession(sessionId);
 
     const db = getDB();
-    const row = db.prepare('SELECT project_path, worktree_path, branch FROM sessions WHERE id = ?').get(sessionId) as any;
+    const row = db.prepare('SELECT project_path, worktree_path, branch, session_type, worktree_owned FROM sessions WHERE id = ?').get(sessionId) as any;
 
     // Clean up worktree if still exists
     if (row?.worktree_path) {
-      try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
-      if (row.branch) {
-        try { removeWorkBranch(row.project_path, row.branch); } catch { /* best effort */ }
+      if (row.session_type === 'attach') {
+        // Attach: only remove worktree if we own it, never delete branch
+        if (row.worktree_owned) {
+          try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
+        }
+      } else {
+        // Fork: remove worktree + branch
+        try { removeWorktree(row.project_path, row.worktree_path); } catch { /* best effort */ }
+        if (row.branch) {
+          try { removeWorkBranch(row.project_path, row.branch); } catch { /* best effort */ }
+        }
       }
     }
 
@@ -323,6 +386,8 @@ class SessionManager {
       targetBranch: row.target_branch || undefined,
       worktreePath: row.worktree_path || undefined, agentId: row.agent_id || undefined,
       skipPermissions: !!row.skip_permissions, status: row.status,
+      sessionType: row.session_type || 'fork',
+      worktreeOwned: row.worktree_owned !== 0,
       cleanupStatus: row.cleanup_status || undefined,
       createdAt: row.created_at, lastActiveAt: row.last_active_at,
     };

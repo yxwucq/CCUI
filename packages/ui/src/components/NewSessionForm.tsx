@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { fetchProjectInfo, fetchGitBranches } from '../api/projects';
-import { GitBranch, AlertTriangle } from 'lucide-react';
+import { GitBranch, AlertTriangle, Link2, GitFork } from 'lucide-react';
 import type { AgentConfig, Session } from '@ccui/shared';
 
 interface Props {
   onClose: () => void;
   agents: AgentConfig[];
   fetchAgents: () => Promise<void>;
-  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean }) => Promise<Session>;
+  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }) => Promise<Session>;
 }
 
 export default function NewSessionForm({ onClose, agents, fetchAgents, createSession }: Props) {
@@ -21,6 +21,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
   const [currentBranch, setCurrentBranch] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
+  const [sessionType, setSessionType] = useState<'fork' | 'attach'>('attach');
 
   useEffect(() => {
     fetchAgents();
@@ -48,6 +49,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
         name: newName || undefined,
         agentId: selectedAgent || undefined,
         skipPermissions: skipPermissions || undefined,
+        sessionType: isNewBranch ? 'fork' : sessionType,
       });
       onClose();
     } catch (err: any) {
@@ -102,13 +104,48 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
               }}
               className="w-full bg-cc-bg-surface border border-cc-border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-cc-accent"
             >
-              {branches.map((b) => (
+              {branches.filter((b) => !b.includes('--ccui-')).map((b) => (
                 <option key={b} value={b}>{b}{b === currentBranch ? ' (current)' : ''}</option>
               ))}
               <option value="__new__">── Create new branch ──</option>
             </select>
           )}
         </div>
+
+        {/* Session type toggle — hidden when creating new branch (always fork) */}
+        {!isNewBranch && (
+          <div className="self-end pb-0.5">
+            <label className="block text-xs text-cc-text-muted mb-1">Mode</label>
+            <div className="flex bg-cc-bg-surface border border-cc-border rounded overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setSessionType('attach')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+                  sessionType === 'attach'
+                    ? 'bg-cc-blue-bg text-cc-blue-text'
+                    : 'text-cc-text-muted hover:text-cc-text-secondary'
+                }`}
+                title="Work directly on the selected branch"
+              >
+                <Link2 size={13} />
+                Attach
+              </button>
+              <button
+                type="button"
+                onClick={() => setSessionType('fork')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+                  sessionType === 'fork'
+                    ? 'bg-cc-purple-bg text-cc-purple-text'
+                    : 'text-cc-text-muted hover:text-cc-text-secondary'
+                }`}
+                title="Create a new branch forked from the selected branch"
+              >
+                <GitFork size={13} />
+                Fork
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="min-w-[150px]">
           <label className="block text-xs text-cc-text-muted mb-1">Agent</label>

@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronRight, GitBranch, Square,
   Play, Trash2, SquareTerminal, MessageSquare,
   Maximize2, Minimize2, AlertTriangle, CircleCheck,
-  Unplug, MessageCircleQuestion, XCircle,
+  Unplug, MessageCircleQuestion, XCircle, Link2,
 } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
 import type { WidgetConfig } from '../stores/widgetStore';
@@ -75,8 +75,12 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
 
       {/* Branch — show target branch if available, otherwise work branch */}
       {(session.targetBranch || session.branch) && (
-        <span className="flex items-center gap-1 text-xs text-cc-purple-text bg-cc-purple-bg px-2 py-0.5 rounded-full shrink-0">
-          <GitBranch size={11} />
+        <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${
+          session.sessionType === 'attach'
+            ? 'text-cc-blue-text bg-cc-blue-bg'
+            : 'text-cc-purple-text bg-cc-purple-bg'
+        }`}>
+          {session.sessionType === 'attach' ? <Link2 size={11} /> : <GitBranch size={11} />}
           {session.targetBranch || session.branch}
         </span>
       )}

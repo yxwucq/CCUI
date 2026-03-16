@@ -1,8 +1,67 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
 import { mkdirSync, existsSync, rmSync, appendFileSync, writeFileSync } from 'fs';
+import type { ProjectConfig } from '@ccui/shared';
 
 const WORKTREE_DIR = '.ccui/worktrees';
+
+/**
+ * Resolve the base directory for worktrees based on project config.
+ */
+export function resolveWorktreeBase(projectPath: string, config: ProjectConfig): string {
+  if (config.worktreeMode === 'external' && config.worktreeBasePath) {
+    return config.worktreeBasePath;
+  }
+  return join(projectPath, WORKTREE_DIR);
+}
+
+/**
+ * Attach to an existing branch without forking.
+ * Returns the worktree path (or null if using main checkout) and whether we own the worktree.
+ */
+export function attachToBranch(
+  projectPath: string,
+  branch: string,
+  config: ProjectConfig,
+): { worktreePath: string | null; worktreeOwned: boolean } {
+  // Check if branch has an existing worktree (not the main checkout)
+  const worktrees = listWorktrees(projectPath);
+  for (const wt of worktrees) {
+    if (wt.branch === branch && wt.path !== projectPath) {
+      return { worktreePath: wt.path, worktreeOwned: false };
+    }
+  }
+
+  // Always create a worktree — never work in the main project directory
+  const base = resolveWorktreeBase(projectPath, config);
+  mkdirSync(base, { recursive: true });
+  // Use a slug from the branch name for the worktree directory
+  const slug = branch.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const worktreePath = join(base, slug);
+
+  try {
+    execSync(`git worktree add "${worktreePath}" "${branch}"`, {
+      cwd: projectPath,
+      encoding: 'utf-8',
+    });
+  } catch (err: any) {
+    // If branch is already checked out somewhere, use detach+checkout
+    if (err.message?.includes('already checked out')) {
+      execSync(`git worktree add --detach "${worktreePath}"`, {
+        cwd: projectPath,
+        encoding: 'utf-8',
+      });
+      execSync(`git checkout "${branch}"`, {
+        cwd: worktreePath,
+        encoding: 'utf-8',
+      });
+    } else {
+      throw err;
+    }
+  }
+
+  return { worktreePath, worktreeOwned: true };
+}
 
 export interface WorktreeInfo {
   path: string;
@@ -122,8 +181,9 @@ export function createIsolatedWorktree(
   projectPath: string,
   sessionId: string,
   targetBranch: string,
+  worktreeBasePath?: string,
 ): { worktreePath: string; workBranch: string } {
-  const worktreeBase = join(projectPath, WORKTREE_DIR);
+  const worktreeBase = worktreeBasePath || join(projectPath, WORKTREE_DIR);
   mkdirSync(worktreeBase, { recursive: true });
   const worktreePath = join(worktreeBase, sessionId);
   const shortId = sessionId.slice(0, 6);

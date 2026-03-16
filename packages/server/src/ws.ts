@@ -117,6 +117,7 @@ export function setupWebSocket(server: Server) {
             branch: msg.branch,
             name: msg.name,
             skipPermissions: msg.skipPermissions,
+            sessionType: msg.sessionType,
           });
           ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
         } else if (msg.type === 'session:resume') {

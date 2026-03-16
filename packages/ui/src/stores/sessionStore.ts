@@ -32,7 +32,7 @@ interface SessionStore {
   chatJumpTarget: Record<string, string | null>;
 
   fetchSessions: () => Promise<void>;
-  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean }) => Promise<Session>;
+  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }) => Promise<Session>;
   setActiveSession: (id: string | null) => void;
   toggleFocus: (id: string) => void;
   toggleExpanded: (id: string) => void;

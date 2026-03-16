@@ -71,6 +71,8 @@ export function initDB(projectPath: string): Database.Database {
   if (!colNames.has('notes')) db.exec("ALTER TABLE sessions ADD COLUMN notes TEXT DEFAULT ''");
   if (!colNames.has('target_branch')) db.exec('ALTER TABLE sessions ADD COLUMN target_branch TEXT');
   if (!colNames.has('cleanup_status')) db.exec('ALTER TABLE sessions ADD COLUMN cleanup_status TEXT');
+  if (!colNames.has('session_type')) db.exec("ALTER TABLE sessions ADD COLUMN session_type TEXT DEFAULT 'fork'");
+  if (!colNames.has('worktree_owned')) db.exec('ALTER TABLE sessions ADD COLUMN worktree_owned INTEGER DEFAULT 1');
 
   return db;
 }

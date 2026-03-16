@@ -7,7 +7,7 @@ export async function fetchSessions(): Promise<Session[]> {
 
 export async function createSession(
   projectPath: string,
-  opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean },
+  opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' },
 ): Promise<Session> {
   const res = await fetch('/api/sessions', {
     method: 'POST',

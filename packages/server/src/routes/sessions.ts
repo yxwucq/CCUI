@@ -14,10 +14,10 @@ router.get('/', (_req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { projectPath, agentId, branch, name, skipPermissions } = req.body;
+  const { projectPath, agentId, branch, name, skipPermissions, sessionType } = req.body;
   if (!projectPath) return res.status(400).json({ error: 'projectPath required' });
   try {
-    const session = sessionManager.createSession(projectPath, { agentId, branch, name, skipPermissions });
+    const session = sessionManager.createSession(projectPath, { agentId, branch, name, skipPermissions, sessionType });
     res.status(201).json(session);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

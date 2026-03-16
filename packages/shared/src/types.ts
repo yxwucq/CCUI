@@ -1,3 +1,10 @@
+// Project config
+export interface ProjectConfig {
+  worktreeMode: 'managed' | 'external';
+  worktreeBasePath?: string;
+  initialized: boolean;
+}
+
 // Session
 export interface Session {
   id: string;
@@ -8,6 +15,8 @@ export interface Session {
   worktreePath?: string;
   agentId?: string;
   skipPermissions?: boolean;
+  sessionType?: 'fork' | 'attach';
+  worktreeOwned?: boolean;
   status: 'active' | 'idle' | 'terminated';
   cleanupStatus?: 'pending' | 'cleaned';
   createdAt: string;
@@ -116,7 +125,7 @@ export type WSMessage =
   | { type: 'session:status'; sessionId: string; status: Session['status']; lastActiveAt?: string }
   | { type: 'session:activity'; sessionId: string; activity: SessionActivity }
   | { type: 'session:branch'; sessionId: string; branch: string }
-  | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean }
+  | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }
   | { type: 'session:resume'; sessionId: string }
   | { type: 'session:stop'; sessionId: string }
   | { type: 'session:terminate'; sessionId: string; action?: 'check' | 'merge' | 'discard' }

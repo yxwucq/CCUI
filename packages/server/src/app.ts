@@ -8,6 +8,7 @@ import { createProjectRouter } from './routes/projects.js';
 import usageRouter from './routes/usage.js';
 import filesRouter from './routes/files.js';
 import { createConfigRouter } from './routes/config.js';
+import { createProjectConfigRouter } from './routes/project-config.js';
 
 export function createApp(projectPath: string): Express {
   const app = express();
@@ -21,6 +22,7 @@ export function createApp(projectPath: string): Express {
   app.use('/api/usage', usageRouter);
   app.use('/api/files', filesRouter);
   app.use('/api/config', createConfigRouter(projectPath));
+  app.use('/api/project-config', createProjectConfigRouter(projectPath));
 
   // Serve frontend static files in production
   const uiDistPath = join(dirname(new URL(import.meta.url).pathname), '../../ui/dist');
