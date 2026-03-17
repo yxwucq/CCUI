@@ -51,6 +51,8 @@ interface WidgetStore {
   appName: string;
   themeId: string;
   terminalConfig: TerminalConfig;
+  dailyBudget: number;
+  alertAt: number;
   loaded: boolean;
 
   loadConfig: () => Promise<void>;
@@ -59,10 +61,14 @@ interface WidgetStore {
   setWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
   setAppName: (name: string) => void;
   setTheme: (themeId: string) => void;
+  setQuota: (dailyBudget: number, alertAt?: number) => void;
   saveConfig: () => Promise<void>;
 }
 
 const DEFAULT_APP_NAME = 'CCUI';
+
+const DEFAULT_DAILY_BUDGET = 10;
+const DEFAULT_ALERT_AT = 0.8;
 
 export const useWidgetStore = create<WidgetStore>((set, get) => ({
   sessionWidgets: {},
@@ -70,6 +76,8 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   appName: DEFAULT_APP_NAME,
   themeId: 'dark',
   terminalConfig: {},
+  dailyBudget: DEFAULT_DAILY_BUDGET,
+  alertAt: DEFAULT_ALERT_AT,
   loaded: false,
 
   loadConfig: async () => {
@@ -79,10 +87,13 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
       const themeId = config.theme || getSystemTheme();
       document.title = appName;
       applyTheme(themeId);
+      const quota = config.quota || {};
       set({
         appName,
         themeId,
         terminalConfig: config.terminal || {},
+        dailyBudget: quota.dailyBudget ?? DEFAULT_DAILY_BUDGET,
+        alertAt: quota.alertAt ?? DEFAULT_ALERT_AT,
         defaultWidgets: config.defaultWidgets
           ? migrateWidgets(config.defaultWidgets)
           : DEFAULT_WIDGETS,
@@ -136,12 +147,20 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     get().saveConfig();
   },
 
+  setQuota: (dailyBudget, alertAt) => {
+    const updates: Partial<WidgetStore> = { dailyBudget };
+    if (alertAt !== undefined) updates.alertAt = alertAt;
+    set(updates as any);
+    get().saveConfig();
+  },
+
   saveConfig: async () => {
-    const { defaultWidgets, sessionWidgets, appName, themeId, terminalConfig } = get();
+    const { defaultWidgets, sessionWidgets, appName, themeId, terminalConfig, dailyBudget, alertAt } = get();
     const config: Record<string, any> = {
       appName,
       theme: themeId,
       defaultWidgets,
+      quota: { dailyBudget, alertAt },
       sessions: Object.fromEntries(
         Object.entries(sessionWidgets).map(([k, v]) => [k, { widgets: v }])
       ),
