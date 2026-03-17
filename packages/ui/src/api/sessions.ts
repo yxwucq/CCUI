@@ -54,3 +54,16 @@ export async function terminateSession(
 export async function deleteSession(sessionId: string): Promise<void> {
   await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
 }
+
+export async function renameSession(sessionId: string, name: string): Promise<{ ok: boolean; name: string }> {
+  const res = await fetch(`/api/sessions/${sessionId}/name`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Rename failed: ${err}`);
+  }
+  return res.json();
+}

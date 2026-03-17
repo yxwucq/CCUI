@@ -48,6 +48,7 @@ interface SessionStore {
   stopSession: (sessionId: string) => Promise<void>;
   terminateSession: (sessionId: string, action?: 'check' | 'merge' | 'discard') => Promise<any>;
   deleteSession: (sessionId: string) => Promise<void>;
+  renameSession: (sessionId: string, name: string) => Promise<void>;
   updateSessionUsage: (sessionId: string, record: UsageRecord) => void;
   fetchSessionUsage: (sessionId: string) => Promise<void>;
   addFileActivity: (sessionId: string, activity: FileActivity) => void;
@@ -222,6 +223,29 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     set((s) => ({
       sessions: s.sessions.filter((sess) => sess.id !== sessionId),
     }));
+  },
+
+  renameSession: async (sessionId, name) => {
+    const oldName = get().sessions.find((s) => s.id === sessionId)?.name;
+    // Optimistic update
+    set((s) => ({
+      sessions: s.sessions.map((sess) =>
+        sess.id === sessionId ? { ...sess, name } : sess
+      ),
+    }));
+    try {
+      await sessionsApi.renameSession(sessionId, name);
+    } catch (err) {
+      // Revert on failure
+      console.error('renameSession failed:', err);
+      if (oldName !== undefined) {
+        set((s) => ({
+          sessions: s.sessions.map((sess) =>
+            sess.id === sessionId ? { ...sess, name: oldName } : sess
+          ),
+        }));
+      }
+    }
   },
 
   updateSessionUsage: (sessionId, record) => {
