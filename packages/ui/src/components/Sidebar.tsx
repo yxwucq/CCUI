@@ -8,9 +8,8 @@ import {
 import type { Session } from '@ccui/shared';
 import { useSessionStore } from '../stores/sessionStore';
 import { fetchProjectInfo } from '../api/projects';
+import { useWidgetStore } from '../stores/widgetStore';
 import { pctBarColor } from '../utils';
-
-const DAILY_BUDGET = 10;
 
 const navItems = [
   { to: '/', icon: MessageSquare, label: 'Sessions' },
@@ -28,6 +27,8 @@ interface Props {
 
 export default function Sidebar({ sessions }: Props) {
   const usageRefreshKey = useSessionStore((s) => s.usageRefreshKey);
+  const dailyBudget = useWidgetStore((s) => s.dailyBudget);
+  const alertAt = useWidgetStore((s) => s.alertAt);
 
   // Project info
   const [projectName, setProjectName] = useState('');
@@ -56,7 +57,7 @@ export default function Sidebar({ sessions }: Props) {
   const alive = sessions.filter((s) => s.status !== 'terminated').length;
   const terminated = sessions.filter((s) => s.status === 'terminated').length;
 
-  const pct = Math.min(100, Math.round((todayCost / DAILY_BUDGET) * 100));
+  const pct = Math.min(100, Math.round((todayCost / dailyBudget) * 100));
 
   return (
     <aside className="w-56 h-full flex flex-col shrink-0">
@@ -132,8 +133,8 @@ export default function Sidebar({ sessions }: Props) {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[10px] uppercase tracking-wider text-cc-text-muted">Today</p>
-            <span className={`text-xs font-mono ${pct > 80 ? 'text-cc-red-text' : 'text-cc-text-muted'}`}>
-              ${todayCost.toFixed(2)} / ${DAILY_BUDGET}
+            <span className={`text-xs font-mono ${pct > alertAt * 100 ? 'text-cc-red-text' : 'text-cc-text-muted'}`}>
+              ${todayCost.toFixed(2)} / ${dailyBudget}
             </span>
           </div>
           <div className="h-1.5 bg-cc-bg-surface rounded-full overflow-hidden">
