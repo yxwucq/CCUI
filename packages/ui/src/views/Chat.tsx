@@ -203,7 +203,7 @@ export default function Chat() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Filter…"
-                className="bg-cc-bg-surface/60 border border-cc-border/50 rounded px-2 py-1 pl-6 text-xs text-cc-text-secondary placeholder-cc-text-muted focus:outline-none focus:border-cc-accent w-28 focus:w-40 transition-all"
+                className="bg-cc-bg-surface border border-cc-border rounded px-2 py-1 pl-6 text-xs text-cc-text-secondary placeholder-cc-text-muted focus:outline-none focus:border-cc-accent w-28 focus:w-40 transition-all"
               />
               {search && (
                 <button onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-cc-text-muted hover:text-cc-text-secondary">

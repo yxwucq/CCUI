@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { fetchProjectInfo, fetchGitBranches } from '../api/projects';
 import { GitBranch, AlertTriangle, Link2, GitFork } from 'lucide-react';
 import type { AgentConfig, Session } from '@ccui/shared';
+import Select from './Select';
 
 interface Props {
   onClose: () => void;
@@ -92,23 +93,24 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
               >&#x2715;</button>
             </div>
           ) : (
-            <select
+            <Select
               value={newBranch}
-              onChange={(e) => {
-                if (e.target.value === '__new__') {
+              onChange={(v) => {
+                if (v === '__new__') {
                   setIsNewBranch(true);
                   setNewBranch('');
                 } else {
-                  setNewBranch(e.target.value);
+                  setNewBranch(v);
                 }
               }}
-              className="w-full bg-cc-bg-surface border border-cc-border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-cc-accent"
-            >
-              {branches.filter((b) => !b.includes('--ccui-')).map((b) => (
-                <option key={b} value={b}>{b}{b === currentBranch ? ' (current)' : ''}</option>
-              ))}
-              <option value="__new__">── Create new branch ──</option>
-            </select>
+              options={[
+                ...branches.filter((b) => !b.includes('--ccui-')).map((b) => ({
+                  value: b,
+                  label: `${b}${b === currentBranch ? ' (current)' : ''}`,
+                })),
+                { value: '__new__', label: '── Create new branch ──', separator: true },
+              ]}
+            />
           )}
         </div>
 
@@ -149,16 +151,14 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
 
         <div className="min-w-[150px]">
           <label className="block text-xs text-cc-text-muted mb-1">Agent</label>
-          <select
+          <Select
             value={selectedAgent}
-            onChange={(e) => setSelectedAgent(e.target.value)}
-            className="w-full bg-cc-bg-surface border border-cc-border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-cc-accent"
-          >
-            <option value="">No agent</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
+            onChange={(v) => setSelectedAgent(v)}
+            options={[
+              { value: '', label: 'No agent' },
+              ...agents.map((a) => ({ value: a.id, label: a.name })),
+            ]}
+          />
         </div>
 
         <div className="self-end pb-0.5">
