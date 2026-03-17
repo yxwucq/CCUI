@@ -625,6 +625,7 @@ export function applyTheme(themeId: string) {
   currentTokens = deriveTokens(def);
   const t = currentTokens;
 
+  document.documentElement.classList.add('theme-transitioning');
   const s = document.documentElement.style;
 
   // Base
@@ -686,6 +687,8 @@ export function applyTheme(themeId: string) {
 
   // Notify listeners
   listeners.forEach((fn) => fn(currentThemeId, currentTokens));
+
+  setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 400);
 }
 
 // ── Backward compatibility ───────────────────────────────────────────────

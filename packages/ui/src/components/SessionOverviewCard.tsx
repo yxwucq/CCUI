@@ -203,7 +203,7 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
           <span>{contextPct}%</span>
         </div>
         <div className="h-1 bg-cc-bg-surface rounded-full overflow-hidden">
-          <div className={`h-full rounded-full ${pctBarColor(contextPct)}`} style={{ width: `${contextPct}%` }} />
+          <div className={`h-full rounded-full transition-all duration-500 ease-out ${pctBarColor(contextPct)}`} style={{ width: `${contextPct}%` }} />
         </div>
       </div>
 
