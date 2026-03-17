@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronRight } from 'lucide-react';
 
 export interface MenuItem {
@@ -96,7 +97,7 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       className="fixed bg-cc-bg-surface border border-cc-border rounded shadow-lg py-1 z-50 min-w-[160px]"
@@ -118,6 +119,7 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
           </button>
         );
       })}
-    </div>
+    </div>,
+    document.body,
   );
 }

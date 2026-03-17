@@ -117,6 +117,11 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
       icon: <Copy size={12} />,
       onClick: () => { navigator.clipboard.writeText(session.branch!); },
     }] : []),
+    ...(session.worktreePath ? [{
+      label: 'Copy Worktree Path',
+      icon: <Copy size={12} />,
+      onClick: () => { navigator.clipboard.writeText(session.worktreePath!); },
+    }] : []),
   ];
 
   return (
