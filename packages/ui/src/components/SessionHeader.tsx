@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { DisplayStatus, STATUS_CONFIG } from './sessionStatus';
 import WidgetSelector from './widgets/WidgetSelector';
 import LiveTimeAgo from './LiveTimeAgo';
@@ -8,10 +8,11 @@ import {
   Play, Trash2, SquareTerminal, MessageSquare,
   Maximize2, Minimize2, AlertTriangle, CircleCheck,
   Unplug, MessageCircleQuestion, XCircle, Link2,
-  Tag, X,
+  Tag, X, Copy, Pencil,
 } from 'lucide-react';
 import type { Session, SessionActivity } from '@ccui/shared';
 import { useWidgetStore, getTagDef, PRESET_TAGS, type WidgetConfig } from '../stores/widgetStore';
+import { useSessionStore } from '../stores/sessionStore';
 
 type ViewMode = 'terminal' | 'chat';
 
@@ -45,6 +46,31 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
 
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [customTag, setCustomTag] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const renameSession = useSessionStore((s) => s.renameSession);
+
+  const startRename = useCallback(() => {
+    if (session.sessionType === 'head') return;
+    setRenameValue(session.name);
+    setIsRenaming(true);
+  }, [session.sessionType, session.name]);
+
+  const commitRename = useCallback((value: string) => {
+    const trimmed = value.trim();
+    setIsRenaming(false);
+    if (trimmed && trimmed !== session.name) {
+      renameSession(session.id, trimmed);
+    }
+  }, [session.name, session.id, renameSession]);
+
+  useEffect(() => {
+    if (isRenaming && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [isRenaming]);
 
   const sc = STATUS_CONFIG[displayStatus];
   const isRunning = displayStatus === 'thinking' || displayStatus === 'tool_use' || displayStatus === 'writing';
@@ -81,6 +107,16 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
         />
       ),
     },
+    ...(session.sessionType !== 'head' ? [{
+      label: 'Rename',
+      icon: <Pencil size={12} />,
+      onClick: () => startRename(),
+    }] : []),
+    ...(session.branch ? [{
+      label: 'Copy Branch Name',
+      icon: <Copy size={12} />,
+      onClick: () => { navigator.clipboard.writeText(session.branch!); },
+    }] : []),
   ];
 
   return (
@@ -109,9 +145,29 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
         <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-300 ${sc.dot} ${sc.dotPulse ? 'animate-pulse' : ''} ${displayStatus === 'done' ? 'done-blink' : ''}`} />
 
         {/* Session name */}
-        <span className="font-medium text-sm text-cc-text truncate">
-          {session.name}
-        </span>
+        {isRenaming ? (
+          <input
+            ref={renameInputRef}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitRename(e.currentTarget.value); }
+              if (e.key === 'Escape') setIsRenaming(false);
+              e.stopPropagation();
+            }}
+            onBlur={(e) => commitRename(e.currentTarget.value)}
+            onClick={(e) => e.stopPropagation()}
+            maxLength={100}
+            className="font-medium text-sm text-cc-text bg-cc-bg-surface border border-cc-border rounded px-1.5 py-0.5 outline-none focus:border-cc-blue-text min-w-[80px] max-w-[200px]"
+          />
+        ) : (
+          <span
+            className="font-medium text-sm text-cc-text truncate"
+            onDoubleClick={(e) => { e.stopPropagation(); startRename(); }}
+          >
+            {session.name}
+          </span>
+        )}
 
         {/* Skip permissions warning */}
         {session.skipPermissions && (
