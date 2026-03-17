@@ -6,6 +6,7 @@ import {
   FileQuestion, ChevronDown, ChevronRight, RefreshCw, Pencil, Eye,
 } from 'lucide-react';
 import CodeViewer from '../components/CodeViewer';
+import Select from '../components/Select';
 
 interface GitChange {
   file: string;
@@ -208,20 +209,15 @@ export default function Files() {
       {/* Header: session selector + view mode */}
       <div className="border-b border-cc-border px-4 py-2 flex items-center gap-3 shrink-0">
         <FolderOpen size={14} className="text-cc-text-muted" />
-        <select
+        <Select
           value={sessionId || ''}
-          onChange={(e) => setSelectedSessionId(e.target.value)}
-          className="bg-cc-bg-surface border border-cc-border rounded px-2 py-1 text-sm text-cc-text-secondary focus:outline-none focus:border-cc-accent"
-        >
-          {activeSessions.length === 0 && (
-            <option value="">No active sessions</option>
-          )}
-          {activeSessions.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}{s.branch ? ` (${s.branch})` : ''}{s.worktreePath ? ' [worktree]' : ''}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setSelectedSessionId(v)}
+          placeholder="No active sessions"
+          options={activeSessions.map((s) => ({
+            value: s.id,
+            label: `${s.name}${s.branch ? ` (${s.branch})` : ''}${s.worktreePath ? ' [worktree]' : ''}`,
+          }))}
+        />
 
         {selectedSession?.branch && (
           <span className="flex items-center gap-1 text-xs text-cc-purple-text bg-cc-purple-bg px-2 py-0.5 rounded-full">
