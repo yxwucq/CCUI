@@ -116,7 +116,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
 
         {/* Session type toggle — hidden when creating new branch (always fork) */}
         {!isNewBranch && (
-          <div className="self-end pb-0.5">
+          <div>
             <label className="block text-xs text-cc-text-muted mb-1">Mode</label>
             <div className="flex bg-cc-bg-surface border border-cc-border rounded overflow-hidden">
               <button
@@ -161,7 +161,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
           />
         </div>
 
-        <div className="self-end pb-0.5">
+        <div>
           <label className="block text-xs text-cc-text-muted mb-1">Permissions</label>
           <label className={`flex items-center gap-2 cursor-pointer select-none rounded px-3 py-1.5 transition-colors ${
             skipPermissions
