@@ -1,12 +1,55 @@
 #!/usr/bin/env node
 import { execSync } from 'child_process';
-import { createServer } from '../packages/server/src/index.js';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8'));
 
 const args = process.argv.slice(2);
-const portIdx = args.indexOf('--port');
-const port = portIdx !== -1 ? parseInt(args[portIdx + 1], 10) : 3456;
-const noOpen = args.includes('--no-open');
-const projectPath = process.cwd();
+
+function getArg(flag: string, short?: string): string | undefined {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === flag || (short && args[i] === short)) {
+      return args[i + 1];
+    }
+  }
+  return undefined;
+}
+
+function hasFlag(flag: string, short?: string): boolean {
+  return args.includes(flag) || (short ? args.includes(short) : false);
+}
+
+// --help / -h
+if (hasFlag('--help', '-h')) {
+  console.log(`
+ccui v${pkg.version} — Claude Code WebUI
+
+Usage: ccui [options]
+
+Options:
+  --port <number>    Port to listen on (default: 3456)
+  --host <address>   Host to bind to (default: localhost)
+  --path <dir>       Project directory (default: current directory)
+  --no-open          Don't open browser on start
+  -v, --version      Show version
+  -h, --help         Show this help
+`.trim());
+  process.exit(0);
+}
+
+// --version / -v
+if (hasFlag('--version', '-v')) {
+  console.log(pkg.version);
+  process.exit(0);
+}
+
+const port = parseInt(getArg('--port') || '3456', 10);
+const host = getArg('--host');
+const projectPath = getArg('--path') ? resolve(getArg('--path')!) : process.cwd();
+const noOpen = hasFlag('--no-open');
 
 // Check claude CLI
 try {
@@ -17,14 +60,15 @@ try {
 }
 
 async function main() {
-  const server = await createServer({ port, projectPath });
+  const { createServer } = await import('../packages/server/src/index.js');
+  const server = await createServer({ port, host, projectPath });
 
   if (!noOpen) {
     const open = (await import('open')).default;
-    open(`http://localhost:${port}`);
+    open(`http://${host || 'localhost'}:${port}`);
   }
 
-  console.log(`CCUI running at http://localhost:${port}`);
+  console.log(`CCUI running at http://${host || 'localhost'}:${port}`);
   console.log(`Project: ${projectPath}`);
 
   process.on('SIGINT', () => {
