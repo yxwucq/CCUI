@@ -144,10 +144,10 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
   return (
     <button
       onClick={onClick}
-      className={`relative text-left w-full rounded-lg border p-3 transition-all overflow-hidden hover:border-cc-border focus:outline-none focus:ring-1 focus:ring-cc-accent ${
+      className={`relative text-left w-full rounded-lg border p-3 transition-all overflow-hidden focus:outline-none focus:ring-1 focus:ring-cc-accent ${
         isTerminated
           ? 'bg-cc-bg/30 border-cc-border/50 opacity-60'
-          : `bg-cc-bg ${sc.border} hover:bg-cc-bg-surface/80`
+          : `bg-cc-bg border-transparent ${sc.running ? sc.border : 'hover:border-cc-border'} hover:bg-cc-bg-surface/80`
       }`}
     >
       {/* Tint overlay */}
@@ -191,10 +191,8 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
         </div>
       )}
 
-      {/* Activity label — only rendered when active */}
-      {label && (
-        <p className="relative text-xs text-cc-text-secondary truncate mb-2">{label}</p>
-      )}
+      {/* Activity label — always occupies space to prevent height jump */}
+      <p className={`relative text-xs truncate mb-2 ${label ? 'text-cc-text-secondary' : 'invisible'}`}>{label || '\u00A0'}</p>
 
       {/* Context bar */}
       <div className="relative mb-2">
