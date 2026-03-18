@@ -127,7 +127,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
   return (
     <>
       <div
-        className="relative flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white/[0.03] transition-colors select-none shrink-0"
+        className={`relative flex items-center gap-2.5 px-3 py-2 transition-colors select-none shrink-0 ${onToggleExpanded ? 'cursor-pointer hover:bg-white/[0.03]' : 'cursor-default'}`}
         onClick={() => { if (onToggleExpanded) onToggleExpanded(session.id); if (!isExpanded) onClearDone(); }}
         onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }}
       >
@@ -141,10 +141,10 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
           }}
         />
 
-        {isExpanded
+        {onToggleExpanded && (isExpanded
           ? <ChevronDown size={14} className="text-cc-text-muted shrink-0" />
           : <ChevronRight size={14} className="text-cc-text-muted shrink-0" />
-        }
+        )}
 
         {/* Status dot */}
         <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-300 ${sc.dot} ${sc.dotPulse ? 'animate-pulse' : ''} ${displayStatus === 'done' ? 'done-blink' : ''}`} />
@@ -186,7 +186,7 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
           <span
             className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${
               session.sessionType === 'head'
-                ? 'text-cc-emerald-text bg-cc-emerald-bg'
+                ? 'text-cc-green-text bg-cc-green-bg'
                 : session.sessionType === 'attach'
                   ? 'text-cc-blue-text bg-cc-blue-bg'
                   : 'text-cc-purple-text bg-cc-purple-bg'

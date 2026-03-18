@@ -102,7 +102,6 @@ export interface ThemeDefinition {
     purple: string;
     orange: string;
     amber: string;
-    emerald: string;
   };
   ansi: AnsiPalette;
   /** Override any derived token */
@@ -135,7 +134,6 @@ export interface DerivedTokens {
   purpleText: string;
   orangeText: string;
   amberText: string;
-  emeraldText: string;
 
   // Status background (subtle tinted bg)
   greenBg: string;
@@ -146,7 +144,6 @@ export interface DerivedTokens {
   purpleBg: string;
   orangeBg: string;
   amberBg: string;
-  emeraldBg: string;
 
   // Status border
   greenBorder: string;
@@ -157,7 +154,6 @@ export interface DerivedTokens {
   purpleBorder: string;
   orangeBorder: string;
   amberBorder: string;
-  emeraldBorder: string;
 
   // Scrollbar
   scrollbar: string;
@@ -198,7 +194,6 @@ function deriveTokens(def: ThemeDefinition): DerivedTokens {
     purpleText: statusText(p.purple),
     orangeText: statusText(p.orange),
     amberText: statusText(p.amber),
-    emeraldText: statusText(p.emerald),
 
     // Status bg
     greenBg: statusBg(p.green),
@@ -209,7 +204,6 @@ function deriveTokens(def: ThemeDefinition): DerivedTokens {
     purpleBg: statusBg(p.purple),
     orangeBg: statusBg(p.orange),
     amberBg: statusBg(p.amber),
-    emeraldBg: statusBg(p.emerald),
 
     // Status border
     greenBorder: statusBorder(p.green),
@@ -220,7 +214,6 @@ function deriveTokens(def: ThemeDefinition): DerivedTokens {
     purpleBorder: statusBorder(p.purple),
     orangeBorder: statusBorder(p.orange),
     amberBorder: statusBorder(p.amber),
-    emeraldBorder: statusBorder(p.emerald),
 
     // Scrollbar
     scrollbar: dark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
@@ -262,8 +255,7 @@ const darkTheme: ThemeDefinition = {
     cyan: '#22d3ee',
     purple: '#c084fc',
     orange: '#fb923c',
-    amber: '#fbbf24',
-    emerald: '#34d399',
+    amber: '#f59e0b',
   },
   ansi: {
     black: '#18181b',
@@ -307,8 +299,7 @@ const lightTheme: ThemeDefinition = {
     cyan: '#0891b2',
     purple: '#9333ea',
     orange: '#ea580c',
-    amber: '#d97706',
-    emerald: '#059669',
+    amber: '#b45309',
   },
   ansi: {
     black: '#18181b',
@@ -352,8 +343,7 @@ const nordTheme: ThemeDefinition = {
     cyan: '#88c0d0',
     purple: '#b48ead',
     orange: '#d08770',
-    amber: '#ebcb8b',
-    emerald: '#a3be8c',
+    amber: '#d4976a',
   },
   ansi: {
     black: '#3b4252',
@@ -401,8 +391,7 @@ const draculaTheme: ThemeDefinition = {
     cyan: '#8be9fd',
     purple: '#bd93f9',
     orange: '#ffb86c',
-    amber: '#f1fa8c',
-    emerald: '#50fa7b',
+    amber: '#f4c56d',
   },
   ansi: {
     black: '#21222c',
@@ -446,8 +435,7 @@ const catppuccinMochaTheme: ThemeDefinition = {
     cyan: '#94e2d5',
     purple: '#cba6f7',
     orange: '#fab387',
-    amber: '#f9e2af',
-    emerald: '#a6e3a1',
+    amber: '#f2c177',
   },
   ansi: {
     black: '#45475a',
@@ -491,8 +479,7 @@ const solarizedDarkTheme: ThemeDefinition = {
     cyan: '#2aa198',
     purple: '#6c71c4',
     orange: '#cb4b16',
-    amber: '#b58900',
-    emerald: '#859900',
+    amber: '#c26c00',
   },
   ansi: {
     black: '#073642',
@@ -542,8 +529,7 @@ const tokyoNightTheme: ThemeDefinition = {
     cyan: '#7dcfff',
     purple: '#bb9af7',
     orange: '#ff9e64',
-    amber: '#e0af68',
-    emerald: '#73daca',
+    amber: '#d4885a',
   },
   ansi: {
     black: '#1f2335',
@@ -567,6 +553,50 @@ const tokyoNightTheme: ThemeDefinition = {
 
 // ── Theme registry ───────────────────────────────────────────────────────
 
+const sakuraTheme: ThemeDefinition = {
+  id: 'sakura',
+  name: 'Sakura',
+  base: {
+    bg: '#f8eff3',
+    bgSurface: '#f2e5ec',
+    bgOverlay: '#e8d4de',
+    border: '#d8b8c8',
+    borderSubtle: '#e2c8d4',
+    text: '#22162a',
+    textSecondary: '#503e52',
+    textMuted: '#907888',
+    accent: '#d88aa8',
+  },
+  palette: {
+    green: '#5a9e6e',
+    red: '#d45c6e',
+    yellow: '#b89a30',
+    blue: '#6088c0',
+    cyan: '#4a9a98',
+    purple: '#9668b0',
+    orange: '#c87840',
+    amber: '#b08030',
+  },
+  ansi: {
+    black: '#22162a',
+    red: '#d45c6e',
+    green: '#5a9e6e',
+    yellow: '#b89a30',
+    blue: '#6088c0',
+    magenta: '#c07898',
+    cyan: '#4a9a98',
+    white: '#f2e5ec',
+    brightBlack: '#907888',
+    brightRed: '#e06e80',
+    brightGreen: '#68b07e',
+    brightYellow: '#c8aa40',
+    brightBlue: '#70a0d8',
+    brightMagenta: '#d088a8',
+    brightCyan: '#58b0ae',
+    brightWhite: '#f8eff3',
+  },
+};
+
 export const themes: Record<string, ThemeDefinition> = {
   dark: darkTheme,
   light: lightTheme,
@@ -575,6 +605,7 @@ export const themes: Record<string, ThemeDefinition> = {
   catppuccin: catppuccinMochaTheme,
   solarized: solarizedDarkTheme,
   'tokyo-night': tokyoNightTheme,
+  sakura: sakuraTheme,
 };
 
 // ── Runtime state ────────────────────────────────────────────────────────
@@ -652,7 +683,6 @@ export function applyTheme(themeId: string) {
   s.setProperty('--cc-purple-text', t.purpleText);
   s.setProperty('--cc-orange-text', t.orangeText);
   s.setProperty('--cc-amber-text', t.amberText);
-  s.setProperty('--cc-emerald-text', t.emeraldText);
 
   // Status bg
   s.setProperty('--cc-green-bg', t.greenBg);
@@ -663,7 +693,6 @@ export function applyTheme(themeId: string) {
   s.setProperty('--cc-purple-bg', t.purpleBg);
   s.setProperty('--cc-orange-bg', t.orangeBg);
   s.setProperty('--cc-amber-bg', t.amberBg);
-  s.setProperty('--cc-emerald-bg', t.emeraldBg);
 
   // Status border
   s.setProperty('--cc-green-border', t.greenBorder);
@@ -674,7 +703,6 @@ export function applyTheme(themeId: string) {
   s.setProperty('--cc-purple-border', t.purpleBorder);
   s.setProperty('--cc-orange-border', t.orangeBorder);
   s.setProperty('--cc-amber-border', t.amberBorder);
-  s.setProperty('--cc-emerald-border', t.emeraldBorder);
 
   // Scrollbar
   s.setProperty('--cc-scrollbar', t.scrollbar);
@@ -715,7 +743,6 @@ export const theme = {
   get cyan() { return currentTokens.cyanText; },
   get amber() { return currentTokens.amberText; },
   get blue() { return currentTokens.blueText; },
-  get emerald() { return currentTokens.emeraldText; },
   get ansi() { return currentTokens.ansi; },
 };
 

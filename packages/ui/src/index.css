@@ -93,7 +93,7 @@ body {
 
 /* Cost counter flash on update */
 @keyframes cost-flash {
-  0%   { color: var(--cc-emerald-text, #6ee7b7); }
+  0%   { color: var(--cc-green-text, #4ade80); }
   100% { color: var(--cc-green-text, #4ade80); }
 }
 .cost-flash {

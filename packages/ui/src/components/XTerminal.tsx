@@ -114,15 +114,20 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
       sendWsMessage({ type: 'terminal:input', sessionId, data });
     });
 
+    let resizeTimer: ReturnType<typeof setTimeout>;
     const observer = new ResizeObserver(() => {
-      fitAddon.fit();
-      const { cols: c, rows: r } = term;
-      sendWsMessage({ type: 'terminal:resize', sessionId, cols: c, rows: r });
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        fitAddon.fit();
+        const { cols: c, rows: r } = term;
+        sendWsMessage({ type: 'terminal:resize', sessionId, cols: c, rows: r });
+      }, 150);
     });
     observer.observe(el);
 
     return () => {
       clearTimeout(createTimer);
+      clearTimeout(resizeTimer);
       observer.disconnect();
       inputDisposable.dispose();
       unsubTheme();
