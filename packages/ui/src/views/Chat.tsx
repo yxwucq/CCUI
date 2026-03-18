@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSessionStore } from '../stores/sessionStore';
+import { useSessionStore, type SessionUsageSummary } from '../stores/sessionStore';
 import { useAgentStore } from '../stores/agentStore';
 import { useWidgetStore } from '../stores/widgetStore';
 import SessionBlock from '../components/SessionBlock';
@@ -8,7 +8,7 @@ import NewSessionForm from '../components/NewSessionForm';
 import ProjectInitDialog from '../components/ProjectInitDialog';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Plus, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, ChevronRight } from 'lucide-react';
-import { Session } from '@ccui/shared';
+import { Session, SessionActivity } from '@ccui/shared';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProjectConfig } from '../api/projects';
 
@@ -33,6 +33,31 @@ function TerminatedSection({ sessions, layoutMode, children }: {
       {open && (
         <div className="flex flex-col gap-1.5 mt-0.5">
           {sessions.map((s) => children(s))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GridTerminatedSection({ sessions, allActivities, allSessionUsage, onFocus }: {
+  sessions: Session[];
+  allActivities: Record<string, SessionActivity | undefined>;
+  allSessionUsage: Record<string, SessionUsageSummary | undefined>;
+  onFocus: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 w-full px-1 py-1 text-xs text-cc-text-muted uppercase tracking-wider hover:text-cc-text-muted transition-colors select-none"
+      >
+        <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        Terminated ({sessions.length})
+      </button>
+      {open && (
+        <div className="grid gap-2 mt-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+          {sessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => onFocus(s.id)} />)}
         </div>
       )}
     </div>
@@ -261,10 +286,6 @@ export default function Chat() {
           </div>
         )}
 
-        {isFocused && focusedSession && (
-          <ErrorBoundary><SessionBlock {...sessionBlockProps(focusedSession)} /></ErrorBoundary>
-        )}
-
         {!isFocused && viewMode === 'grid' && (
           <div className="overflow-y-auto flex-1 p-1">
             {sessions.length === 0 && (
@@ -294,47 +315,46 @@ export default function Chat() {
               </>
             )}
             {terminatedSessions.length > 0 && (
-              <>
-                <p className="text-xs text-cc-text-muted uppercase tracking-wider px-1 mb-2">Terminated</p>
-                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                  {terminatedSessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />)}
-                </div>
-              </>
+              <GridTerminatedSection sessions={terminatedSessions} allActivities={allActivities} allSessionUsage={allSessionUsage} onFocus={toggleFocus} />
             )}
           </div>
         )}
 
-        {!isFocused && viewMode === 'list' && (
-          <>
-            <AnimatePresence mode="popLayout">
-              {activeSessions.map((s) => {
-                const exp = expandedSessions[s.id] && layoutMode === 'accordion';
-                return (
-                <motion.div key={s.id}
-                  className="flex flex-col min-h-0 transition-[flex-grow] duration-300 ease-in-out"
-                  style={{ flexGrow: exp ? 1 : 0, flexShrink: exp ? 1 : 0, flexBasis: exp ? '0%' : 'auto' }}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ErrorBoundary>
-                    <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
-                  </ErrorBoundary>
-                </motion.div>
-                );
-              })}
-            </AnimatePresence>
-            {terminatedSessions.length > 0 && (
-              <TerminatedSection sessions={terminatedSessions} layoutMode={layoutMode}>
-                {(s) => (
-                  <ErrorBoundary key={s.id}>
-                    <SessionBlock {...sessionBlockProps(s)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
-                  </ErrorBoundary>
-                )}
-              </TerminatedSection>
+        {/* SessionBlocks always rendered — visibility controlled by CSS */}
+        <AnimatePresence mode="popLayout">
+          {activeSessions.map((s) => {
+            const isThisFocused = isFocused && focusedSessionId === s.id;
+            const hidden = (!isFocused && viewMode === 'grid') || (isFocused && !isThisFocused);
+            const exp = (expandedSessions[s.id] && layoutMode === 'accordion') || isThisFocused;
+            return (
+            <motion.div key={s.id}
+              className="flex flex-col min-h-0 transition-[flex-grow] duration-300 ease-in-out"
+              style={{
+                display: hidden ? 'none' : undefined,
+                flexGrow: exp ? 1 : 0,
+                flexShrink: exp ? 1 : 0,
+                flexBasis: exp ? '0%' : 'auto',
+              }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ErrorBoundary>
+                <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
+              </ErrorBoundary>
+            </motion.div>
+            );
+          })}
+        </AnimatePresence>
+        {!isFocused && viewMode !== 'grid' && terminatedSessions.length > 0 && (
+          <TerminatedSection sessions={terminatedSessions} layoutMode={layoutMode}>
+            {(s) => (
+              <ErrorBoundary key={s.id}>
+                <SessionBlock {...sessionBlockProps(s)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
+              </ErrorBoundary>
             )}
-          </>
+          </TerminatedSection>
         )}
       </div>
     </div>
