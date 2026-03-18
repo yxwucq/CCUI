@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { fetchProjectInfo, fetchGitBranches } from '../api/projects';
 import { GitBranch, AlertTriangle, Link2, GitFork } from 'lucide-react';
 import type { AgentConfig, Session } from '@ccui/shared';
+import { useSessionStore } from '../stores/sessionStore';
 import Select from './Select';
 
 interface Props {
@@ -23,6 +24,16 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
   const [sessionType, setSessionType] = useState<'fork' | 'attach'>('attach');
+  const sessions = useSessionStore((s) => s.sessions);
+
+  // Warn when attaching to a branch that already has active sessions
+  const branchConflict = useMemo(() => {
+    if (isNewBranch || sessionType !== 'attach' || !newBranch) return null;
+    const existing = sessions.filter(
+      (s) => s.branch === newBranch && s.status !== 'terminated'
+    );
+    return existing.length > 0 ? existing : null;
+  }, [sessions, newBranch, sessionType, isNewBranch]);
 
   useEffect(() => {
     fetchAgents();
@@ -195,6 +206,14 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
           </button>
         </div>
       </div>
+      {branchConflict && (
+        <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-cc-yellow-bg border border-cc-yellow-border rounded text-xs text-cc-yellow-text">
+          <AlertTriangle size={13} className="shrink-0" />
+          <span>
+            Branch <strong>{newBranch}</strong> already has {branchConflict.length} active session{branchConflict.length > 1 ? 's' : ''} ({branchConflict.map((s) => s.name).join(', ')}). They will share the same working directory.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

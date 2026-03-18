@@ -52,6 +52,12 @@ export function attachToBranch(
   branch: string,
   config: ProjectConfig,
 ): { worktreePath: string | null; worktreeOwned: boolean } {
+  // If the target branch is already checked out at projectPath, reuse it directly
+  const mainBranch = getCurrentBranch(projectPath);
+  if (branch === mainBranch) {
+    return { worktreePath: null, worktreeOwned: false };
+  }
+
   // Check if branch has an existing worktree (not the main checkout)
   const worktrees = listWorktrees(projectPath);
   for (const wt of worktrees) {
@@ -60,7 +66,7 @@ export function attachToBranch(
     }
   }
 
-  // Always create a worktree — never work in the main project directory
+  // Create a worktree for the branch
   const base = resolveWorktreeBase(projectPath, config);
   mkdirSync(base, { recursive: true });
   // Use a slug from the branch name for the worktree directory
