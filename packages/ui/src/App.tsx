@@ -6,6 +6,7 @@ import Projects from './views/Projects';
 import Agents from './views/Agents';
 import AgentEditor from './views/AgentEditor';
 import Files from './views/Files';
+import ThemePreview from './views/ThemePreview';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/agents/new" element={<AgentEditor />} />
         <Route path="/agents/:id/edit" element={<AgentEditor />} />
         <Route path="/files" element={<Files />} />
+        <Route path="/theme-preview" element={<ThemePreview />} />
       </Route>
     </Routes>
   );

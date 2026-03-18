@@ -27,7 +27,6 @@ export default {
           'purple-text':  'var(--cc-purple-text)',
           'orange-text':  'var(--cc-orange-text)',
           'amber-text':   'var(--cc-amber-text)',
-          'emerald-text': 'var(--cc-emerald-text)',
 
           // Status backgrounds
           'green-bg':     'var(--cc-green-bg)',
@@ -38,7 +37,6 @@ export default {
           'purple-bg':    'var(--cc-purple-bg)',
           'orange-bg':    'var(--cc-orange-bg)',
           'amber-bg':     'var(--cc-amber-bg)',
-          'emerald-bg':   'var(--cc-emerald-bg)',
 
           // Status borders
           'green-border': 'var(--cc-green-border)',
@@ -49,7 +47,6 @@ export default {
           'purple-border':'var(--cc-purple-border)',
           'orange-border':'var(--cc-orange-border)',
           'amber-border': 'var(--cc-amber-border)',
-          'emerald-border':'var(--cc-emerald-border)',
         },
       },
     },

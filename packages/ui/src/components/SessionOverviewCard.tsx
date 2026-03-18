@@ -16,7 +16,7 @@ const DEFAULT_CONTEXT = 200_000;
 
 function StatusDot({ session, activity, cardStatus }: { session: Session; activity: SessionActivity | undefined; cardStatus: CardStatus }) {
   if (session.status === 'terminated') return <Unplug size={11} className="text-cc-text-muted" />;
-  if (cardStatus === 'done') return <CircleCheck size={11} className="text-cc-emerald-text" />;
+  if (cardStatus === 'done') return <CircleCheck size={11} className="text-cc-green-text" />;
   const state = activity?.state;
   if (state === 'waiting_input') return <MessageCircleQuestion size={11} className="text-cc-orange-text animate-pulse" />;
   if (state === 'thinking') return <Brain size={11} className="text-cc-amber-text animate-pulse" />;
@@ -52,7 +52,7 @@ const CARD_STATUS: Record<CardStatus, {
   thinking: { label: 'thinking', labelColor: 'text-cc-amber-text', labelBg: 'bg-cc-amber-bg', border: 'border-cc-amber-border', tintColor: 'rgb(245,158,11)', tintOpacity: 0.06, stripe: 'bg-cc-amber-text', running: true },
   tool_use: { label: 'running', labelColor: 'text-cc-cyan-text', labelBg: 'bg-cc-cyan-bg', border: 'border-cc-cyan-border', tintColor: 'rgb(6,182,212)', tintOpacity: 0.06, stripe: 'bg-cc-cyan-text', running: true },
   writing: { label: 'writing', labelColor: 'text-cc-blue-text', labelBg: 'bg-cc-blue-bg', border: 'border-cc-blue-border', tintColor: 'rgb(59,130,246)', tintOpacity: 0.06, stripe: 'bg-cc-blue-text', running: true },
-  done: { label: 'done', labelColor: 'text-cc-emerald-text', labelBg: 'bg-cc-emerald-bg', border: 'border-cc-emerald-border', tintColor: 'rgb(52,211,153)', tintOpacity: 0.06, stripe: '', running: false },
+  done: { label: 'done', labelColor: 'text-cc-green-text', labelBg: 'bg-cc-green-bg', border: 'border-cc-green-border', tintColor: 'rgb(52,211,153)', tintOpacity: 0.06, stripe: '', running: false },
   waiting_input: { label: 'waiting', labelColor: 'text-cc-orange-text', labelBg: 'bg-cc-orange-bg', border: 'border-cc-orange-border', tintColor: 'rgb(251,146,60)', tintOpacity: 0.06, stripe: 'bg-cc-orange-text', running: false },
 };
 
@@ -184,8 +184,8 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
       {/* Branch */}
       {session.branch && (
         <div className="relative flex items-center gap-1 mb-2">
-          <GitBranch size={9} className={`shrink-0 ${session.sessionType === 'head' ? 'text-cc-emerald-text' : 'text-cc-text-muted'}`} />
-          <span className={`text-xs truncate ${session.sessionType === 'head' ? 'text-cc-emerald-text' : 'text-cc-text-muted'}`}>
+          <GitBranch size={9} className={`shrink-0 ${session.sessionType === 'head' ? 'text-cc-green-text' : 'text-cc-text-muted'}`} />
+          <span className={`text-xs truncate ${session.sessionType === 'head' ? 'text-cc-green-text' : 'text-cc-text-muted'}`}>
             {session.sessionType === 'head' ? `HEAD (${session.branch})` : session.branch}
           </span>
         </div>

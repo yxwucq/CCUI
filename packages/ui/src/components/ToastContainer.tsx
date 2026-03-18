@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useToastStore, type ToastType } from '../stores/toastStore';
 
 const STYLES: Record<ToastType, { border: string; icon: typeof CheckCircle; iconColor: string }> = {
-  success: { border: 'border-cc-emerald-border', icon: CheckCircle,    iconColor: 'text-cc-emerald-text' },
+  success: { border: 'border-cc-green-border', icon: CheckCircle,    iconColor: 'text-cc-green-text' },
   error:   { border: 'border-cc-red-border',     icon: AlertCircle,    iconColor: 'text-cc-red-text'     },
   warning: { border: 'border-cc-yellow-border',  icon: AlertTriangle,  iconColor: 'text-cc-yellow-text'  },
   info:    { border: 'border-cc-blue-border',    icon: Info,           iconColor: 'text-cc-blue-text'    },
