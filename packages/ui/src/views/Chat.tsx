@@ -69,6 +69,7 @@ export default function Chat() {
   const setWidgetSize = useWidgetStore((s) => s.setWidgetSize);
   const allSessionWidgets = useWidgetStore((s) => s.sessionWidgets);
   const defaultWidgets = useWidgetStore((s) => s.defaultWidgets);
+  const allSessionTags = useWidgetStore((s) => s.sessionTags);
 
   const [showNewSession, setShowNewSession] = useState(false);
   const [showInitDialog, setShowInitDialog] = useState(false);
@@ -146,7 +147,11 @@ export default function Chat() {
 
   const q = search.toLowerCase().trim();
   const filtered = q
-    ? sessions.filter((s) => s.name.toLowerCase().includes(q) || (s.branch || '').toLowerCase().includes(q))
+    ? sessions.filter((s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.branch || '').toLowerCase().includes(q) ||
+        (allSessionTags[s.id] || []).some((t) => t.toLowerCase().includes(q))
+      )
     : sessions;
   const activeSessions = filtered
     .filter((s) => s.status === 'active' || s.status === 'idle')
