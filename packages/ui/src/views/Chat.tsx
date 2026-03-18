@@ -307,9 +307,12 @@ export default function Chat() {
         {!isFocused && viewMode === 'list' && (
           <>
             <AnimatePresence mode="popLayout">
-              {activeSessions.map((s) => (
-                <motion.div key={s.id} layout
-                  className={expandedSessions[s.id] && layoutMode === 'accordion' ? 'flex-1 min-h-0 flex flex-col' : 'shrink-0'}
+              {activeSessions.map((s) => {
+                const exp = expandedSessions[s.id] && layoutMode === 'accordion';
+                return (
+                <motion.div key={s.id}
+                  className="flex flex-col min-h-0 transition-[flex-grow] duration-300 ease-in-out"
+                  style={{ flexGrow: exp ? 1 : 0, flexShrink: exp ? 1 : 0, flexBasis: exp ? '0%' : 'auto' }}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -319,7 +322,8 @@ export default function Chat() {
                     <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
                   </ErrorBoundary>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
             {terminatedSessions.length > 0 && (
               <TerminatedSection sessions={terminatedSessions} layoutMode={layoutMode}>
