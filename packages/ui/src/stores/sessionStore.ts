@@ -91,7 +91,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const current = get().focusedSessionId;
     set({
       focusedSessionId: current === id ? null : id,
-      expandedSessions: { ...get().expandedSessions, [id]: true },
       activeSessionId: id,
     });
     if (current === id) return; // unfocusing

@@ -30,11 +30,21 @@ function TerminatedSection({ sessions, layoutMode, children }: {
         <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         Terminated ({sessions.length})
       </button>
-      {open && (
-        <div className="flex flex-col gap-1.5 mt-0.5">
-          {sessions.map((s) => children(s))}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-col gap-1.5 mt-0.5">
+              {sessions.map((s) => children(s))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -55,11 +65,33 @@ function GridTerminatedSection({ sessions, allActivities, allSessionUsage, onFoc
         <ChevronRight size={11} className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         Terminated ({sessions.length})
       </button>
-      {open && (
-        <div className="grid gap-2 mt-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-          {sessions.map((s) => <SessionOverviewCard key={s.id} session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => onFocus(s.id)} />)}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+            <motion.div
+              className="grid gap-2 mt-1"
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}
+              variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+              initial="hidden"
+              animate="visible"
+            >
+              {sessions.map((s) => (
+                <motion.div key={s.id}
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                >
+                  <SessionOverviewCard session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => onFocus(s.id)} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -216,61 +248,74 @@ export default function Chat() {
         <ProjectInitDialog onInitialized={() => setShowInitDialog(false)} />
       )}
 
-      {/* Header — hidden in focus mode */}
-      {!isFocused && (
-        <div className="border-b border-cc-border px-5 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-base font-bold text-cc-text">Sessions</h1>
-            <span className="text-xs text-cc-text-muted">{activeSessions.length} active</span>
-            <div className="relative">
-              <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-cc-text-muted" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter…"
-                className="bg-cc-bg-surface border border-cc-border rounded px-2 py-1 pl-6 text-xs text-cc-text-secondary placeholder-cc-text-muted focus:outline-none focus:border-cc-accent w-28 focus:w-40 transition-all"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-cc-text-muted hover:text-cc-text-secondary">
-                  <X size={10} />
+      {/* Header / Focus bar — animated swap */}
+      <AnimatePresence mode="wait" initial={false}>
+        {!isFocused ? (
+          <motion.div
+            key="header"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="border-b border-cc-border px-5 py-3 flex items-center justify-between shrink-0"
+          >
+            <div className="flex items-center gap-3">
+              <h1 className="text-base font-bold text-cc-text">Sessions</h1>
+              <span className="text-xs text-cc-text-muted">{activeSessions.length} active</span>
+              <div className="relative">
+                <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-cc-text-muted" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Filter…"
+                  className="bg-cc-bg-surface border border-cc-border rounded px-2 py-1 pl-6 text-xs text-cc-text-secondary placeholder-cc-text-muted focus:outline-none focus:border-cc-accent w-28 focus:w-40 transition-all"
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-cc-text-muted hover:text-cc-text-secondary">
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex bg-cc-bg-surface rounded p-0.5">
+                <button onClick={() => setLayoutMode('accordion')} className={`p-1 rounded transition-colors ${layoutMode === 'accordion' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Accordion">
+                  <PanelTop size={13} />
                 </button>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex bg-cc-bg-surface rounded p-0.5">
-              <button onClick={() => setLayoutMode('accordion')} className={`p-1 rounded transition-colors ${layoutMode === 'accordion' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Accordion">
-                <PanelTop size={13} />
-              </button>
-              <button onClick={() => setLayoutMode('scroll')} className={`p-1 rounded transition-colors ${layoutMode === 'scroll' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Scroll">
-                <Layers size={13} />
-              </button>
-            </div>
-            <div className="flex bg-cc-bg-surface rounded p-0.5">
-              <button onClick={() => setViewMode('list')} className={`p-1 rounded transition-colors ${viewMode === 'list' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="List view">
-                <List size={13} />
-              </button>
-              <button onClick={() => setViewMode('grid')} className={`p-1 rounded transition-colors ${viewMode === 'grid' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Grid overview">
-                <LayoutGrid size={13} />
+                <button onClick={() => setLayoutMode('scroll')} className={`p-1 rounded transition-colors ${layoutMode === 'scroll' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Scroll">
+                  <Layers size={13} />
+                </button>
+              </div>
+              <div className="flex bg-cc-bg-surface rounded p-0.5">
+                <button onClick={() => setViewMode('list')} className={`p-1 rounded transition-colors ${viewMode === 'list' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="List view">
+                  <List size={13} />
+                </button>
+                <button onClick={() => setViewMode('grid')} className={`p-1 rounded transition-colors ${viewMode === 'grid' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Grid overview">
+                  <LayoutGrid size={13} />
+                </button>
+              </div>
+              <button onClick={() => setShowNewSession(!showNewSession)} className="flex items-center gap-2 bg-cc-accent hover:bg-cc-accent-hover px-3 py-1.5 rounded-lg text-xs transition-colors">
+                <Plus size={14} /> New Session
               </button>
             </div>
-            <button onClick={() => setShowNewSession(!showNewSession)} className="flex items-center gap-2 bg-cc-accent hover:bg-cc-accent-hover px-3 py-1.5 rounded-lg text-xs transition-colors">
-              <Plus size={14} /> New Session
+          </motion.div>
+        ) : focusedSession ? (
+          <motion.div
+            key="focus-bar"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="border-b border-cc-border/50 px-3 py-1.5 flex items-center gap-2 shrink-0"
+          >
+            <button onClick={() => toggleFocus(focusedSessionId!)} className="p-1 text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-surface rounded transition-colors" title="Exit focus mode (Esc)">
+              <Minimize2 size={14} />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Focus mode bar */}
-      {isFocused && focusedSession && (
-        <div className="border-b border-cc-border/50 px-3 py-1.5 flex items-center gap-2 shrink-0">
-          <button onClick={() => toggleFocus(focusedSessionId!)} className="p-1 text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-surface rounded transition-colors" title="Exit focus mode (Esc)">
-            <Minimize2 size={14} />
-          </button>
-          <span className="text-xs text-cc-text-muted">Focus:</span>
-          <span className="text-xs text-cc-text font-medium">{focusedSession.name}</span>
-        </div>
-      )}
+            <span className="text-xs text-cc-text-muted">Focus:</span>
+            <span className="text-xs text-cc-text font-medium">{focusedSession.name}</span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {/* New session form */}
       {showNewSession && !isFocused && <NewSessionForm onClose={() => setShowNewSession(false)} agents={agents} fetchAgents={fetchAgents} createSession={createSession} />}
@@ -287,7 +332,12 @@ export default function Chat() {
         )}
 
         {!isFocused && viewMode === 'grid' && (
-          <div className="overflow-y-auto flex-1 p-1">
+          <motion.div
+            className="overflow-y-auto flex-1 p-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
             {sessions.length === 0 && (
               <div className="flex items-center justify-center h-32 text-cc-text-muted text-sm">No sessions yet. Click "New Session" to create one.</div>
             )}
@@ -317,10 +367,10 @@ export default function Chat() {
             {terminatedSessions.length > 0 && (
               <GridTerminatedSection sessions={terminatedSessions} allActivities={allActivities} allSessionUsage={allSessionUsage} onFocus={toggleFocus} />
             )}
-          </div>
+          </motion.div>
         )}
 
-        {/* SessionBlocks always rendered — visibility controlled by CSS */}
+        {/* SessionBlocks always rendered — visibility controlled by CSS + opacity animation */}
         <AnimatePresence mode="popLayout">
           {activeSessions.map((s) => {
             const isThisFocused = isFocused && focusedSessionId === s.id;
@@ -336,9 +386,9 @@ export default function Chat() {
                 flexBasis: exp ? '0%' : 'auto',
               }}
               initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: hidden ? 0 : 1, y: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: hidden ? 0 : 0.25, ease: 'easeOut' }}
             >
               <ErrorBoundary>
                 <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />

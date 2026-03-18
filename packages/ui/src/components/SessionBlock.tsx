@@ -127,7 +127,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
         enabledWidgets={enabledWidgets}
         onSetViewMode={setViewMode}
         onClearDone={clearDone}
-        onToggleExpanded={onToggleExpanded}
+        onToggleExpanded={isFocused ? undefined : onToggleExpanded}
         onToggleFocus={onToggleFocus}
         onStop={onStop}
         onTerminate={onTerminate}

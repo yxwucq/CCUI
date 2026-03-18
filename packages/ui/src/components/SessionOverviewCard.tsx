@@ -144,10 +144,10 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
   return (
     <button
       onClick={onClick}
-      className={`relative text-left w-full rounded-lg border p-3 transition-all overflow-hidden focus:outline-none focus:ring-1 focus:ring-cc-accent ${
+      className={`relative text-left w-full rounded-lg border p-3 transition-all duration-200 overflow-hidden focus:outline-none focus:ring-1 focus:ring-cc-accent ${
         isTerminated
           ? 'bg-cc-bg-surface/50 border-cc-border/40 opacity-60'
-          : `bg-cc-bg-surface/60 border-cc-border/40 ${sc.running ? sc.border : 'hover:border-cc-border'} hover:bg-cc-bg-surface`
+          : `bg-cc-bg-surface/60 border-cc-border/40 ${sc.running ? sc.border : 'hover:border-cc-border'} hover:bg-cc-bg-surface hover:scale-[1.02] hover:shadow-lg hover:shadow-black/10 hover:-translate-y-0.5`
       }`}
     >
       {/* Tint overlay */}
