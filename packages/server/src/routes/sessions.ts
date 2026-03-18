@@ -58,6 +58,19 @@ router.put('/:id/notes', (req, res) => {
   res.json({ ok: true });
 });
 
+router.put('/:id/name', (req, res) => {
+  const session = sessionManager.getSession(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.sessionType === 'head') return res.status(403).json({ error: 'Cannot rename the head session' });
+  const { name } = req.body;
+  if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'name must be a non-empty string' });
+  const trimmedName = name.trim().slice(0, 100);
+  const db = getDB();
+  db.prepare('UPDATE sessions SET name = ? WHERE id = ?').run(trimmedName, req.params.id);
+  session.name = trimmedName;
+  res.json({ ok: true, name: trimmedName });
+});
+
 router.get('/:id/memory', (req, res) => {
   const session = sessionManager.getSession(req.params.id);
   if (!session) return res.status(404).json({ error: 'Session not found' });
