@@ -5,7 +5,7 @@ import LiveTimeAgo from './LiveTimeAgo';
 import ContextMenu, { type MenuItem } from './ContextMenu';
 import {
   ChevronDown, ChevronRight, GitBranch, Square,
-  Play, Trash2, SquareTerminal, MessageSquare,
+  Play, Trash2, SquareTerminal, History,
   Maximize2, Minimize2, AlertTriangle, CircleCheck,
   Unplug, MessageCircleQuestion, XCircle, Link2,
   Tag, X, Copy, Pencil,
@@ -14,7 +14,7 @@ import type { Session, SessionActivity } from '@ccui/shared';
 import { useWidgetStore, getTagDef, PRESET_TAGS, type WidgetConfig } from '../stores/widgetStore';
 import { useSessionStore } from '../stores/sessionStore';
 
-type ViewMode = 'terminal' | 'chat';
+type ViewMode = 'terminal' | 'history';
 
 interface Props {
   session: Session;
@@ -270,13 +270,13 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
                 <SquareTerminal size={13} />
               </button>
               <button
-                onClick={() => onSetViewMode('chat')}
+                onClick={() => onSetViewMode('history')}
                 className={`p-1 rounded transition-colors ${
-                  viewMode === 'chat' ? 'text-cc-blue-text bg-cc-blue-bg' : 'text-cc-text-muted hover:text-cc-text'
+                  viewMode === 'history' ? 'text-cc-blue-text bg-cc-blue-bg' : 'text-cc-text-muted hover:text-cc-text'
                 }`}
-                title="Chat mode"
+                title="Message history"
               >
-                <MessageSquare size={13} />
+                <History size={13} />
               </button>
             </div>
           )}

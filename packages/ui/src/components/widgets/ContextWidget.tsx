@@ -9,7 +9,6 @@ interface Props {
   sessionId: string;
   size: 'sm' | 'lg';
   messages: ChatMessage[];
-  streaming: string;
   sessionUsage?: SessionUsageSummary;
   fetchSessionUsage: (sessionId: string) => Promise<void>;
 }
@@ -26,7 +25,7 @@ function contextLabel(n: number): string {
   return n >= 1_000_000 ? `${n / 1_000_000}M` : `${n / 1000}k`;
 }
 
-export default function ContextWidget({ sessionId, size, messages, streaming, sessionUsage, fetchSessionUsage }: Props) {
+export default function ContextWidget({ sessionId, size, messages, sessionUsage, fetchSessionUsage }: Props) {
   const [containerRef, containerHeight] = useContainerHeight();
   const renderSize = effectiveSize(size, containerHeight);
 
@@ -41,12 +40,12 @@ export default function ContextWidget({ sessionId, size, messages, streaming, se
     const usedTokens = hasReal
       ? sessionUsage.latestInputTokens
       : Math.round(
-          (messages.reduce((sum, m) => sum + m.content.length, 0) + streaming.length) / 4
+          messages.reduce((sum, m) => sum + m.content.length, 0) / 4
         );
     const remaining = Math.max(0, maxContext - usedTokens);
     const pct = Math.round((usedTokens / maxContext) * 100);
     return { usedTokens, remaining, pct, isReal: hasReal };
-  }, [messages, streaming, sessionUsage, maxContext]);
+  }, [messages, sessionUsage, maxContext]);
 
   const barColor = pctBarColor(stats.pct);
 

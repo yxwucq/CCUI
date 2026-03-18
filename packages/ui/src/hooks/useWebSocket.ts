@@ -18,13 +18,6 @@ function setWsStatus(s: typeof wsStatus) {
 function handleMessage(msg: WSMessage) {
   const s = useSessionStore.getState();
   switch (msg.type) {
-    case 'chat:output':
-      if (msg.done) {
-        s.finalizeStream(msg.sessionId);
-      } else {
-        s.appendStreamChunk(msg.sessionId, msg.content);
-      }
-      break;
     case 'chat:error': {
       const errSession = s.sessions.find((sess) => sess.id === msg.sessionId);
       useToastStore.getState().addToast('error', errSession?.name ?? 'Session error', msg.error);

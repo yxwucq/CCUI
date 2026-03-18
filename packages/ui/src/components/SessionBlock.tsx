@@ -19,7 +19,6 @@ interface Props {
   jumpTarget?: string | null;
   enabledWidgets: WidgetConfig[];
   messages: ChatMessage[];
-  streaming: string;
   sessionUsage?: SessionUsageSummary;
   usageCalls: Array<{ cost: number }>;
   highlighted?: boolean;
@@ -31,7 +30,6 @@ interface Props {
   onDelete: (id: string) => void;
   onResume: (id: string) => Promise<void>;
   onSetExpanded: (id: string, open: boolean) => void;
-  onAppendMessage: (sessionId: string, msg: ChatMessage) => void;
   onClearJumpTarget: (id: string) => void;
   fetchSessionUsage: (sessionId: string) => Promise<void>;
   setChatJumpTarget: (sessionId: string, messageId: string) => void;
@@ -39,9 +37,9 @@ interface Props {
   onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
 }
 
-export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, streaming, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onAppendMessage, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
+export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
 
-  const [viewMode, setViewMode] = useState<'terminal' | 'chat'>('terminal');
+  const [viewMode, setViewMode] = useState<'terminal' | 'history'>('terminal');
   const [terminalMounted, setTerminalMounted] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
   const splitContainerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +102,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
   useEffect(() => {
     if (!jumpTarget) return;
     onSetExpanded(session.id, true);
-    setViewMode('chat');
+    setViewMode('history');
     const msgId = jumpTarget;
     onClearJumpTarget(session.id);
     const t = setTimeout(() => {
@@ -183,17 +181,17 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
             </div>
             {/* Widget pane */}
             <div className="min-h-0 flex flex-col overflow-hidden bg-transparent" style={{ width: `${(1 - splitRatio) * 100}%` }}>
-              <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} streaming={streaming} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} emptyMessage="Use widget selector to add panels" />
+              <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} emptyMessage="Use widget selector to add panels" />
             </div>
           </div>
 
-          {/* Chat mode */}
-          {viewMode === 'chat' && (
+          {/* History mode — read-only message view */}
+          {viewMode === 'history' && (
             <div className="flex flex-1 min-h-0">
-              <SessionMessages session={session} isRunning={isRunning} messages={messages} streaming={streaming} appendMessage={onAppendMessage} onClearDone={clearDone} />
+              <SessionMessages session={session} messages={messages} />
               {enabledWidgets.length > 0 && (
                 <div className="w-72 shrink-0 flex flex-col overflow-hidden bg-transparent">
-                  <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} streaming={streaming} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} />
+                  <SessionWidgetBar sessionId={session.id} session={session} enabledWidgets={enabledWidgets} messages={messages} sessionUsage={sessionUsage} usageCalls={usageCalls} callCount={sessionUsage?.callCount ?? 0} fetchSessionUsage={fetchSessionUsage} setChatJumpTarget={setChatJumpTarget} />
                 </div>
               )}
             </div>

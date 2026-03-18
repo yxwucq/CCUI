@@ -1,4 +1,3 @@
-import { spawn, ChildProcess } from 'child_process';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuid } from 'uuid';
@@ -6,54 +5,27 @@ import { getDB } from '../db/database.js';
 import { createIsolatedWorktree, removeWorktree, removeWorkBranch, getWorktreeStatus, mergeWorktree, getCurrentBranch, attachToBranch, resolveWorktreeBase } from './worktree-manager.js';
 import { loadProjectConfig } from '../routes/project-config.js';
 import { BranchWatcher } from './branch-watcher.js';
-import { StreamParser } from './stream-parser.js';
 import type { Session, ChatMessage, SessionActivity, FileActivity } from '@ccui/shared';
 
-interface SessionProcess { child: ChildProcess; session: Session }
-
-type OutputListener = (sessionId: string, content: string, done: boolean) => void;
-type ErrorListener = (sessionId: string, error: string) => void;
 type StatusListener = (sessionId: string, status: Session['status'], lastActiveAt: string) => void;
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
 type FileActivityListener = (sessionId: string, activity: FileActivity) => void;
 
 
 class SessionManager {
-  private processes = new Map<string, SessionProcess>();
-  private outputListeners: OutputListener[] = [];
-  private errorListeners: ErrorListener[] = [];
   private statusListeners: StatusListener[] = [];
   private activityListeners: ActivityListener[] = [];
   private fileActivityListeners: FileActivityListener[] = [];
   private sessionActivity = new Map<string, { activity: SessionActivity; timer: ReturnType<typeof setTimeout> | null }>();
 
   readonly branchWatcher = new BranchWatcher();
-  private streamParser: StreamParser;
 
-  constructor() {
-    this.streamParser = new StreamParser({
-      emitOutput: (id, c, d) => this.emitOutput(id, c, d),
-      emitError: (id, e) => this.emitError(id, e),
-      emitActivity: (id, a, i) => this.emitActivity(id, a, i),
-      emitFileActivity: (id, a) => this.emitFileActivity(id, a),
-      getActivityTool: (id) => (this.sessionActivity.get(id)?.activity as any)?.tool,
-    });
-  }
-
-  onOutput(listener: OutputListener) { this.outputListeners.push(listener); }
-  onError(listener: ErrorListener) { this.errorListeners.push(listener); }
   onStatus(listener: StatusListener) { this.statusListeners.push(listener); }
   onActivity(listener: ActivityListener) { this.activityListeners.push(listener); }
   onBranch(listener: Parameters<BranchWatcher['onBranch']>[0]) { this.branchWatcher.onBranch(listener); }
   onFileActivity(listener: FileActivityListener) { this.fileActivityListeners.push(listener); }
   startBranchPolling() { this.branchWatcher.start(); }
 
-  private emitOutput(sessionId: string, content: string, done: boolean) {
-    for (const l of this.outputListeners) l(sessionId, content, done);
-  }
-  private emitError(sessionId: string, error: string) {
-    for (const l of this.errorListeners) l(sessionId, error);
-  }
   private emitStatus(sessionId: string, status: Session['status'], lastActiveAt: string) {
     for (const l of this.statusListeners) l(sessionId, status, lastActiveAt);
   }
@@ -181,7 +153,6 @@ You are working on an existing branch (attached mode).
   }
 
   resumeSession(sessionId: string): Session {
-    if (this.processes.has(sessionId)) return this.processes.get(sessionId)!.session;
     const db = getDB();
     const row = db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as any;
     if (!row) throw new Error('Session not found');
@@ -193,84 +164,10 @@ You are working on an existing branch (attached mode).
     return session;
   }
 
-  sendMessage(sessionId: string, content: string) {
-    if (this.processes.has(sessionId)) {
-      this.emitError(sessionId, 'Claude is still processing the previous message. Please wait.');
-      return;
-    }
-    const db = getDB();
-    const row = db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as any;
-    if (!row) throw new Error('Session not found');
-
-    db.prepare('INSERT INTO messages (id, session_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)')
-      .run(uuid(), sessionId, 'user', content, new Date().toISOString());
-
-    const activeNow = new Date().toISOString();
-    db.prepare('UPDATE sessions SET last_active_at = ?, status = ? WHERE id = ?').run(activeNow, 'active', sessionId);
-    this.emitStatus(sessionId, 'active', activeNow);
-
-    const cwd = row.worktree_path || row.project_path;
-    const args = ['-p', content, '--output-format', 'stream-json', '--verbose'];
-    if (row.skip_permissions) args.push('--dangerously-skip-permissions');
-    if (row.claude_session_id) args.push('--resume', row.claude_session_id);
-
-    if (row.agent_id) {
-      const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(row.agent_id) as any;
-      if (agent) {
-        args.push('--system-prompt', agent.system_prompt);
-        if (agent.max_turns) args.push('--max-turns', String(agent.max_turns));
-      }
-    }
-    this.spawnClaude(sessionId, this.mapSession(row), args, cwd);
-  }
-
-  private spawnClaude(sessionId: string, session: Session, args: string[], cwd: string) {
-    const env = { ...process.env };
-    delete env.CLAUDECODE;
-    console.log(`[claude:${sessionId.slice(0, 8)}] spawning in ${cwd}`);
-
-    const child = spawn('claude', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env, detached: true });
-    let buffer = '';
-
-    child.stdout?.on('data', (data: Buffer) => {
-      buffer += data.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        if (line.trim()) this.streamParser.handleLine(sessionId, line.trim());
-      }
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      const text = data.toString().trim();
-      if (text) {
-        console.log(`[claude:${sessionId.slice(0, 8)}] stderr: ${text.slice(0, 200)}`);
-        this.emitError(sessionId, text);
-      }
-    });
-
-    child.on('exit', (code) => {
-      console.log(`[claude:${sessionId.slice(0, 8)}] process exited (code=${code})`);
-      this.processes.delete(sessionId);
-      this.streamParser.clearSession(sessionId);
-      if (buffer.trim()) { this.streamParser.handleLine(sessionId, buffer.trim()); buffer = ''; }
-      const db = getDB();
-      const idleNow = new Date().toISOString();
-      db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?').run('idle', idleNow, sessionId);
-      this.emitStatus(sessionId, 'idle', idleNow);
-      this.emitActivity(sessionId, { state: 'idle' }, true);
-    });
-
-    this.processes.set(sessionId, { child, session });
-  }
-
   /**
-   * Stop: kill processes but keep worktree and all state. Session goes idle.
+   * Stop: set session idle. Terminal process is killed separately by terminalManager.
    */
   stopSession(sessionId: string) {
-    const proc = this.processes.get(sessionId);
-    if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
-    this.streamParser.clearSession(sessionId);
     const now = new Date().toISOString();
     const db = getDB();
     db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?').run('idle', now, sessionId);
@@ -293,11 +190,6 @@ You are working on an existing branch (attached mode).
       const status = getWorktreeStatus(row.worktree_path, row.branch, row.target_branch);
       return { ...status, workBranch: row.branch, targetBranch: row.target_branch };
     }
-
-    // Kill processes
-    const proc = this.processes.get(sessionId);
-    if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
-    this.streamParser.clearSession(sessionId);
 
     // Handle worktree based on action and session type
     const isAttach = row.session_type === 'attach';
@@ -362,11 +254,6 @@ You are working on an existing branch (attached mode).
     const row = db.prepare('SELECT project_path, worktree_path, branch, session_type, worktree_owned FROM sessions WHERE id = ?').get(sessionId) as any;
     if (row?.session_type === 'head') return;
 
-    // Stop any running processes first
-    const proc = this.processes.get(sessionId);
-    if (proc) { proc.child.kill('SIGTERM'); this.processes.delete(sessionId); }
-    this.streamParser.clearSession(sessionId);
-
     // Clean up worktree if still exists
     if (row?.worktree_path) {
       if (row.session_type === 'attach') {
@@ -411,11 +298,8 @@ You are working on an existing branch (attached mode).
     }));
   }
 
-  isActive(sessionId: string): boolean { return this.processes.has(sessionId); }
-
   cleanupAll() {
-    for (const [, proc] of this.processes) proc.child.kill('SIGTERM');
-    this.processes.clear();
+    // No-op: terminal processes are managed by terminalManager
   }
 
   private mapSession(row: any): Session {

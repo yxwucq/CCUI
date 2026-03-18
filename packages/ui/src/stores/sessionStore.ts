@@ -23,7 +23,6 @@ interface SessionStore {
   focusedSessionId: string | null;
   expandedSessions: Record<string, boolean>;
   messages: Record<string, ChatMessage[]>;
-  streamingContent: Record<string, string>;
   activities: Record<string, SessionActivity>;
   sessionUsage: Record<string, SessionUsageSummary>;
   fileActivities: Record<string, FileActivity[]>;
@@ -38,8 +37,6 @@ interface SessionStore {
   toggleExpanded: (id: string) => void;
   setExpanded: (id: string, expanded: boolean) => void;
   appendMessage: (sessionId: string, msg: ChatMessage) => void;
-  appendStreamChunk: (sessionId: string, chunk: string) => void;
-  finalizeStream: (sessionId: string) => void;
   fetchMessages: (sessionId: string) => Promise<void>;
   updateSessionStatus: (sessionId: string, status: Session['status'], lastActiveAt?: string) => void;
   updateActivity: (sessionId: string, activity: SessionActivity) => void;
@@ -62,7 +59,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   focusedSessionId: null,
   expandedSessions: {},
   messages: {},
-  streamingContent: {},
   activities: {},
   sessionUsage: {},
   fileActivities: {},
@@ -123,35 +119,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         [sessionId]: [...(s.messages[sessionId] || []), msg],
       },
     }));
-  },
-
-  appendStreamChunk: (sessionId, chunk) => {
-    set((s) => ({
-      streamingContent: {
-        ...s.streamingContent,
-        [sessionId]: (s.streamingContent[sessionId] || '') + chunk,
-      },
-    }));
-  },
-
-  finalizeStream: (sessionId) => {
-    const content = get().streamingContent[sessionId];
-    if (content) {
-      const msg: ChatMessage = {
-        id: crypto.randomUUID(),
-        sessionId,
-        role: 'assistant',
-        content,
-        timestamp: new Date().toISOString(),
-      };
-      set((s) => ({
-        messages: {
-          ...s.messages,
-          [sessionId]: [...(s.messages[sessionId] || []), msg],
-        },
-        streamingContent: { ...s.streamingContent, [sessionId]: '' },
-      }));
-    }
   },
 
   fetchMessages: async (sessionId) => {
