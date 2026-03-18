@@ -50,12 +50,10 @@ export default function Chat() {
   const deleteSession = useSessionStore((s) => s.deleteSession);
   const resumeSession = useSessionStore((s) => s.resumeSession);
   const setExpanded = useSessionStore((s) => s.setExpanded);
-  const appendMessage = useSessionStore((s) => s.appendMessage);
   const clearChatJumpTarget = useSessionStore((s) => s.clearChatJumpTarget);
   const fetchSessionUsage = useSessionStore((s) => s.fetchSessionUsage);
   const setChatJumpTarget = useSessionStore((s) => s.setChatJumpTarget);
   const allMessages = useSessionStore((s) => s.messages);
-  const allStreaming = useSessionStore((s) => s.streamingContent);
   const allActivities = useSessionStore((s) => s.activities);
   const allSessionUsage = useSessionStore((s) => s.sessionUsage);
   const allUsageCalls = useSessionStore((s) => s.usageCalls);
@@ -172,7 +170,6 @@ export default function Chat() {
     jumpTarget: allJumpTargets[s.id],
     enabledWidgets: allSessionWidgets[s.id] ?? defaultWidgets,
     messages: allMessages[s.id] ?? EMPTY_MSGS,
-    streaming: allStreaming[s.id] ?? '',
     sessionUsage: allSessionUsage[s.id],
     usageCalls: allUsageCalls[s.id] ?? EMPTY_CALLS,
     onToggleFocus: toggleFocus,
@@ -181,13 +178,12 @@ export default function Chat() {
     onDelete: deleteSession,
     onResume: resumeSession,
     onSetExpanded: setExpanded,
-    onAppendMessage: appendMessage,
     onClearJumpTarget: clearChatJumpTarget,
     fetchSessionUsage,
     setChatJumpTarget,
     onToggleWidget: toggleWidget,
     onSetWidgetSize: setWidgetSize,
-  }), [expandedSessions, focusedSessionId, allActivities, allJumpTargets, allSessionWidgets, defaultWidgets, allMessages, allStreaming, allSessionUsage, allUsageCalls, toggleFocus, stopSession, terminateSession, deleteSession, resumeSession, setExpanded, appendMessage, clearChatJumpTarget, fetchSessionUsage, setChatJumpTarget, toggleWidget, setWidgetSize]);
+  }), [expandedSessions, focusedSessionId, allActivities, allJumpTargets, allSessionWidgets, defaultWidgets, allMessages, allSessionUsage, allUsageCalls, toggleFocus, stopSession, terminateSession, deleteSession, resumeSession, setExpanded, clearChatJumpTarget, fetchSessionUsage, setChatJumpTarget, toggleWidget, setWidgetSize]);
 
   return (
     <div className="h-full flex flex-col">

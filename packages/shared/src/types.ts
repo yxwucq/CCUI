@@ -119,8 +119,6 @@ export interface GitCommit {
 
 // WebSocket messages
 export type WSMessage =
-  | { type: 'chat:input'; sessionId: string; content: string }
-  | { type: 'chat:output'; sessionId: string; content: string; done: boolean }
   | { type: 'chat:error'; sessionId: string; error: string }
   | { type: 'session:status'; sessionId: string; status: Session['status']; lastActiveAt?: string }
   | { type: 'session:activity'; sessionId: string; activity: SessionActivity }

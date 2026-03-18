@@ -5,10 +5,9 @@ import { User, Bot, AlertCircle } from 'lucide-react';
 
 interface Props {
   message: ChatMessageType;
-  streaming?: boolean;
 }
 
-export default function ChatMessage({ message, streaming }: Props) {
+export default function ChatMessage({ message }: Props) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
@@ -38,9 +37,6 @@ export default function ChatMessage({ message, streaming }: Props) {
             {message.content}
           </ReactMarkdown>
         </div>
-        {streaming && (
-          <span className="inline-block w-2 h-4 bg-cc-text-secondary animate-pulse ml-0.5" />
-        )}
         <div className="mt-1 text-xs text-cc-text-muted">
           {new Date(message.timestamp).toLocaleTimeString()}
         </div>
