@@ -35,9 +35,10 @@ interface Props {
   setChatJumpTarget: (sessionId: string, messageId: string) => void;
   onToggleWidget: (sessionId: string, widgetId: string) => void;
   onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
+  shortcutIndex?: number;
 }
 
-export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
+export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize, shortcutIndex }: Props) {
 
   const [viewMode, setViewMode] = useState<'terminal' | 'history'>('terminal');
   const [terminalMounted, setTerminalMounted] = useState(false);
@@ -133,6 +134,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
         onResume={onResume}
         onToggleWidget={onToggleWidget}
         onSetWidgetSize={onSetWidgetSize}
+        shortcutIndex={shortcutIndex}
       />
 
       {/* Activity stripe — visible when collapsed and running */}

@@ -34,11 +34,12 @@ interface Props {
   onResume: (id: string) => Promise<void>;
   onToggleWidget: (sessionId: string, widgetId: string) => void;
   onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
+  shortcutIndex?: number;
 }
 
 const EMPTY_TAGS: string[] = [];
 
-export default function SessionHeader({ session, displayStatus, viewMode, isExpanded, isFocused, activity, enabledWidgets, onSetViewMode, onClearDone, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onToggleWidget, onSetWidgetSize }: Props) {
+export default function SessionHeader({ session, displayStatus, viewMode, isExpanded, isFocused, activity, enabledWidgets, onSetViewMode, onClearDone, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onToggleWidget, onSetWidgetSize, shortcutIndex }: Props) {
 
   const tags = useWidgetStore((s) => s.sessionTags[session.id]) ?? EMPTY_TAGS;
   const addTag = useWidgetStore((s) => s.addTag);
@@ -140,6 +141,13 @@ export default function SessionHeader({ session, displayStatus, viewMode, isExpa
             transition: 'opacity 0.6s ease, background-color 0.8s ease',
           }}
         />
+
+        {/* Shortcut badge — visible when Cmd is held */}
+        {shortcutIndex != null && (
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold leading-none bg-cc-accent text-white shrink-0 animate-[badge-in_0.12s_ease-out]">
+            {shortcutIndex}
+          </span>
+        )}
 
         {onToggleExpanded && (isExpanded
           ? <ChevronDown size={14} className="text-cc-text-muted shrink-0" />

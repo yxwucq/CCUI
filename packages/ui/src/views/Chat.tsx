@@ -1,13 +1,13 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSessionStore, type SessionUsageSummary } from '../stores/sessionStore';
 import { useAgentStore } from '../stores/agentStore';
-import { useWidgetStore } from '../stores/widgetStore';
+import { useWidgetStore, SORT_FIELDS, type SortField, type SortDirection } from '../stores/widgetStore';
 import SessionBlock from '../components/SessionBlock';
 import SessionOverviewCard from '../components/SessionOverviewCard';
 import NewSessionForm from '../components/NewSessionForm';
 import ProjectInitDialog from '../components/ProjectInitDialog';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { Plus, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, ChevronRight } from 'lucide-react';
+import { Plus, Minimize2, LayoutGrid, List, Search, X, Layers, PanelTop, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Session, SessionActivity } from '@ccui/shared';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProjectConfig } from '../api/projects';
@@ -96,6 +96,79 @@ function GridTerminatedSection({ sessions, allActivities, allSessionUsage, onFoc
   );
 }
 
+function SortControl({ sortField, sortDirection, onSetField, onToggleDirection }: {
+  sortField: SortField; sortDirection: SortDirection;
+  onSetField: (f: SortField) => void; onToggleDirection: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const label = SORT_FIELDS.find((f) => f.value === sortField)?.label ?? 'Sort';
+
+  return (
+    <div className="relative flex bg-cc-bg-surface rounded p-0.5" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs transition-colors ${open ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`}
+        title="Sort by"
+      >
+        <ArrowUpDown size={11} />
+        {label}
+      </button>
+      <button
+        onClick={onToggleDirection}
+        className="p-1 rounded text-cc-text-muted hover:text-cc-text-secondary transition-colors"
+        title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+      >
+        {sortDirection === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
+      </button>
+      {open && (
+        <div className="absolute top-full mt-1 bg-cc-bg-surface border border-cc-border rounded shadow-lg py-1 z-50 min-w-[100px]">
+          {SORT_FIELDS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => { onSetField(f.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                f.value === sortField
+                  ? 'text-cc-accent bg-cc-accent-muted'
+                  : 'text-cc-text-secondary hover:text-cc-text hover:bg-cc-bg-overlay'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function sortSessions(sessions: Session[], field: SortField, direction: SortDirection): Session[] {
+  const dir = direction === 'asc' ? 1 : -1;
+  return [...sessions].sort((a, b) => {
+    if (a.sessionType === 'head') return -1;
+    if (b.sessionType === 'head') return 1;
+    switch (field) {
+      case 'active':
+        return dir * a.lastActiveAt.localeCompare(b.lastActiveAt);
+      case 'name':
+        return dir * a.name.localeCompare(b.name);
+      case 'created':
+      default:
+        return dir * a.createdAt.localeCompare(b.createdAt);
+    }
+  });
+}
+
 export default function Chat() {
   const sessions = useSessionStore((s) => s.sessions);
   const fetchSessions = useSessionStore((s) => s.fetchSessions);
@@ -125,6 +198,10 @@ export default function Chat() {
   const allSessionWidgets = useWidgetStore((s) => s.sessionWidgets);
   const defaultWidgets = useWidgetStore((s) => s.defaultWidgets);
   const allSessionTags = useWidgetStore((s) => s.sessionTags);
+  const sortField = useWidgetStore((s) => s.sortField);
+  const setSortField = useWidgetStore((s) => s.setSortField);
+  const sortDirection = useWidgetStore((s) => s.sortDirection);
+  const toggleSortDirection = useWidgetStore((s) => s.toggleSortDirection);
 
   const [showNewSession, setShowNewSession] = useState(false);
   const [showInitDialog, setShowInitDialog] = useState(false);
@@ -157,20 +234,64 @@ export default function Chat() {
     return () => clearTimeout(t);
   }, [sessions]);
 
-  // Keyboard shortcuts: Cmd+1-9 to focus session, Esc to unfocus
+  const q = search.toLowerCase().trim();
+  const filtered = q
+    ? sessions.filter((s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.branch || '').toLowerCase().includes(q) ||
+        (allSessionTags[s.id] || []).some((t) => t.toLowerCase().includes(q))
+      )
+    : sessions;
+  const activeSessions = sortSessions(
+    filtered.filter((s) => s.status === 'active' || s.status === 'idle'),
+    sortField, sortDirection,
+  );
+  const terminatedSessions = sortSessions(
+    filtered.filter((s) => s.status === 'terminated'),
+    sortField, sortDirection,
+  );
+
+  // Cmd held state — show shortcut badges after holding for 300ms
+  const [cmdHeld, setCmdHeld] = useState(false);
+  const cmdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shortcutMap = useMemo(() => {
+    if (!cmdHeld || focusedSessionId) return {};
+    const map: Record<string, number> = {};
+    activeSessions.forEach((s, i) => { if (i < 9) map[s.id] = i + 1; });
+    return map;
+  }, [cmdHeld, focusedSessionId, activeSessions]);
+
+  // Keyboard shortcuts: Cmd+1-9 to focus session, Esc to unfocus, Cmd hold for badges
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const clearTimer = () => {
+      if (cmdTimerRef.current) { clearTimeout(cmdTimerRef.current); cmdTimerRef.current = null; }
+    };
+    const onDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Meta' || e.key === 'Control') && !focusedSessionId) {
+        clearTimer();
+        cmdTimerRef.current = setTimeout(() => setCmdHeld(true), 500);
+      }
       if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
         e.preventDefault();
         const idx = parseInt(e.key) - 1;
-        const allActive = sessions.filter((s) => s.status !== 'terminated');
-        if (allActive[idx]) toggleFocus(allActive[idx].id);
+        if (activeSessions[idx]) toggleFocus(activeSessions[idx].id);
       }
       if (e.key === 'Escape' && focusedSessionId) toggleFocus(focusedSessionId);
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [sessions, focusedSessionId, toggleFocus]);
+    const onUp = (e: KeyboardEvent) => {
+      if (e.key === 'Meta' || e.key === 'Control') { clearTimer(); setCmdHeld(false); }
+    };
+    const onBlur = () => { clearTimer(); setCmdHeld(false); };
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      clearTimer();
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [activeSessions, focusedSessionId, toggleFocus]);
 
   // Restore viewMode when exiting focus
   const prevFocusedRef = useRef<string | null>(null);
@@ -200,22 +321,6 @@ export default function Chat() {
     }
   }, [layoutMode]);
 
-  const q = search.toLowerCase().trim();
-  const filtered = q
-    ? sessions.filter((s) =>
-        s.name.toLowerCase().includes(q) ||
-        (s.branch || '').toLowerCase().includes(q) ||
-        (allSessionTags[s.id] || []).some((t) => t.toLowerCase().includes(q))
-      )
-    : sessions;
-  const activeSessions = filtered
-    .filter((s) => s.status === 'active' || s.status === 'idle')
-    .sort((a, b) => {
-      if (a.sessionType === 'head') return -1;
-      if (b.sessionType === 'head') return 1;
-      return 0;
-    });
-  const terminatedSessions = filtered.filter((s) => s.status === 'terminated');
   const isFocused = !!focusedSessionId;
   const focusedSession = isFocused ? sessions.find((s) => s.id === focusedSessionId) : null;
 
@@ -279,6 +384,7 @@ export default function Chat() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <SortControl sortField={sortField} sortDirection={sortDirection} onSetField={setSortField} onToggleDirection={toggleSortDirection} />
               <div className="flex bg-cc-bg-surface rounded p-0.5">
                 <button onClick={() => setLayoutMode('accordion')} className={`p-1 rounded transition-colors ${layoutMode === 'accordion' ? 'bg-cc-bg-overlay text-cc-text' : 'text-cc-text-muted hover:text-cc-text-secondary'}`} title="Accordion">
                   <PanelTop size={13} />
@@ -392,7 +498,7 @@ export default function Chat() {
               transition={{ duration: hidden ? 0 : 0.25, ease: 'easeOut' }}
             >
               <ErrorBoundary>
-                <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} />
+                <SessionBlock {...sessionBlockProps(s)} highlighted={highlightIds.has(s.id)} scrollMode={layoutMode === 'scroll'} onToggleExpanded={handleToggleExpanded} shortcutIndex={shortcutMap[s.id]} />
               </ErrorBoundary>
             </motion.div>
             );

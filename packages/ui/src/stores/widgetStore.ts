@@ -45,6 +45,15 @@ function getSystemTheme(): string {
   return 'dark';
 }
 
+export type SortField = 'created' | 'active' | 'name';
+export type SortDirection = 'asc' | 'desc';
+
+export const SORT_FIELDS: { value: SortField; label: string }[] = [
+  { value: 'created', label: 'Created' },
+  { value: 'active', label: 'Active' },
+  { value: 'name', label: 'Name' },
+];
+
 export interface TagDef {
   label: string;
   color: string; // tailwind text color class
@@ -73,6 +82,8 @@ interface WidgetStore {
   terminalConfig: TerminalConfig;
   dailyBudget: number;
   alertAt: number;
+  sortField: SortField;
+  sortDirection: SortDirection;
   loaded: boolean;
 
   loadConfig: () => Promise<void>;
@@ -82,6 +93,8 @@ interface WidgetStore {
   setAppName: (name: string) => void;
   setTheme: (themeId: string) => void;
   setQuota: (dailyBudget: number, alertAt?: number) => void;
+  setSortField: (field: SortField) => void;
+  toggleSortDirection: () => void;
   addTag: (sessionId: string, tag: string) => void;
   removeTag: (sessionId: string, tag: string) => void;
   getTags: (sessionId: string) => string[];
@@ -102,6 +115,8 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   terminalConfig: {},
   dailyBudget: DEFAULT_DAILY_BUDGET,
   alertAt: DEFAULT_ALERT_AT,
+  sortField: 'created' as SortField,
+  sortDirection: 'desc' as SortDirection,
   loaded: false,
 
   loadConfig: async () => {
@@ -118,6 +133,8 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
         terminalConfig: config.terminal || {},
         dailyBudget: quota.dailyBudget ?? DEFAULT_DAILY_BUDGET,
         alertAt: quota.alertAt ?? DEFAULT_ALERT_AT,
+        sortField: config.sortField || 'created',
+        sortDirection: config.sortDirection || 'desc',
         defaultWidgets: config.defaultWidgets
           ? migrateWidgets(config.defaultWidgets)
           : DEFAULT_WIDGETS,
@@ -185,6 +202,16 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     get().saveConfig();
   },
 
+  setSortField: (field) => {
+    set({ sortField: field });
+    get().saveConfig();
+  },
+
+  toggleSortDirection: () => {
+    set((s) => ({ sortDirection: s.sortDirection === 'asc' ? 'desc' : 'asc' }));
+    get().saveConfig();
+  },
+
   getTags: (sessionId) => get().sessionTags[sessionId] ?? [],
 
   addTag: (sessionId, tag) => {
@@ -201,7 +228,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   },
 
   saveConfig: async () => {
-    const { defaultWidgets, sessionWidgets, sessionTags, appName, themeId, terminalConfig, dailyBudget, alertAt } = get();
+    const { defaultWidgets, sessionWidgets, sessionTags, appName, themeId, terminalConfig, dailyBudget, alertAt, sortField, sortDirection } = get();
     // Merge widgets and tags per session
     const allSessionIds = new Set([...Object.keys(sessionWidgets), ...Object.keys(sessionTags)]);
     const sessionsConfig: Record<string, any> = {};
@@ -214,6 +241,8 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     const config: Record<string, any> = {
       appName,
       theme: themeId,
+      sortField,
+      sortDirection,
       defaultWidgets,
       quota: { dailyBudget, alertAt },
       sessions: sessionsConfig,
