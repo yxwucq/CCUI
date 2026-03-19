@@ -464,7 +464,7 @@ export default function Chat() {
                         variants={{ hidden: { opacity: 0, scale: 0.95, y: 10 }, visible: { opacity: 1, scale: 1, y: 0 } }}
                         exit={{ opacity: 0, scale: 0.95 }}
                       >
-                        <SessionOverviewCard session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} />
+                        <SessionOverviewCard session={s} activity={allActivities[s.id]} usage={allSessionUsage[s.id]} onClick={() => toggleFocus(s.id)} shortcutIndex={shortcutMap[s.id]} />
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -484,7 +484,7 @@ export default function Chat() {
             const hidden = (!isFocused && viewMode === 'grid') || (isFocused && !isThisFocused);
             const exp = (expandedSessions[s.id] && layoutMode === 'accordion') || isThisFocused;
             return (
-            <motion.div key={s.id}
+            <motion.div key={s.id} layout
               className="flex flex-col min-h-0 transition-[flex-grow] duration-300 ease-in-out"
               style={{
                 display: hidden ? 'none' : undefined,
