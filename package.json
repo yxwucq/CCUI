@@ -7,7 +7,7 @@
     "ccui": "./bin/cli.js"
   },
   "scripts": {
-    "dev": "npx concurrently --names server,ui -c blue,green \"PROJECT_PATH=$PWD/test-project pnpm --filter @ccui/server dev\" \"pnpm --filter @ccui/ui dev\"",
+    "dev": "npx concurrently --names server,ui -c blue,green \"PROJECT_PATH=$PWD/test-project PORT=${DEV_PORT:-3456} pnpm --filter @ccui/server dev\" \"DEV_PORT=${DEV_PORT:-3456} pnpm --filter @ccui/ui dev\"",
     "build": "pnpm --filter @ccui/shared build && pnpm --filter @ccui/ui build && pnpm --filter @ccui/server build",
     "start": "node bin/cli.js"
   },

@@ -1,15 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const backendPort = process.env.PORT || '3456';
+const serverPort = parseInt(process.env.DEV_PORT || '3456', 10);
 
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
     proxy: {
-      '/api': `http://localhost:${backendPort}`,
-      '/ws': { target: `ws://localhost:${backendPort}`, ws: true },
+      '/api': `http://localhost:${serverPort}`,
+      '/ws': { target: `ws://localhost:${serverPort}`, ws: true },
     },
   },
   build: {

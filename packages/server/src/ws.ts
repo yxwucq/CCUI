@@ -33,14 +33,6 @@ export function setupWebSocket(server: Server) {
   }
 
   // Wire up session manager events
-  sessionManager.onOutput((sessionId, content, done) => {
-    broadcast(sessionId, { type: 'chat:output', sessionId, content, done });
-  });
-
-  sessionManager.onError((sessionId, error) => {
-    broadcast(sessionId, { type: 'chat:error', sessionId, error });
-  });
-
   sessionManager.onStatus((sessionId, status, lastActiveAt) => {
     broadcast(sessionId, { type: 'session:status', sessionId, status, lastActiveAt });
   });
@@ -106,12 +98,7 @@ export function setupWebSocket(server: Server) {
       try {
         const msg = JSON.parse(data.toString()) as WSMessage;
 
-        if (msg.type === 'chat:input') {
-          // Subscribe to this session
-          if (!subscriptions.has(msg.sessionId)) subscriptions.set(msg.sessionId, new Set());
-          subscriptions.get(msg.sessionId)!.add(ws);
-          sessionManager.sendMessage(msg.sessionId, msg.content);
-        } else if (msg.type === 'session:create') {
+        if (msg.type === 'session:create') {
           const session = sessionManager.createSession(msg.projectPath, {
             agentId: msg.agentId,
             branch: msg.branch,

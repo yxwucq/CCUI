@@ -24,7 +24,6 @@ interface Props {
   session: Session;
   enabledWidgets: WidgetConfig[];
   messages: ChatMessage[];
-  streaming: string;
   sessionUsage?: SessionUsageSummary;
   usageCalls: Array<{ cost: number }>;
   callCount: number;
@@ -33,7 +32,7 @@ interface Props {
   emptyMessage?: string;
 }
 
-export default function SessionWidgetBar({ sessionId, session, enabledWidgets, messages, streaming, sessionUsage, usageCalls, callCount, fetchSessionUsage, setChatJumpTarget, emptyMessage }: Props) {
+export default function SessionWidgetBar({ sessionId, session, enabledWidgets, messages, sessionUsage, usageCalls, callCount, fetchSessionUsage, setChatJumpTarget, emptyMessage }: Props) {
 
   if (enabledWidgets.length === 0) {
     return emptyMessage ? (
@@ -61,7 +60,6 @@ export default function SessionWidgetBar({ sessionId, session, enabledWidgets, m
               session={session}
               size={size}
               messages={messages}
-              streaming={streaming}
               sessionUsage={sessionUsage}
               usage={sessionUsage}
               callHistory={usageCalls}

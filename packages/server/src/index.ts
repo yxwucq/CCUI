@@ -10,6 +10,7 @@ import { terminalManager } from './core/terminal-manager.js';
 
 interface ServerOptions {
   port: number;
+  host?: string;
   projectPath: string;
 }
 
@@ -37,7 +38,7 @@ function ensureGit(projectPath: string) {
 }
 
 export async function createServer(options: ServerOptions) {
-  const { port, projectPath } = options;
+  const { port, host, projectPath } = options;
 
   // Ensure git repo and .gitignore
   ensureGit(projectPath);
@@ -63,8 +64,8 @@ export async function createServer(options: ServerOptions) {
 
   // Start listening
   return new Promise<ReturnType<typeof createHttpServer>>((resolve) => {
-    server.listen(port, () => {
-      console.log(`CCUI server listening on port ${port}`);
+    server.listen(port, host, () => {
+      console.log(`CCUI server listening on ${host || 'localhost'}:${port}`);
       resolve(server);
     });
   });
