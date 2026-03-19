@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { PanelLeftClose, PanelLeftOpen, Sun, Moon, Palette } from 'lucide-react';
 import QuotaGauge from '../components/QuotaGauge';
 import ToastContainer from '../components/ToastContainer';
+import TutorialOverlay from '../components/TutorialOverlay';
 import { applyTheme, themes } from '../theme';
 
 function ThemeSwitcher() {
@@ -163,6 +164,7 @@ export default function MainLayout() {
         </div>
       </div>
       <ToastContainer />
+      <TutorialOverlay />
     </div>
   );
 }

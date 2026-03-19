@@ -62,7 +62,7 @@ export default function ProjectInitDialog({ onInitialized }: Props) {
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div className="bg-cc-bg-card border border-cc-border rounded-xl p-6 w-[420px] text-center">
+        <div className="bg-cc-bg-surface border border-cc-border rounded-xl p-6 w-[420px] text-center">
           <Loader2 size={24} className="animate-spin mx-auto text-cc-text-muted" />
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function ProjectInitDialog({ onInitialized }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-cc-bg-card border border-cc-border rounded-xl p-6 w-[420px] shadow-2xl">
+      <div className="bg-cc-bg-surface border border-cc-border rounded-xl p-6 w-[420px] shadow-2xl">
         <h2 className="text-lg font-bold text-cc-text mb-1">Project Setup</h2>
         <p className="text-sm text-cc-text-muted mb-5">
           Choose how CCUI manages worktrees for this project.

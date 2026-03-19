@@ -351,7 +351,15 @@ export default function Chat() {
     <div className="h-full flex flex-col">
       {/* Project init dialog */}
       {showInitDialog && (
-        <ProjectInitDialog onInitialized={() => setShowInitDialog(false)} />
+        <ProjectInitDialog onInitialized={() => {
+          setShowInitDialog(false);
+          // Trigger tutorial after init dialog closes (if not completed)
+          if (!localStorage.getItem('ccui-tour-completed')) {
+            setTimeout(() => {
+              import('../components/TutorialOverlay').then((m) => m.startTutorial());
+            }, 500);
+          }
+        }} />
       )}
 
       {/* Header / Focus bar — animated swap */}

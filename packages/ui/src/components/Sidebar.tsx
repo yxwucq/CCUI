@@ -144,6 +144,15 @@ export default function Sidebar({ sessions }: Props) {
             />
           </div>
         </div>
+
+        <button
+          onClick={() => {
+            import('./TutorialOverlay').then((m) => m.startTutorial());
+          }}
+          className="text-[10px] uppercase tracking-wider text-cc-text-muted/40 hover:text-cc-text-muted transition-colors"
+        >
+          ? Tutorial
+        </button>
       </div>
     </aside>
   );
