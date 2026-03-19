@@ -75,10 +75,10 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
     document.addEventListener('mouseup', onUp);
   }, []);
 
-  // Once expanded, keep terminal mounted forever (avoid PTY re-creation)
+  // Once expanded or focused, keep terminal mounted forever (avoid PTY re-creation)
   useEffect(() => {
-    if (isExpanded && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
-  }, [isExpanded, terminalMounted, session.status]);
+    if ((isExpanded || isFocused) && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
+  }, [isExpanded, isFocused, terminalMounted, session.status]);
 
   // Auto-focus terminal when session expands
   useEffect(() => {
@@ -141,10 +141,10 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
       )}
 
       {/* Expanded content — terminal stays mounted once opened (CSS hidden when collapsed) */}
-      {(isExpanded || terminalMounted) && (
+      {(isExpanded || isFocused || terminalMounted) && (
         <div
           className="border-t border-cc-border/50 flex-1 min-h-0 flex flex-col"
-          style={{ display: isExpanded ? 'flex' : 'none' }}
+          style={{ display: (isExpanded || isFocused) ? 'flex' : 'none' }}
         >
           {/* Terminal mode — always mounted once opened, toggled via display */}
           <div
