@@ -8,3 +8,6 @@ dist/
 .DS_Store
 pnpm-lock.yaml
 test-project/
+CLAUDE.md
+plan.md
+docs/
