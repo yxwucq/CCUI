@@ -35,9 +35,10 @@ interface Props {
   setChatJumpTarget: (sessionId: string, messageId: string) => void;
   onToggleWidget: (sessionId: string, widgetId: string) => void;
   onSetWidgetSize: (sessionId: string, widgetId: string, size: 'sm' | 'lg') => void;
+  shortcutIndex?: number;
 }
 
-export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize }: Props) {
+export default function SessionBlock({ session, isExpanded, isFocused, activity, jumpTarget, enabledWidgets, messages, sessionUsage, usageCalls, highlighted, scrollMode, onToggleExpanded, onToggleFocus, onStop, onTerminate, onDelete, onResume, onSetExpanded, onClearJumpTarget, fetchSessionUsage, setChatJumpTarget, onToggleWidget, onSetWidgetSize, shortcutIndex }: Props) {
 
   const [viewMode, setViewMode] = useState<'terminal' | 'history'>('terminal');
   const [terminalMounted, setTerminalMounted] = useState(false);
@@ -75,10 +76,10 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
     document.addEventListener('mouseup', onUp);
   }, []);
 
-  // Once expanded, keep terminal mounted forever (avoid PTY re-creation)
+  // Once expanded or focused, keep terminal mounted forever (avoid PTY re-creation)
   useEffect(() => {
-    if (isExpanded && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
-  }, [isExpanded, terminalMounted, session.status]);
+    if ((isExpanded || isFocused) && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
+  }, [isExpanded, isFocused, terminalMounted, session.status]);
 
   // Auto-focus terminal when session expands
   useEffect(() => {
@@ -133,6 +134,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
         onResume={onResume}
         onToggleWidget={onToggleWidget}
         onSetWidgetSize={onSetWidgetSize}
+        shortcutIndex={shortcutIndex}
       />
 
       {/* Activity stripe — visible when collapsed and running */}
@@ -141,10 +143,10 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
       )}
 
       {/* Expanded content — terminal stays mounted once opened (CSS hidden when collapsed) */}
-      {(isExpanded || terminalMounted) && (
+      {(isExpanded || isFocused || terminalMounted) && (
         <div
           className="border-t border-cc-border/50 flex-1 min-h-0 flex flex-col"
-          style={{ display: isExpanded ? 'flex' : 'none' }}
+          style={{ display: (isExpanded || isFocused) ? 'flex' : 'none' }}
         >
           {/* Terminal mode — always mounted once opened, toggled via display */}
           <div

@@ -10,6 +10,7 @@ interface Props {
   activity?: SessionActivity;
   usage?: SessionUsageSummary;
   onClick: () => void;
+  shortcutIndex?: number;
 }
 
 const DEFAULT_CONTEXT = 200_000;
@@ -129,7 +130,7 @@ function useGitDiffStat(sessionId: string, activity: SessionActivity | undefined
   return stat;
 }
 
-export default function SessionOverviewCard({ session, activity, usage, onClick }: Props) {
+export default function SessionOverviewCard({ session, activity, usage, onClick, shortcutIndex }: Props) {
   const diffStat = useGitDiffStat(session.id, activity);
   const cardStatus = useCardStatus(session, activity);
   const sc = CARD_STATUS[cardStatus];
@@ -165,6 +166,11 @@ export default function SessionOverviewCard({ session, activity, usage, onClick 
 
       {/* Header row */}
       <div className="relative flex items-center gap-1.5 mb-2">
+        {shortcutIndex != null && (
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold leading-none bg-cc-accent text-white shrink-0 animate-[badge-in_0.12s_ease-out]">
+            {shortcutIndex}
+          </span>
+        )}
         <StatusDot session={session} activity={activity} cardStatus={cardStatus} />
         <span className="text-xs font-medium text-cc-text truncate flex-1">{session.name}</span>
         {session.skipPermissions && (
