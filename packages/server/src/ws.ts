@@ -7,6 +7,8 @@ import { usageTracker } from './core/usage-tracker.js';
 import { getDB } from './db/database.js';
 import type { WSMessage } from '@ccui/shared';
 
+const DEBUG = !!process.env.DEBUG;
+
 export function setupWebSocket(server: Server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -76,7 +78,7 @@ export function setupWebSocket(server: Server) {
 
   // Wire up terminal events
   terminalManager.onOutput((sessionId, data) => {
-    console.log(`[ws] terminal:output for ${sessionId.slice(0, 8)} (${data.length} bytes)`);
+    if (DEBUG) console.log(`[ws] terminal:output for ${sessionId.slice(0, 8)} (${data.length} bytes)`);
     broadcast(sessionId, { type: 'terminal:output', sessionId, data });
   });
 

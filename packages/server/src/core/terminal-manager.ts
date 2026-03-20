@@ -9,6 +9,8 @@ import { usageTracker } from './usage-tracker.js';
 const require = createRequire(import.meta.url);
 const { Terminal: HeadlessTerminal } = require('@xterm/headless') as { Terminal: any };
 
+const DEBUG = !!process.env.DEBUG;
+
 type OutputListener = (sessionId: string, data: string) => void;
 type ExitListener = (sessionId: string, code: number) => void;
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
@@ -362,10 +364,10 @@ class TerminalManager {
       // Guard callbacks: only emit if this shell is still the current one for this session.
       shell.onData((data) => {
         if (this.terminals.get(sessionId) !== entry) {
-          console.log(`[terminal:${sessionId.slice(0, 8)}] stale data ignored`);
+          if (DEBUG) console.log(`[terminal:${sessionId.slice(0, 8)}] stale data ignored`);
           return;
         }
-        console.log(`[terminal:${sessionId.slice(0, 8)}] data (${data.length} bytes)`);
+        if (DEBUG) console.log(`[terminal:${sessionId.slice(0, 8)}] data (${data.length} bytes)`);
         for (const l of this.outputListeners) l(sessionId, data);
 
         // Buffer output for input detection
