@@ -25,7 +25,11 @@
 <br/>
 <br/>
 
-<img src="docs/hero.png" width="820" alt="CCUI — Multiple Claude sessions running in parallel" />
+<img src="docs/session_demo.gif" width="820" alt="CCUI — Multiple Claude sessions running in parallel" />
+
+<br/>
+
+<img src="docs/ccui-list-view.png" width="820" alt="List view — session status at a glance" />
 
 <br/>
 
@@ -41,6 +45,7 @@
 git clone https://github.com/yxwucq/CCUI.git
 cd CCUI
 pnpm install && pnpm build
+pnpm link --global # link to $PATH
 ```
 
 Then point it at any project:
@@ -67,111 +72,56 @@ ccui --port 8080        # custom port
 
 <br/>
 
-## The Problem
+## 💡 What is CCUI?
 
-You're deep in a project. You need Claude to fix a bug, add a feature, and refactor a module — all at the same time. But Claude Code runs one session at a time, in one directory, on one branch.
+A web dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that enables **multi-worktree parallel development**. Each session runs a real Claude Code CLI in an isolated git worktree on its own branch — fix a bug, add a feature, and refactor a module simultaneously from a single browser tab.
 
-**CCUI removes that bottleneck.**
+<div align="center">
 
-Spawn multiple Claude agents, each working in an isolated git worktree on its own branch. Watch them all from a single dashboard. Merge when ready.
+<img src="docs/ccui-main-workspace.png" width="740" alt="Main workspace — terminal interaction with Claude agent" />
 
-```
-main ────────────────────────────────────────────────► main
-  │
-  ├── 🔀 fork: fix-auth-bug ─────────► ✅ merge back
-  │
-  ├── 🔀 fork: add-search ───────────────────────── ► 🔄 working...
-  │
-  └── 🔗 attach: feature-xyz ────────► continue work
-```
+*Full interactive terminal with live activity tracking, context panel, and usage stats*
 
 <br/>
 
-## 📺 Demo
+<img src="docs/ccui-grid-overview.png" width="740" alt="Grid view — all sessions at a glance" />
 
-<div align="center">
-<img src="docs/demo-fork.gif" width="740" alt="Create a fork session, watch Claude work, merge back" />
+*Grid view — cost, diff stats, and branch info per session*
+
 </div>
 
 <br/>
 
-## ✨ Features
+## Features
 
-<table>
-<tr>
-<td width="33%" valign="top">
+- **Parallel sessions** — spawn multiple Claude Code processes, each in its own xterm.js terminal
+- **Git worktree isolation** — each session forks a new branch + worktree, merge or discard when done
+- **Attach mode** — connect to an existing branch without forking
+- **Live status** — see which sessions are running, waiting for input, or idle
+- **File browser** — browse and diff files across worktrees
+- **Cost tracking** — per-session token usage with daily budget alerts
+- **Custom agents** — define system prompts and tool permissions
+- **8 themes** — Dark, Light, Nord, Dracula, Catppuccin, Solarized, Tokyo Night, Sakura
+- **100% local** — all data stays in `.ccui/` inside your project
 
-#### 🧬 Session Management
-Run multiple Claude sessions **in parallel**, each with its own interactive terminal.
+## How It Works
 
-**Fork** — isolated branch + worktree.
-**Attach** — pick up existing work.
-**Terminate** — merge or discard.
+Each session spawns a `claude` CLI process attached to a real PTY. Sessions can run in two modes:
 
-</td>
-<td width="33%" valign="top">
-
-#### 🖥 Terminal & Interface
-Full **xterm.js** terminal per session — not a simulation, the real thing.
-
-**Focus mode** — fullscreen with `⌘1-9` switching.
-**8 themes** — from Dracula to Sakura.
-**Tutorial** — built-in onboarding.
-
-</td>
-<td width="33%" valign="top">
-
-#### 📊 Observability
-**File browser** with live diff viewer across worktrees.
-
-**Per-session cost tracking** with daily budget alerts.
-**Custom agents** with system prompts & tool permissions.
-All data **100% local**.
-
-</td>
-</tr>
-</table>
-
-<br/>
-
-## 🔍 How It Works
-
-Each session spawns a Claude Code process with its own terminal in the browser. Everything works — prompts, tool approvals, the full Claude CLI experience.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-#### 🔀 Fork Mode
-Creates a **new branch + git worktree** from any base. Claude works in complete isolation. When done:
-
-- **Merge** — bring changes back to the target branch
-- **Discard** — clean up the worktree and branch
-
-</td>
-<td width="50%" valign="top">
-
-#### 🔗 Attach Mode
-Connects to an **existing branch** directly. No fork, no copy. Multiple sessions can share a branch (with a warning).
-
-Good for continuing work on a feature branch that already exists.
-
-</td>
-</tr>
-</table>
+- **Fork** — creates a new branch + git worktree from any base. Claude works in complete isolation. When done, merge back or discard.
+- **Attach** — connects to an existing branch directly. Good for continuing work on a feature branch.
 
 <div align="center">
-<img src="docs/fork-mode.png" width="640" alt="Fork mode — isolated session with its own branch" />
+<img src="docs/ccui-projects-gitlog.png" width="640" alt="Projects page — git log with branch graph" />
 </div>
-
-> **🔒 Privacy** — Everything runs locally. Sessions, usage data, and config live in `.ccui/` inside your project. Nothing leaves your machine.
 
 <br/>
 
 ## 🎨 Themes
 
 <div align="center">
-<img src="docs/themes.png" width="720" alt="8 built-in themes" />
+
+<img src="docs/ccui-theme-solarized.png" width="360" alt="Solarized theme" /> <img src="docs/ccui-theme-sakura.png" width="360" alt="Sakura theme" />
 
 `Dark` · `Light` · `Nord` · `Dracula` · `Catppuccin` · `Solarized` · `Tokyo Night` · `Sakura`
 
@@ -191,7 +141,7 @@ MIT
 
 **Built for developers who think one Claude isn't enough.**
 
-[![GitHub stars](https://img.shields.io/github/stars/anthropics/ccui?style=social)](https://github.com/anthropics/ccui)
+[![GitHub stars](https://img.shields.io/github/stars/yxwucq/CCUI?style=social)](https://github.com/yxwucq/CCUI)
 
 <br/>
 

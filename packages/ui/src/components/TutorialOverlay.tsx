@@ -131,8 +131,8 @@ const STEPS: TutorialStep[] = [
   {
     titleEn: 'Focus Mode',
     titleCn: '专注模式',
-    descEn: 'Enter focus mode to work with one session full-screen. Press Esc or Cmd+1~9 to switch between sessions quickly.',
-    descCn: '进入专注模式后，当前会话将全屏显示，方便你集中精力处理任务。按 Esc 退出专注模式，也可以用 Cmd+1~9 在不同会话之间快速跳转。',
+    descEn: 'Enter focus mode to work with one session full-screen. Press Esc or ⌘/Ctrl+1~9 to switch between sessions quickly.',
+    descCn: '进入专注模式后，当前会话将全屏显示，方便你集中精力处理任务。按 Esc 退出专注模式，也可以用 ⌘/Ctrl+1~9 在不同会话之间快速跳转。',
     findTarget: () =>
       (document.querySelector('button[title="Focus this session"]') as HTMLElement) ?? findFirstSessionBlock(),
   },

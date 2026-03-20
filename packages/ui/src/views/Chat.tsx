@@ -261,7 +261,7 @@ export default function Chat() {
     return map;
   }, [cmdHeld, focusedSessionId, activeSessions]);
 
-  // Keyboard shortcuts: Cmd+1-9 to focus session, Esc to unfocus, Cmd hold for badges
+  // Keyboard shortcuts: Cmd/Ctrl+1-9 to focus session, Esc to unfocus, Cmd/Ctrl hold for badges
   useEffect(() => {
     const clearTimer = () => {
       if (cmdTimerRef.current) { clearTimeout(cmdTimerRef.current); cmdTimerRef.current = null; }

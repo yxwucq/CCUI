@@ -10,5 +10,5 @@ pnpm-lock.yaml
 test-project/
 CLAUDE.md
 plan.md
-docs/
+docs/*.md
 demo-project/
