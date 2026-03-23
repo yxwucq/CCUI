@@ -16,19 +16,24 @@ const FONT_DEFAULTS = {
 
 interface Props {
   sessionId: string;
+  interceptEscape?: boolean;
 }
 
 export interface XTerminalHandle {
   focus: () => void;
 }
 
-const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessionId }, ref) {
+const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessionId, interceptEscape = false }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const interceptEscapeRef = useRef(interceptEscape);
   const [status, setStatus] = useState<'connecting' | 'connected' | 'exited'>('connecting');
   const [isFocused, setIsFocused] = useState(false);
   const terminalConfig = useWidgetStore((s) => s.terminalConfig);
+
+  // Keep ref in sync with prop
+  useEffect(() => { interceptEscapeRef.current = interceptEscape; }, [interceptEscape]);
 
   // Expose focus() to parent
   useImperativeHandle(ref, () => ({
@@ -73,6 +78,14 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
     term.loadAddon(fitAddon);
     term.loadAddon(new WebLinksAddon());
     term.open(el);
+
+    // Intercept ESC in focus mode — prevent xterm from sending \x1b to PTY
+    term.attachCustomKeyEventHandler((ev) => {
+      if (ev.key === 'Escape' && ev.type === 'keydown' && interceptEscapeRef.current) {
+        return false;
+      }
+      return true;
+    });
 
     termRef.current = term;
     fitRef.current = fitAddon;

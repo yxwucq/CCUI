@@ -81,13 +81,13 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
     if ((isExpanded || isFocused) && !terminalMounted && session.status !== 'terminated') setTerminalMounted(true);
   }, [isExpanded, isFocused, terminalMounted, session.status]);
 
-  // Auto-focus terminal when session expands
+  // Auto-focus terminal when session expands or enters focus mode
   useEffect(() => {
-    if (isExpanded && viewMode === 'terminal' && terminalRef.current) {
+    if ((isExpanded || isFocused) && viewMode === 'terminal' && terminalRef.current) {
       const t = setTimeout(() => terminalRef.current?.focus(), 150);
       return () => clearTimeout(t);
     }
-  }, [isExpanded, viewMode]);
+  }, [isExpanded, isFocused, viewMode]);
 
   // Esc to exit focus mode
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function SessionBlock({ session, isExpanded, isFocused, activity,
             <div className="min-h-0 overflow-hidden" style={{ width: `${splitRatio * 100}%` }}>
               {terminalMounted ? (
                 <Suspense fallback={<div className="h-full flex items-center justify-center text-cc-text-muted text-sm">Starting Claude CLI...</div>}>
-                  <XTerminal ref={terminalRef} sessionId={session.id} />
+                  <XTerminal ref={terminalRef} sessionId={session.id} interceptEscape={isFocused} />
                 </Suspense>
               ) : session.status === 'terminated' ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-cc-text-muted">
