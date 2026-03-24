@@ -28,7 +28,10 @@ export function createProjectRouter(projectPath: string): IRouter {
 
   router.get('/git/branches', (_req, res) => {
     try {
-      res.json({ branches: listBranches(projectPath).filter((b) => !b.includes('--ccui-')), current: getCurrentBranch(projectPath) });
+      const branches = listBranches(projectPath).filter((b) => !b.includes('--ccui-'));
+      const current = getCurrentBranch(projectPath);
+      if (current && !branches.includes(current)) branches.unshift(current);
+      res.json({ branches, current });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
