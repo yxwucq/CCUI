@@ -23,7 +23,7 @@ function parseMemoryFile(filename: string, rawContent: string): MemoryEntry {
 }
 
 function getMemoryDir(runDir: string): string {
-  const slug = runDir.replace(/\//g, '-');
+  const slug = runDir.replace(/[^a-zA-Z0-9-]/g, '-');
   return join(homedir(), '.claude', 'projects', slug, 'memory');
 }
 

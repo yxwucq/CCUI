@@ -266,7 +266,7 @@ class TerminalManager {
 
   /** Watch Claude Code's JSONL session file for new usage records */
   private startJSONLWatch(ccuiSessionId: string, cwd: string, claudeSessionId: string) {
-    const slug = cwd.replace(/[\/\.]/g, '-');
+    const slug = cwd.replace(/[^a-zA-Z0-9-]/g, '-');
     const filePath = join(homedir(), '.claude', 'projects', slug, `${claudeSessionId}.jsonl`);
 
     // Skip existing content — only track new data from this point forward
