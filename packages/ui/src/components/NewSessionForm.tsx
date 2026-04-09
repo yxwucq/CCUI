@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchProjectInfo, fetchGitBranches } from '../api/projects';
 import { GitBranch, AlertTriangle, Link2, GitFork } from 'lucide-react';
-import type { AgentConfig, Session } from '@ccui/shared';
+import type { AgentConfig, Session, CliProviderType } from '@ccui/shared';
 import { useSessionStore } from '../stores/sessionStore';
 import Select from './Select';
 
@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
   agents: AgentConfig[];
   fetchAgents: () => Promise<void>;
-  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }) => Promise<Session>;
+  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach'; cliProvider?: CliProviderType }) => Promise<Session>;
 }
 
 export default function NewSessionForm({ onClose, agents, fetchAgents, createSession }: Props) {
@@ -24,6 +24,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
   const [projectPath, setProjectPath] = useState('');
   const [creating, setCreating] = useState(false);
   const [sessionType, setSessionType] = useState<'fork' | 'attach'>('attach');
+  const [cliProvider, setCliProvider] = useState<CliProviderType>('claude');
   const sessions = useSessionStore((s) => s.sessions);
 
   // Warn when attaching to a branch that already has active sessions
@@ -62,6 +63,7 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
         agentId: selectedAgent || undefined,
         skipPermissions: skipPermissions || undefined,
         sessionType: isNewBranch ? 'fork' : sessionType,
+        cliProvider,
       });
       onClose();
     } catch (err: any) {
@@ -159,6 +161,34 @@ export default function NewSessionForm({ onClose, agents, fetchAgents, createSes
             </div>
           </div>
         )}
+
+        <div>
+          <label className="block text-xs text-cc-text-muted mb-1">CLI</label>
+          <div className="flex bg-cc-bg-surface border border-cc-border rounded overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setCliProvider('claude')}
+              className={`px-3 py-1.5 text-sm transition-colors ${
+                cliProvider === 'claude'
+                  ? 'bg-cc-orange-bg text-cc-orange-text'
+                  : 'text-cc-text-muted hover:text-cc-text-secondary'
+              }`}
+            >
+              Claude
+            </button>
+            <button
+              type="button"
+              onClick={() => setCliProvider('codex')}
+              className={`px-3 py-1.5 text-sm transition-colors ${
+                cliProvider === 'codex'
+                  ? 'bg-cc-green-bg text-cc-green-text'
+                  : 'text-cc-text-muted hover:text-cc-text-secondary'
+              }`}
+            >
+              Codex
+            </button>
+          </div>
+        </div>
 
         <div className="min-w-[150px]">
           <label className="block text-xs text-cc-text-muted mb-1">Agent</label>

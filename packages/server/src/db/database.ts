@@ -73,6 +73,8 @@ export function initDB(projectPath: string): Database.Database {
   if (!colNames.has('cleanup_status')) db.exec('ALTER TABLE sessions ADD COLUMN cleanup_status TEXT');
   if (!colNames.has('session_type')) db.exec("ALTER TABLE sessions ADD COLUMN session_type TEXT DEFAULT 'fork'");
   if (!colNames.has('worktree_owned')) db.exec('ALTER TABLE sessions ADD COLUMN worktree_owned INTEGER DEFAULT 1');
+  if (!colNames.has('cli_provider')) db.exec("ALTER TABLE sessions ADD COLUMN cli_provider TEXT DEFAULT 'claude'");
+  if (!colNames.has('hidden')) db.exec('ALTER TABLE sessions ADD COLUMN hidden INTEGER DEFAULT 0');
 
   return db;
 }

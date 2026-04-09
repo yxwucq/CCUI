@@ -1,4 +1,4 @@
-import type { Session, ChatMessage } from '@ccui/shared';
+import type { Session, ChatMessage, CliProviderType } from '@ccui/shared';
 
 export async function fetchSessions(): Promise<Session[]> {
   const res = await fetch('/api/sessions');
@@ -7,7 +7,7 @@ export async function fetchSessions(): Promise<Session[]> {
 
 export async function createSession(
   projectPath: string,
-  opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' },
+  opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach'; cliProvider?: CliProviderType },
 ): Promise<Session> {
   const res = await fetch('/api/sessions', {
     method: 'POST',
@@ -53,6 +53,15 @@ export async function terminateSession(
 
 export async function deleteSession(sessionId: string): Promise<void> {
   await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+}
+
+export async function setSessionHidden(sessionId: string, hidden: boolean): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/sessions/${sessionId}/hidden`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hidden }),
+  });
+  return res.json();
 }
 
 export async function renameSession(sessionId: string, name: string): Promise<{ ok: boolean; name: string }> {

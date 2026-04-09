@@ -1,3 +1,6 @@
+// CLI provider
+export type CliProviderType = 'claude' | 'codex';
+
 // Project config
 export interface ProjectConfig {
   worktreeMode: 'managed' | 'external';
@@ -17,6 +20,8 @@ export interface Session {
   skipPermissions?: boolean;
   sessionType?: 'fork' | 'attach' | 'head';
   worktreeOwned?: boolean;
+  cliProvider?: CliProviderType;
+  hidden?: boolean;
   status: 'active' | 'idle' | 'terminated';
   cleanupStatus?: 'pending' | 'cleaned';
   createdAt: string;
@@ -123,7 +128,7 @@ export type WSMessage =
   | { type: 'session:status'; sessionId: string; status: Session['status']; lastActiveAt?: string }
   | { type: 'session:activity'; sessionId: string; activity: SessionActivity }
   | { type: 'session:branch'; sessionId: string; branch: string }
-  | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }
+  | { type: 'session:create'; projectPath: string; branch?: string; name?: string; agentId?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' | 'head'; cliProvider?: CliProviderType }
   | { type: 'session:resume'; sessionId: string }
   | { type: 'session:stop'; sessionId: string }
   | { type: 'session:terminate'; sessionId: string; action?: 'check' | 'merge' | 'discard' }

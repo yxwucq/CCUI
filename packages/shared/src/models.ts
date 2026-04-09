@@ -42,13 +42,43 @@ const MODEL_PRICING: ModelEntry[] = [
   { prefix: 'claude-3-haiku',    price: { input: 0.25, output: 1.25 }, context: 200_000 },
 ];
 
+// OpenAI models — API pricing (used as reference even under subscription)
+// Source: https://openai.com/api/pricing
+const OPENAI_MODELS: ModelEntry[] = [
+  // GPT-5.4 — $2.50 / $15
+  { prefix: 'gpt-5.4-mini',  price: { input: 0.75,  output: 4.5  }, context: 272_000 },
+  { prefix: 'gpt-5.4-nano',  price: { input: 0.20,  output: 1.25 }, context: 272_000 },
+  { prefix: 'gpt-5.4',       price: { input: 2.50,  output: 15   }, context: 272_000 },
+  // GPT-5.3
+  { prefix: 'gpt-5.3',       price: { input: 2.50,  output: 15   }, context: 272_000 },
+  // GPT-5.2 — $1.75 / $14
+  { prefix: 'gpt-5.2',       price: { input: 1.75,  output: 14   }, context: 272_000 },
+  // GPT-5.1 — $1.25 / $10
+  { prefix: 'gpt-5.1-codex-mini', price: { input: 0.25, output: 2 }, context: 272_000 },
+  { prefix: 'gpt-5.1',       price: { input: 1.25,  output: 10   }, context: 272_000 },
+  // GPT-5 — $1.25 / $10
+  { prefix: 'gpt-5-codex-mini', price: { input: 0.25, output: 2  }, context: 272_000 },
+  { prefix: 'gpt-5-nano',    price: { input: 0.05,  output: 0.40 }, context: 272_000 },
+  { prefix: 'gpt-5-mini',    price: { input: 0.25,  output: 2    }, context: 272_000 },
+  { prefix: 'gpt-5',         price: { input: 1.25,  output: 10   }, context: 272_000 },
+  // GPT-4.1 — $2 / $8
+  { prefix: 'gpt-4.1-nano',  price: { input: 0.10,  output: 0.40 }, context: 272_000 },
+  { prefix: 'gpt-4.1-mini',  price: { input: 0.40,  output: 1.60 }, context: 272_000 },
+  { prefix: 'gpt-4.1',       price: { input: 2,     output: 8    }, context: 272_000 },
+  // Reasoning models
+  { prefix: 'o4-mini',       price: { input: 1.10,  output: 4.40 }, context: 272_000 },
+  { prefix: 'o3',            price: { input: 2,     output: 8    }, context: 272_000 },
+];
+
+const ALL_MODELS = [...MODEL_PRICING, ...OPENAI_MODELS];
+
 function normalizeModel(model: string): string {
   return model.replace(/-\d{8}$/, '');
 }
 
 function findEntry(model: string): ModelEntry | undefined {
   const normalized = normalizeModel(model);
-  return MODEL_PRICING.find(e => normalized.startsWith(e.prefix));
+  return ALL_MODELS.find(e => normalized.startsWith(e.prefix));
 }
 
 export function getPrice(model: string): { input: number; output: number } | null {

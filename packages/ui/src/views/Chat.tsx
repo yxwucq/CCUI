@@ -234,6 +234,8 @@ export default function Chat() {
     return () => clearTimeout(t);
   }, [sessions]);
 
+  const [showHidden, setShowHidden] = useState(false);
+
   const q = search.toLowerCase().trim();
   const filtered = q
     ? sessions.filter((s) =>
@@ -242,8 +244,9 @@ export default function Chat() {
         (allSessionTags[s.id] || []).some((t) => t.toLowerCase().includes(q))
       )
     : sessions;
+  const hiddenCount = filtered.filter((s) => s.hidden && (s.status === 'active' || s.status === 'idle')).length;
   const activeSessions = sortSessions(
-    filtered.filter((s) => s.status === 'active' || s.status === 'idle'),
+    filtered.filter((s) => (s.status === 'active' || s.status === 'idle') && (showHidden || !s.hidden)),
     sortField, sortDirection,
   );
   const terminatedSessions = sortSessions(
@@ -458,7 +461,17 @@ export default function Chat() {
             )}
             {activeSessions.length > 0 && (
               <>
-                <p className="text-xs text-cc-text-muted uppercase tracking-wider px-1 mb-2">Active</p>
+                <div className="flex items-center gap-2 px-1 mb-2">
+                  <p className="text-xs text-cc-text-muted uppercase tracking-wider">Active</p>
+                  {hiddenCount > 0 && (
+                    <button
+                      onClick={() => setShowHidden(!showHidden)}
+                      className="text-[10px] text-cc-text-muted hover:text-cc-text-secondary transition-colors"
+                    >
+                      {showHidden ? 'hide' : `+${hiddenCount} hidden`}
+                    </button>
+                  )}
+                </div>
                 <motion.div
                   className="grid grid-cols-2 gap-2 mb-4"
                   style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}

@@ -1,10 +1,10 @@
 import * as pty from 'node-pty';
 import * as fs from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 import { createRequire } from 'module';
-import type { SessionActivity } from '@ccui/shared';
+import type { CliProviderType, SessionActivity } from '@ccui/shared';
 import { usageTracker } from './usage-tracker.js';
+import { getProvider, claudeJsonlPath, discoverCodexThreadId, findCodexRolloutPath, type CliProviderConfig } from './cli-providers.js';
+import { getDB } from '../db/database.js';
 
 const require = createRequire(import.meta.url);
 const { Terminal: HeadlessTerminal } = require('@xterm/headless') as { Terminal: any };
@@ -20,6 +20,7 @@ interface TerminalProcess {
   pty: pty.IPty;
   cwd: string;
   cols: number;
+  provider: CliProviderConfig;
 }
 
 interface JSONLState {
@@ -27,6 +28,7 @@ interface JSONLState {
   filePath: string;
   offset: number;
   seenRequestIds: Set<string>;
+  parseMode: 'claude' | 'codex';
 }
 
 // Strip ANSI escape sequences for pattern matching
@@ -34,27 +36,19 @@ function stripAnsi(s: string): string {
   return s.replace(/\x1b\[[\x3c-\x3f]?[0-9;]*[a-zA-Z]|\x1b\].*?(?:\x07|\x1b\\)|\x1b[()][0-9A-B]/g, '');
 }
 
-// Detect Claude CLI permission/input prompts
-const INPUT_PATTERNS = [
-  /do you want to proceed/i,
-  /esc to cancel/i,
-  /\d+\.\s*(yes|no|deny|allow|reject|skip)/i,
-  /allow once/i,
-  /allow always/i,
-];
-
-function isWaitingForInput(recentOutput: string): boolean {
+function isWaitingForInput(recentOutput: string, patterns: RegExp[]): boolean {
   const clean = stripAnsi(recentOutput);
-  // Only check the tail end (last ~1KB) for prompt patterns
   const tail = clean.slice(-1024);
-  return INPUT_PATTERNS.some((p) => p.test(tail));
+  return patterns.some((p) => p.test(tail));
 }
 
-/** Extract the most recent tool call from Claude CLI output (⏺ ToolName args...) */
-function detectToolFromOutput(recentOutput: string): { tool: string; preview: string } | null {
+/** Extract tool name from terminal output using provider-specific pattern */
+function detectToolFromOutput(recentOutput: string, toolPattern: RegExp): { tool: string; preview: string } | null {
   const clean = stripAnsi(recentOutput);
   const tail = clean.slice(-1024);
-  const matches = [...tail.matchAll(/⏺\s+([A-Z][a-zA-Z_]+)\b\s*(.*)/g)];
+  // Reset lastIndex for global regexes
+  toolPattern.lastIndex = 0;
+  const matches = [...tail.matchAll(toolPattern)];
   if (matches.length === 0) return null;
   const last = matches[matches.length - 1];
   return { tool: last[1], preview: last[2]?.trim().slice(0, 80) || '' };
@@ -84,7 +78,7 @@ class TerminalManager {
 
   // Message capture state
   private inputBuffer = new Map<string, string>();    // accumulates raw user keystrokes
-  private outputBuffer = new Map<string, string>();   // accumulates Claude's response (post-stripAnsi)
+  private outputBuffer = new Map<string, string>();   // accumulates CLI's response (post-stripAnsi)
   private pendingUserMsg = new Map<string, string>(); // user message waiting to be paired
 
   onOutput(listener: OutputListener) {
@@ -174,13 +168,13 @@ class TerminalManager {
   }
 
   /** Extract assistant response from rendered terminal output */
-  private static extractResponse(rendered: string, userMsg: string): string {
+  private static extractResponse(rendered: string, userMsg: string, agentMarker: string): string {
     const lines = rendered.split('\n').map((l) => l.trim()).filter(Boolean);
 
-    // Claude CLI marks response lines with ⏺ — use those first
+    // CLI marks response lines with agent marker (⏺ for Claude, • for Codex) — use those first
     const responseLines = lines
-      .filter((l) => l.startsWith('⏺'))
-      .map((l) => l.slice(1).trim());
+      .filter((l) => l.startsWith(agentMarker))
+      .map((l) => l.slice(agentMarker.length).trim());
 
     if (responseLines.length > 0) {
       return responseLines.join('\n').trim();
@@ -207,9 +201,11 @@ class TerminalManager {
     this.pendingUserMsg.delete(sessionId);
     this.outputBuffer.delete(sessionId);
 
-    const cols = this.terminals.get(sessionId)?.cols ?? 120;
+    const entry = this.terminals.get(sessionId);
+    const cols = entry?.cols ?? 120;
+    const agentMarker = entry?.provider.patterns.agentMarker ?? '⏺';
     const rendered = await TerminalManager.renderWithHeadless(raw, cols);
-    const assistantMsg = TerminalManager.extractResponse(rendered, userMsg);
+    const assistantMsg = TerminalManager.extractResponse(rendered, userMsg, agentMarker);
     if (assistantMsg) {
       for (const l of this.messageListeners) l(sessionId, userMsg, assistantMsg);
     }
@@ -232,8 +228,10 @@ class TerminalManager {
         this.emitActivity(sessionId, { state: 'waiting_input' });
         return;
       }
+      const entry = this.terminals.get(sessionId);
+      const patterns = entry?.provider.patterns.inputPrompts ?? [];
       const recent = this.recentOutput.get(sessionId) || '';
-      if (isWaitingForInput(recent)) {
+      if (isWaitingForInput(recent, patterns)) {
         this.waitingInputFlag.set(sessionId, true);
         this.emitActivity(sessionId, { state: 'waiting_input' });
       } else {
@@ -264,16 +262,15 @@ class TerminalManager {
     if (jsonl) { jsonl.watcher?.close(); this.jsonlWatchers.delete(sessionId); }
   }
 
-  /** Watch Claude Code's JSONL session file for new usage records */
-  private startJSONLWatch(ccuiSessionId: string, cwd: string, claudeSessionId: string) {
-    const slug = cwd.replace(/[^a-zA-Z0-9-]/g, '-');
-    const filePath = join(homedir(), '.claude', 'projects', slug, `${claudeSessionId}.jsonl`);
-
-    // Skip existing content — only track new data from this point forward
+  /** Start polling a usage file (JSONL/rollout) for new records */
+  private startUsageFileWatch(ccuiSessionId: string, filePath: string, parseMode: 'claude' | 'codex', readFromStart = false) {
+    // Claude: skip existing content (historical). Codex: read from start (current session data).
     let initialOffset = 0;
-    try { initialOffset = fs.statSync(filePath).size; } catch { /* file doesn't exist yet */ }
+    if (!readFromStart) {
+      try { initialOffset = fs.statSync(filePath).size; } catch { /* file doesn't exist yet */ }
+    }
 
-    const state: JSONLState = { watcher: null, filePath, offset: initialOffset, seenRequestIds: new Set() };
+    const state: JSONLState = { watcher: null, filePath, offset: initialOffset, seenRequestIds: new Set(), parseMode };
     this.jsonlWatchers.set(ccuiSessionId, state);
 
     const processNewLines = () => {
@@ -286,71 +283,148 @@ class TerminalManager {
         fs.closeSync(fd);
         state.offset = size;
 
-        // Collect the LAST entry per requestId (earlier entries are partial/streaming-start)
-        const lastByReqId = new Map<string, { usage: any; model: string }>();
-        const noReqId: Array<{ usage: any; model: string }> = [];
-        for (const line of buf.toString('utf8').split('\n')) {
-          if (!line.trim()) continue;
-          try {
-            const entry = JSON.parse(line);
-            if (entry.type !== 'assistant' || !entry.message?.usage) continue;
-            const reqId: string = entry.requestId || '';
-            const record = { usage: entry.message.usage, model: entry.message.model || '' };
-            if (reqId) {
-              lastByReqId.set(reqId, record); // overwrite → keeps last
-            } else {
-              noReqId.push(record);
-            }
-          } catch { /* malformed JSON line */ }
-        }
-
-        // Record only unseen requestIds (last/complete entry for each)
-        for (const [reqId, { usage, model }] of lastByReqId) {
-          if (state.seenRequestIds.has(reqId)) continue;
-          state.seenRequestIds.add(reqId);
-          usageTracker.recordFromClaude(ccuiSessionId, usage, model);
-        }
-        for (const { usage, model } of noReqId) {
-          usageTracker.recordFromClaude(ccuiSessionId, usage, model);
+        if (state.parseMode === 'claude') {
+          this.parseClaudeUsageLines(ccuiSessionId, buf.toString('utf8'), state);
+        } else {
+          this.parseCodexUsageLines(ccuiSessionId, buf.toString('utf8'), state);
         }
       } catch { /* file not accessible yet */ }
     };
 
-    // Poll every 2s — fs.watch on macOS directories fires with null filename,
-    // making event-based detection unreliable for appended files.
     const timer = setInterval(processNewLines, 2000);
     state.watcher = { close: () => clearInterval(timer) } as unknown as fs.FSWatcher;
-    console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] polling JSONL: ${filePath}`);
+    console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] polling ${parseMode} usage: ${filePath}`);
+  }
+
+  /** Parse Claude JSONL lines for usage records */
+  private parseClaudeUsageLines(ccuiSessionId: string, content: string, state: JSONLState) {
+    // Collect the LAST entry per requestId (earlier entries are partial/streaming-start)
+    const lastByReqId = new Map<string, { usage: any; model: string }>();
+    const noReqId: Array<{ usage: any; model: string }> = [];
+    for (const line of content.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type !== 'assistant' || !entry.message?.usage) continue;
+        const reqId: string = entry.requestId || '';
+        const record = { usage: entry.message.usage, model: entry.message.model || '' };
+        if (reqId) {
+          lastByReqId.set(reqId, record); // overwrite → keeps last
+        } else {
+          noReqId.push(record);
+        }
+      } catch { /* malformed JSON line */ }
+    }
+
+    // Record only unseen requestIds (last/complete entry for each)
+    for (const [reqId, { usage, model }] of lastByReqId) {
+      if (state.seenRequestIds.has(reqId)) continue;
+      state.seenRequestIds.add(reqId);
+      usageTracker.recordFromClaude(ccuiSessionId, usage, model);
+    }
+    for (const { usage, model } of noReqId) {
+      usageTracker.recordFromClaude(ccuiSessionId, usage, model);
+    }
+  }
+
+  /** Parse Codex rollout lines for usage records (token_count events) */
+  private parseCodexUsageLines(ccuiSessionId: string, content: string, state: JSONLState) {
+    let sessionModel = '';
+    for (const line of content.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const entry = JSON.parse(line);
+        // Capture model from turn_context (session_meta doesn't include it)
+        if (entry.type === 'turn_context' && entry.payload?.model) {
+          sessionModel = entry.payload.model;
+        }
+        // token_count events contain usage data
+        if (entry.type === 'event_msg' && entry.payload?.type === 'token_count') {
+          const total = entry.payload?.info?.total_token_usage;
+          const last = entry.payload?.info?.last_token_usage;
+          if (!last || !total) continue;
+          // Deduplicate by total_tokens — Codex emits duplicate token_count events
+          const totalKey = `total:${total.total_tokens || 0}`;
+          if (state.seenRequestIds.has(totalKey)) continue;
+          state.seenRequestIds.add(totalKey);
+          // Build a Claude-compatible usage object
+          const usage = {
+            input_tokens: last.input_tokens || 0,
+            output_tokens: last.output_tokens || 0,
+            cache_read_input_tokens: last.cached_input_tokens || 0,
+            cache_creation_input_tokens: 0,
+          };
+          usageTracker.recordFromClaude(ccuiSessionId, usage, sessionModel);
+        }
+      } catch { /* malformed line */ }
+    }
+  }
+
+  /** Start usage tracking for a Codex session — discover thread ID and rollout file */
+  private startCodexUsageWatch(ccuiSessionId: string, cwd: string) {
+    let attempts = 0;
+    const maxAttempts = 5;
+    const spawnTime = Math.floor(Date.now() / 1000) - 5; // Allow 5s clock skew
+
+    const tryDiscover = () => {
+      attempts++;
+      // Codex resolves symlinks, so /tmp → /private/tmp on macOS
+      let resolvedCwd = cwd;
+      try { resolvedCwd = fs.realpathSync(cwd); } catch { /* cwd may not exist yet */ }
+      const threadId = discoverCodexThreadId(resolvedCwd, spawnTime) || (resolvedCwd !== cwd ? discoverCodexThreadId(cwd, spawnTime) : null);
+      if (!threadId) {
+        if (attempts < maxAttempts) {
+          setTimeout(tryDiscover, 2000);
+        } else {
+          console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] failed to discover Codex thread ID after ${maxAttempts} attempts`);
+        }
+        return;
+      }
+
+      // Store thread ID in DB for future resume
+      try {
+        const db = getDB();
+        db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(threadId, ccuiSessionId);
+      } catch { /* best effort */ }
+
+      // Find rollout file
+      const rolloutPath = findCodexRolloutPath(threadId);
+      if (rolloutPath) {
+        this.startUsageFileWatch(ccuiSessionId, rolloutPath, 'codex', true);
+      } else {
+        console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] Codex thread ${threadId.slice(0, 8)} found but no rollout file yet`);
+        // Retry finding the rollout file
+        if (attempts < maxAttempts) {
+          setTimeout(tryDiscover, 2000);
+        }
+      }
+    };
+
+    // Start discovery after a delay to let Codex initialize
+    setTimeout(tryDiscover, 3000);
   }
 
   /**
-   * Create an interactive Claude CLI terminal for a session.
-   * @param resumeId  — existing Claude session ID → pass --resume
-   * @param newSessionId — new UUID to assign → pass --session-id (first run)
+   * Create an interactive CLI terminal for a session.
+   * @param resumeId  — existing CLI session ID → resume
+   * @param newSessionId — new UUID to assign (Claude only, Codex auto-generates)
    */
-  create(sessionId: string, cwd: string, cols = 120, rows = 30, resumeId?: string, newSessionId?: string, skipPermissions?: boolean): boolean {
+  create(sessionId: string, cwd: string, cols = 120, rows = 30, resumeId?: string, newSessionId?: string, skipPermissions?: boolean, cliProvider?: CliProviderType): boolean {
     if (this.terminals.has(sessionId)) {
       return false; // already exists
     }
 
-    // Strip CLAUDECODE to allow nested launch, keep auth token
+    const provider = getProvider(cliProvider);
+
     const env = { ...process.env } as Record<string, string>;
-    delete env.CLAUDECODE;
+    provider.envSetup(env);
 
-    const args: string[] = [];
-    if (skipPermissions) {
-      args.push('--dangerously-skip-permissions');
-    }
-    if (resumeId) {
-      args.push('--resume', resumeId);
-    } else if (newSessionId) {
-      args.push('--session-id', newSessionId);
-    }
+    const args = provider.buildArgs({ resumeId, newSessionId, skipPermissions });
 
-    console.log(`[terminal:${sessionId.slice(0, 8)}] spawning claude ${args.join(' ')} in ${cwd} (${cols}x${rows})`);
+    console.log(`[terminal:${sessionId.slice(0, 8)}] spawning ${provider.binary} ${args.join(' ')} in ${cwd} (${cols}x${rows})`);
 
     try {
-      const shell = pty.spawn('claude', args, {
+      const shell = pty.spawn(provider.binary, args, {
         name: 'xterm-256color',
         cols,
         rows,
@@ -358,7 +432,7 @@ class TerminalManager {
         env,
       });
 
-      const entry: TerminalProcess = { pty: shell, cwd, cols };
+      const entry: TerminalProcess = { pty: shell, cwd, cols, provider };
       this.terminals.set(sessionId, entry);
 
       // Guard callbacks: only emit if this shell is still the current one for this session.
@@ -384,8 +458,8 @@ class TerminalManager {
         if (this.waitingInputFlag.get(sessionId) || Date.now() < suppressUntil) {
           this.resetIdleTimer(sessionId);
         } else {
-          // Activity: detect real tool name from Claude CLI output (throttled)
-          const detected = detectToolFromOutput(this.recentOutput.get(sessionId) || '');
+          // Activity: detect real tool name from CLI output (throttled)
+          const detected = detectToolFromOutput(this.recentOutput.get(sessionId) || '', provider.patterns.toolPrefix);
           this.emitToolActivity(
             sessionId,
             detected?.tool || 'processing',
@@ -406,9 +480,24 @@ class TerminalManager {
         for (const l of this.exitListeners) l(sessionId, exitCode);
       });
 
-      // Start watching the JSONL file for usage data
-      const claudeId = resumeId || newSessionId;
-      if (claudeId) this.startJSONLWatch(sessionId, cwd, claudeId);
+      // Start usage tracking
+      if (provider.type === 'claude') {
+        const claudeId = resumeId || newSessionId;
+        if (claudeId) this.startUsageFileWatch(sessionId, claudeJsonlPath(cwd, claudeId), 'claude');
+      } else if (provider.type === 'codex') {
+        if (resumeId) {
+          // Resuming — we already know the thread ID, find the rollout file
+          const rolloutPath = findCodexRolloutPath(resumeId);
+          if (rolloutPath) {
+            this.startUsageFileWatch(sessionId, rolloutPath, 'codex');
+          } else {
+            this.startCodexUsageWatch(sessionId, cwd);
+          }
+        } else {
+          // New session — discover thread ID after Codex starts
+          this.startCodexUsageWatch(sessionId, cwd);
+        }
+      }
 
       return true;
     } catch (err: any) {

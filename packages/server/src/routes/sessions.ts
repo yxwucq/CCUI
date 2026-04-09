@@ -14,10 +14,15 @@ router.get('/', (_req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { projectPath, agentId, branch, name, skipPermissions, sessionType } = req.body;
+  const { projectPath, agentId, branch, name, skipPermissions, sessionType, cliProvider } = req.body;
   if (!projectPath) return res.status(400).json({ error: 'projectPath required' });
   try {
-    const session = sessionManager.createSession(projectPath, { agentId, branch, name, skipPermissions, sessionType });
+    // Head sessions use a separate creation path
+    if (sessionType === 'head') {
+      const session = sessionManager.createHeadSession(projectPath, cliProvider || 'claude');
+      return res.status(201).json(session);
+    }
+    const session = sessionManager.createSession(projectPath, { agentId, branch, name, skipPermissions, sessionType, cliProvider });
     res.status(201).json(session);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -69,6 +74,14 @@ router.put('/:id/name', (req, res) => {
   db.prepare('UPDATE sessions SET name = ? WHERE id = ?').run(trimmedName, req.params.id);
   session.name = trimmedName;
   res.json({ ok: true, name: trimmedName });
+});
+
+router.put('/:id/hidden', (req, res) => {
+  const { hidden } = req.body;
+  const db = getDB();
+  const result = db.prepare('UPDATE sessions SET hidden = ? WHERE id = ?').run(hidden ? 1 : 0, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Session not found' });
+  res.json({ ok: true, hidden: !!hidden });
 });
 
 router.get('/:id/memory', (req, res) => {

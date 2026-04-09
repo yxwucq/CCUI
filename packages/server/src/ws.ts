@@ -5,7 +5,7 @@ import { sessionManager } from './core/session-manager.js';
 import { terminalManager } from './core/terminal-manager.js';
 import { usageTracker } from './core/usage-tracker.js';
 import { getDB } from './db/database.js';
-import type { WSMessage } from '@ccui/shared';
+import type { WSMessage, CliProviderType } from '@ccui/shared';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -101,13 +101,16 @@ export function setupWebSocket(server: Server) {
         const msg = JSON.parse(data.toString()) as WSMessage;
 
         if (msg.type === 'session:create') {
-          const session = sessionManager.createSession(msg.projectPath, {
-            agentId: msg.agentId,
-            branch: msg.branch,
-            name: msg.name,
-            skipPermissions: msg.skipPermissions,
-            sessionType: msg.sessionType,
-          });
+          const session = msg.sessionType === 'head'
+            ? sessionManager.createHeadSession(msg.projectPath, msg.cliProvider || 'claude')
+            : sessionManager.createSession(msg.projectPath, {
+                agentId: msg.agentId,
+                branch: msg.branch,
+                name: msg.name,
+                skipPermissions: msg.skipPermissions,
+                sessionType: msg.sessionType,
+                cliProvider: msg.cliProvider,
+              });
           ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
         } else if (msg.type === 'session:resume') {
           const session = sessionManager.resumeSession(msg.sessionId);
@@ -139,18 +142,22 @@ export function setupWebSocket(server: Server) {
             if (session) {
               const cwd = session.worktreePath || session.projectPath;
               const db = getDB();
-              const row = db.prepare('SELECT claude_session_id FROM sessions WHERE id = ?').get(msg.sessionId) as any;
-              const claudeSessionId = row?.claude_session_id;
+              const row = db.prepare('SELECT claude_session_id, cli_provider FROM sessions WHERE id = ?').get(msg.sessionId) as any;
+              const cliSessionId = row?.claude_session_id;
+              const cliProvider = (row?.cli_provider || 'claude') as CliProviderType;
 
               let ok: boolean;
-              if (claudeSessionId) {
-                // Resume existing Claude conversation
-                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, claudeSessionId, undefined, session.skipPermissions);
+              if (cliSessionId) {
+                // Resume existing CLI conversation
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, cliSessionId, undefined, session.skipPermissions, cliProvider);
+              } else if (cliProvider === 'codex') {
+                // Codex: no pre-assigned session ID, thread ID discovered after spawn
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, undefined, session.skipPermissions, 'codex');
               } else {
-                // First run — assign a new session ID so we can resume later
+                // Claude: first run — assign a new session ID so we can resume later
                 const newId = uuid();
                 db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(newId, msg.sessionId);
-                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId, session.skipPermissions);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId, session.skipPermissions, 'claude');
               }
               if (!ok) {
                 ws.send(JSON.stringify({ type: 'chat:error', sessionId: msg.sessionId, error: 'Failed to create terminal' }));

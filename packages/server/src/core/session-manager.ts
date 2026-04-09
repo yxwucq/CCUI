@@ -5,7 +5,7 @@ import { getDB } from '../db/database.js';
 import { createIsolatedWorktree, removeWorktree, removeWorkBranch, getWorktreeStatus, mergeWorktree, getCurrentBranch, attachToBranch, resolveWorktreeBase } from './worktree-manager.js';
 import { loadProjectConfig } from '../routes/project-config.js';
 import { BranchWatcher } from './branch-watcher.js';
-import type { Session, ChatMessage, SessionActivity, FileActivity } from '@ccui/shared';
+import type { Session, ChatMessage, SessionActivity, FileActivity, CliProviderType } from '@ccui/shared';
 
 type StatusListener = (sessionId: string, status: Session['status'], lastActiveAt: string) => void;
 type ActivityListener = (sessionId: string, activity: SessionActivity) => void;
@@ -48,46 +48,70 @@ class SessionManager {
   }
 
   /**
-   * Initialize or update the head session for the project.
-   * Called at server startup — creates one if missing, updates branch if existing.
+   * Initialize or update head sessions for the project.
+   * Called at server startup — creates one per CLI provider if missing, updates branch if existing.
    */
   initHeadSession(projectPath: string): Session {
     const db = getDB();
     const currentBranch = getCurrentBranch(projectPath);
-    const existing = db.prepare("SELECT * FROM sessions WHERE session_type = 'head' AND project_path = ?").get(projectPath) as any;
 
-    if (existing) {
-      // Update branch and ensure idle status
+    // Find all existing head sessions
+    const existingHeads = db.prepare("SELECT * FROM sessions WHERE session_type = 'head' AND project_path = ?").all(projectPath) as any[];
+
+    // Update all existing heads with current branch
+    for (const existing of existingHeads) {
       db.prepare('UPDATE sessions SET branch = ?, status = ?, last_active_at = ? WHERE id = ?')
         .run(currentBranch, 'idle', new Date().toISOString(), existing.id);
-      console.log(`Head session updated: ${existing.id} (${currentBranch})`);
-      return this.mapSession({ ...existing, branch: currentBranch, status: 'idle' });
+      console.log(`Head session updated: ${existing.id} (${existing.cli_provider || 'claude'})`);
     }
 
-    // Create new head session
-    const id = uuid();
-    const now = new Date().toISOString();
-    const session: Session = {
-      id, name: 'HEAD', projectPath,
-      branch: currentBranch,
-      sessionType: 'head',
-      worktreeOwned: false,
-      skipPermissions: false,
-      status: 'idle', createdAt: now, lastActiveAt: now,
-    };
+    // Ensure a Claude head session exists (default)
+    const claudeHead = existingHeads.find((h: any) => (h.cli_provider || 'claude') === 'claude');
+    if (!claudeHead) {
+      const id = uuid();
+      const now = new Date().toISOString();
+      db.prepare(
+        'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, cli_provider, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(id, 'HEAD', projectPath, currentBranch, null, null, null, 0, 'head', 0, 'claude', 'idle', null, now, now);
+      console.log(`Head session created: ${id} (claude)`);
+    }
 
-    db.prepare(
-      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(id, 'HEAD', projectPath, currentBranch, null, null, null, 0, 'head', 0, 'idle', null, now, now);
-
-    console.log(`Head session created: ${id} (${currentBranch})`);
-    return session;
+    // Return the first head session (Claude)
+    const primary = claudeHead || db.prepare("SELECT * FROM sessions WHERE session_type = 'head' AND project_path = ? ORDER BY created_at ASC LIMIT 1").get(projectPath) as any;
+    return this.mapSession({ ...primary, branch: currentBranch, status: 'idle' });
   }
 
-  createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }): Session {
+  /**
+   * Create a head session for a specific CLI provider.
+   * Returns existing one if already exists for that provider.
+   */
+  createHeadSession(projectPath: string, cliProvider: CliProviderType): Session {
+    const db = getDB();
+    const currentBranch = getCurrentBranch(projectPath);
+
+    // Check if head session for this provider already exists
+    const existing = db.prepare("SELECT * FROM sessions WHERE session_type = 'head' AND project_path = ? AND cli_provider = ?")
+      .get(projectPath, cliProvider) as any;
+    if (existing) {
+      return this.mapSession(existing);
+    }
+
     const id = uuid();
     const now = new Date().toISOString();
-    const { agentId, branch, name, skipPermissions, sessionType = 'fork' } = opts || {};
+    const name = cliProvider === 'codex' ? 'HEAD (Codex)' : 'HEAD';
+    db.prepare(
+      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, cli_provider, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, name, projectPath, currentBranch, null, null, null, 0, 'head', 0, cliProvider, 'idle', null, now, now);
+    console.log(`Head session created: ${id} (${cliProvider})`);
+
+    const row = db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as any;
+    return this.mapSession(row);
+  }
+
+  createSession(projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach'; cliProvider?: CliProviderType }): Session {
+    const id = uuid();
+    const now = new Date().toISOString();
+    const { agentId, branch, name, skipPermissions, sessionType = 'fork', cliProvider } = opts || {};
     const currentBranch = getCurrentBranch(projectPath);
     const targetBranch = branch || currentBranch;
     const config = loadProjectConfig(projectPath);
@@ -142,13 +166,14 @@ You are working on an existing branch (attached mode).
       skipPermissions: skipPermissions || false,
       sessionType: effectiveSessionType,
       worktreeOwned,
+      cliProvider: cliProvider || 'claude',
       status: 'idle', createdAt: now, lastActiveAt: now,
     };
 
     const db = getDB();
     db.prepare(
-      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(id, sessionName, projectPath, workBranch, targetBranch, worktreePath || null, agentId || null, skipPermissions ? 1 : 0, effectiveSessionType, worktreeOwned ? 1 : 0, 'idle', null, now, now);
+      'INSERT INTO sessions (id, name, project_path, branch, target_branch, worktree_path, agent_id, skip_permissions, session_type, worktree_owned, cli_provider, status, claude_session_id, created_at, last_active_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, sessionName, projectPath, workBranch, targetBranch, worktreePath || null, agentId || null, skipPermissions ? 1 : 0, effectiveSessionType, worktreeOwned ? 1 : 0, cliProvider || 'claude', 'idle', null, now, now);
     return session;
   }
 
@@ -311,6 +336,8 @@ You are working on an existing branch (attached mode).
       skipPermissions: !!row.skip_permissions, status: row.status,
       sessionType: row.session_type || 'fork',
       worktreeOwned: row.worktree_owned !== 0,
+      cliProvider: row.cli_provider || 'claude',
+      hidden: !!row.hidden,
       cleanupStatus: row.cleanup_status || undefined,
       createdAt: row.created_at, lastActiveAt: row.last_active_at,
     };

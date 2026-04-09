@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Session, ChatMessage, SessionActivity, UsageRecord, FileActivity } from '@ccui/shared';
+import type { Session, ChatMessage, SessionActivity, UsageRecord, FileActivity, CliProviderType } from '@ccui/shared';
 import { getContextWindow } from '@ccui/shared/models';
 import * as sessionsApi from '../api/sessions';
 import { fetchSessionUsageSummary } from '../api/usage';
@@ -31,7 +31,7 @@ interface SessionStore {
   chatJumpTarget: Record<string, string | null>;
 
   fetchSessions: () => Promise<void>;
-  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach' }) => Promise<Session>;
+  createSession: (projectPath: string, opts?: { agentId?: string; branch?: string; name?: string; skipPermissions?: boolean; sessionType?: 'fork' | 'attach'; cliProvider?: CliProviderType }) => Promise<Session>;
   setActiveSession: (id: string | null) => void;
   toggleFocus: (id: string) => void;
   toggleExpanded: (id: string) => void;
@@ -46,6 +46,7 @@ interface SessionStore {
   terminateSession: (sessionId: string, action?: 'check' | 'merge' | 'discard') => Promise<any>;
   deleteSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, name: string) => Promise<void>;
+  toggleHidden: (sessionId: string) => Promise<void>;
   updateSessionUsage: (sessionId: string, record: UsageRecord) => void;
   fetchSessionUsage: (sessionId: string) => Promise<void>;
   addFileActivity: (sessionId: string, activity: FileActivity) => void;
@@ -212,6 +213,18 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         }));
       }
     }
+  },
+
+  toggleHidden: async (sessionId) => {
+    const session = get().sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    const newHidden = !session.hidden;
+    set((s) => ({
+      sessions: s.sessions.map((sess) =>
+        sess.id === sessionId ? { ...sess, hidden: newHidden } : sess
+      ),
+    }));
+    await sessionsApi.setSessionHidden(sessionId, newHidden);
   },
 
   updateSessionUsage: (sessionId, record) => {
