@@ -1,9 +1,11 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
+import { existsSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 import { sessionManager } from './core/session-manager.js';
 import { terminalManager } from './core/terminal-manager.js';
 import { usageTracker } from './core/usage-tracker.js';
+import { claudeJsonlPath } from './core/cli-providers.js';
 import { getDB } from './db/database.js';
 import type { WSMessage, CliProviderType } from '@ccui/shared';
 
@@ -147,7 +149,13 @@ export function setupWebSocket(server: Server) {
               const cliProvider = (row?.cli_provider || 'claude') as CliProviderType;
 
               let ok: boolean;
-              if (cliSessionId) {
+              if (cliSessionId && cliProvider === 'claude' && !existsSync(claudeJsonlPath(cwd, cliSessionId))) {
+                // Claude session file doesn't exist (killed before init) — start fresh
+                console.log(`[ws] Claude session ${cliSessionId.slice(0, 8)} has no JSONL file, starting fresh`);
+                const newId = uuid();
+                db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(newId, msg.sessionId);
+                ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId, session.skipPermissions, 'claude');
+              } else if (cliSessionId) {
                 // Resume existing CLI conversation
                 ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, cliSessionId, undefined, session.skipPermissions, cliProvider);
               } else if (cliProvider === 'codex') {
