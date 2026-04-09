@@ -111,12 +111,12 @@ export function setupWebSocket(server: Server) {
                 sessionType: msg.sessionType,
                 cliProvider: msg.cliProvider,
               });
-          ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
+          ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'idle' }));
         } else if (msg.type === 'session:resume') {
           const session = sessionManager.resumeSession(msg.sessionId);
           if (!subscriptions.has(msg.sessionId)) subscriptions.set(msg.sessionId, new Set());
           subscriptions.get(msg.sessionId)!.add(ws);
-          ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'active' }));
+          ws.send(JSON.stringify({ type: 'session:status', sessionId: session.id, status: 'idle' }));
         } else if (msg.type === 'session:stop') {
           sessionManager.stopSession(msg.sessionId);
           terminalManager.kill(msg.sessionId);
@@ -159,7 +159,11 @@ export function setupWebSocket(server: Server) {
                 db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(newId, msg.sessionId);
                 ok = terminalManager.create(msg.sessionId, cwd, msg.cols, msg.rows, undefined, newId, session.skipPermissions, 'claude');
               }
-              if (!ok) {
+              if (ok) {
+                const now = new Date().toISOString();
+                db.prepare('UPDATE sessions SET status = ?, last_active_at = ? WHERE id = ?').run('active', now, msg.sessionId);
+                broadcast(msg.sessionId, { type: 'session:status', sessionId: msg.sessionId, status: 'active', lastActiveAt: now });
+              } else {
                 ws.send(JSON.stringify({ type: 'chat:error', sessionId: msg.sessionId, error: 'Failed to create terminal' }));
               }
             } else {

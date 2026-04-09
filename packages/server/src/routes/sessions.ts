@@ -1,6 +1,7 @@
 import { Router, type Router as IRouter } from 'express';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { sessionManager } from '../core/session-manager.js';
+import { terminalManager } from '../core/terminal-manager.js';
 import { getDB } from '../db/database.js';
 import { getFileTree } from '../core/project-scanner.js';
 import { readFile, writeFile } from '../core/file-manager.js';
@@ -113,6 +114,7 @@ router.put('/:id/memory/:filename', (req, res) => {
 
 router.post('/:id/stop', (req, res) => {
   sessionManager.stopSession(req.params.id);
+  terminalManager.kill(req.params.id);
   res.json({ ok: true });
 });
 
@@ -120,6 +122,8 @@ router.post('/:id/terminate', (req, res) => {
   const session = sessionManager.getSession(req.params.id);
   if (session?.sessionType === 'head') return res.status(403).json({ error: 'Cannot terminate the head session' });
   const { action } = req.body || {};
+  // Kill PTY before worktree teardown to avoid race with still-running CLI
+  terminalManager.kill(req.params.id);
   const result = sessionManager.terminateSession(req.params.id, action);
   res.json(result);
 });
@@ -127,6 +131,7 @@ router.post('/:id/terminate', (req, res) => {
 router.delete('/:id', (req, res) => {
   const session = sessionManager.getSession(req.params.id);
   if (session?.sessionType === 'head') return res.status(403).json({ error: 'Cannot delete the head session' });
+  terminalManager.kill(req.params.id);
   sessionManager.deleteSession(req.params.id);
   res.json({ ok: true });
 });
@@ -177,14 +182,23 @@ router.get('/:id/files/tree', (req, res) => {
   res.json(getFileTree(cwd, parseInt(req.query.depth as string) || 3));
 });
 
+/** Resolve a user-supplied path and verify it stays within the workspace */
+function safePath(cwd: string, relPath: string): string | null {
+  const root = resolve(cwd);
+  const full = resolve(root, relPath);
+  if (full !== root && !full.startsWith(root + '/')) return null;
+  return full;
+}
+
 router.get('/:id/files', (req, res) => {
   const cwd = getSessionCwd(req.params.id);
   if (!cwd) return res.status(404).json({ error: 'Session not found' });
   const relPath = req.query.path as string;
   if (!relPath) return res.status(400).json({ error: 'path required' });
-  if (relPath.includes('..')) return res.status(400).json({ error: 'invalid path' });
+  const full = safePath(cwd, relPath);
+  if (!full) return res.status(400).json({ error: 'path escapes workspace' });
   try {
-    res.json(readFile(join(cwd, relPath)));
+    res.json(readFile(full));
   } catch (err: any) {
     res.status(404).json({ error: err.message });
   }
@@ -196,9 +210,10 @@ router.put('/:id/files', (req, res) => {
   const relPath = req.query.path as string;
   const { content } = req.body;
   if (!relPath) return res.status(400).json({ error: 'path required' });
-  if (relPath.includes('..')) return res.status(400).json({ error: 'invalid path' });
+  const full = safePath(cwd, relPath);
+  if (!full) return res.status(400).json({ error: 'path escapes workspace' });
   try {
-    writeFile(join(cwd, relPath), content);
+    writeFile(full, content);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

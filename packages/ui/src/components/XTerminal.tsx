@@ -44,7 +44,7 @@ const XTerminal = forwardRef<XTerminalHandle, Props>(function XTerminal({ sessio
   const restart = useCallback(() => {
     setStatus('connecting');
     if (termRef.current) {
-      sendWsMessage({ type: 'session:terminate', sessionId });
+      sendWsMessage({ type: 'session:stop', sessionId });
       termRef.current.reset();
       setTimeout(() => {
         if (termRef.current) {
