@@ -4,11 +4,8 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { useContainerHeight, effectiveSize } from '../../hooks/useContainerHeight';
 import type { SessionUsageSummary } from '../../stores/sessionStore';
 
-import type { Session } from '@ccui/shared';
-
 interface Props {
   sessionId: string;
-  session?: Session;
   size: 'sm' | 'lg';
   usage?: SessionUsageSummary;
   callHistory: Array<{ cost: number }>;
@@ -21,7 +18,7 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-export default function UsageWidget({ sessionId, session, size, usage, callHistory, fetchSessionUsage }: Props) {
+export default function UsageWidget({ sessionId, size, usage, callHistory, fetchSessionUsage }: Props) {
   const [containerRef, containerHeight] = useContainerHeight();
   const renderSize = effectiveSize(size, containerHeight);
 
@@ -74,7 +71,6 @@ export default function UsageWidget({ sessionId, session, size, usage, callHisto
           className={`font-mono text-cc-green-text ${isNewCost ? 'cost-flash' : ''} ${renderSize === 'lg' ? 'text-xl' : 'text-lg'}`}
         >
           ${usage.totalCost.toFixed(4)}
-          {session?.cliProvider === 'codex' && <span className="text-xs text-cc-text-muted ml-1">(Sub)</span>}
         </div>
         <div className="text-xs text-cc-text-muted">
           {usage.callCount} calls{usage.model ? ` · ${usage.model.split('-').slice(1, 3).join('-')}` : ''}
