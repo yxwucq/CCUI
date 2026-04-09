@@ -13,7 +13,8 @@
 <br/>
 
 ```
-  One codebase. Multiple Claude agents. Each on its own branch.
+  One codebase. Multiple AI agents. Each on its own branch.
+  Supports Claude Code and OpenAI Codex CLI.
 ```
 
 <br/>
@@ -39,7 +40,7 @@
 
 ## 🚀 Quick Start
 
-> **You need:** Node.js 18+, [pnpm](https://pnpm.io/), [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) authenticated.
+> **You need:** Node.js 18+, [pnpm](https://pnpm.io/), and at least one of: [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) or [OpenAI Codex CLI](https://github.com/openai/codex) authenticated.
 
 ```bash
 git clone https://github.com/yxwucq/CCUI.git
@@ -74,7 +75,7 @@ ccui --port 8080        # custom port
 
 ## 💡 What is CCUI?
 
-A web dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that enables **multi-worktree parallel development**. Each session runs a real Claude Code CLI in an isolated git worktree on its own branch — fix a bug, add a feature, and refactor a module simultaneously from a single browser tab.
+A web dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [OpenAI Codex CLI](https://github.com/openai/codex) that enables **multi-worktree parallel development**. Each session runs a real CLI process (Claude or Codex) in an isolated git worktree on its own branch — fix a bug, add a feature, and refactor a module simultaneously from a single browser tab.
 
 <div align="center">
 
@@ -94,19 +95,20 @@ A web dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code
 
 ## Features
 
-- **Parallel sessions** — spawn multiple Claude Code processes, each in its own xterm.js terminal
+- **Multi-provider** — run Claude Code and OpenAI Codex sessions side by side, each with its own provider icon
+- **Parallel sessions** — spawn multiple CLI processes, each in its own xterm.js terminal
 - **Git worktree isolation** — each session forks a new branch + worktree, merge or discard when done
 - **Attach mode** — connect to an existing branch without forking
 - **Live status** — see which sessions are running, waiting for input, or idle
 - **File browser** — browse and diff files across worktrees
-- **Cost tracking** — per-session token usage with daily budget alerts
+- **Cost tracking** — per-session token usage based on official API pricing (Claude + OpenAI models)
 - **Custom agents** — define system prompts and tool permissions
 - **8 themes** — Dark, Light, Nord, Dracula, Catppuccin, Solarized, Tokyo Night, Sakura
 - **100% local** — all data stays in `.ccui/` inside your project
 
 ## How It Works
 
-Each session spawns a `claude` CLI process attached to a real PTY. Sessions can run in two modes:
+Each session spawns a `claude` or `codex` CLI process attached to a real PTY. When creating a session, choose your provider — both share the same workspace, git, and cost tracking infrastructure. Sessions can run in two modes:
 
 - **Fork** — creates a new branch + git worktree from any base. Claude works in complete isolation. When done, merge back or discard.
 - **Attach** — connects to an existing branch directly. Good for continuing work on a feature branch.
@@ -139,7 +141,7 @@ MIT
 
 <br/>
 
-**Built for developers who think one Claude isn't enough.**
+**Built for developers who think one AI agent isn't enough.**
 
 [![GitHub stars](https://img.shields.io/github/stars/yxwucq/CCUI?style=social)](https://github.com/yxwucq/CCUI)
 
