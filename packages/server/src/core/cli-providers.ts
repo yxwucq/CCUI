@@ -5,7 +5,6 @@
  */
 import { homedir } from 'os';
 import { join } from 'path';
-import { execSync } from 'child_process';
 import { createRequire } from 'module';
 import type { CliProviderType } from '@ccui/shared';
 
@@ -114,44 +113,48 @@ export function claudeJsonlPath(cwd: string, sessionId: string): string {
   return join(homedir(), '.claude', 'projects', claudeSlug(cwd), `${sessionId}.jsonl`);
 }
 
+export interface CodexThreadInfo {
+  id: string;
+  rolloutPath: string;
+  model: string;
+}
+
 /**
- * Discover a Codex thread ID by querying Codex's state database.
- * Returns the most recent thread ID matching the given cwd, or null.
+ * Discover the most recent Codex thread for a cwd by querying Codex's state database.
+ * @param minCreatedAt Unix timestamp (seconds). Only return threads created after this time.
  */
-/**
- * @param minCreatedAt — Unix timestamp (seconds). Only return threads created after this time.
- */
-export function discoverCodexThreadId(cwd: string, minCreatedAt?: number): string | null {
+export function discoverCodexThread(cwd: string, minCreatedAt?: number): CodexThreadInfo | null {
   const dbPath = join(homedir(), '.codex', 'state_5.sqlite');
   try {
     const Database = require('better-sqlite3');
     const db = new Database(dbPath, { readonly: true, fileMustExist: true });
     const query = minCreatedAt
-      ? 'SELECT id FROM threads WHERE cwd = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1'
-      : 'SELECT id FROM threads WHERE cwd = ? ORDER BY created_at DESC LIMIT 1';
+      ? 'SELECT id, rollout_path, COALESCE(model, \'\') as model FROM threads WHERE cwd = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1'
+      : 'SELECT id, rollout_path, COALESCE(model, \'\') as model FROM threads WHERE cwd = ? ORDER BY created_at DESC LIMIT 1';
     const args = minCreatedAt ? [cwd, minCreatedAt] : [cwd];
-    const row = db.prepare(query).get(...args) as { id: string } | undefined;
+    const row = db.prepare(query).get(...args) as
+      | { id: string; rollout_path: string; model: string }
+      | undefined;
     db.close();
-    return row?.id ?? null;
+    if (!row) return null;
+    return {
+      id: row.id,
+      rolloutPath: row.rollout_path,
+      model: row.model,
+    };
   } catch (err: any) {
-    console.error(`[codex] discoverThreadId failed for ${cwd}:`, err?.message || err);
+    console.error(`[codex] discoverThread failed for ${cwd}:`, err?.message || err);
     return null;
   }
 }
 
-/**
- * Find the rollout file path for a Codex thread ID.
- * Searches ~/.codex/sessions/ recursively for a file matching the thread ID.
- */
 export function findCodexRolloutPath(threadId: string): string | null {
-  const sessionsDir = join(homedir(), '.codex', 'sessions');
   try {
-    // Use find to locate the rollout file — glob by thread ID suffix
-    const result = execSync(
-      `find "${sessionsDir}" -name "*${threadId}.jsonl" -type f 2>/dev/null | head -1`,
-      { encoding: 'utf8', timeout: 3000 }
-    ).trim();
-    return result || null;
+    const Database = require('better-sqlite3');
+    const db = new Database(join(homedir(), '.codex', 'state_5.sqlite'), { readonly: true, fileMustExist: true });
+    const row = db.prepare('SELECT rollout_path FROM threads WHERE id = ?').get(threadId) as { rollout_path: string } | undefined;
+    db.close();
+    return row?.rollout_path || null;
   } catch {
     return null;
   }

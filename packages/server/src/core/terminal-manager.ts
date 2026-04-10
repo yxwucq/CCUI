@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { createRequire } from 'module';
 import type { CliProviderType, SessionActivity } from '@ccui/shared';
 import { usageTracker } from './usage-tracker.js';
-import { getProvider, claudeJsonlPath, discoverCodexThreadId, findCodexRolloutPath, type CliProviderConfig } from './cli-providers.js';
+import { getProvider, claudeJsonlPath, discoverCodexThread, findCodexRolloutPath, type CliProviderConfig } from './cli-providers.js';
 import { getDB } from '../db/database.js';
 
 const require = createRequire(import.meta.url);
@@ -363,20 +363,21 @@ class TerminalManager {
   /** Start usage tracking for a Codex session — discover thread ID and rollout file */
   private startCodexUsageWatch(ccuiSessionId: string, cwd: string) {
     let attempts = 0;
-    const maxAttempts = 5;
-    const spawnTime = Math.floor(Date.now() / 1000) - 5; // Allow 5s clock skew
+    const retryMs = 2000;
+    const maxAttempts = 30;
+    const spawnTime = Math.floor(Date.now() / 1000) - 10; // Allow clock skew and delayed thread persistence
 
     const tryDiscover = () => {
       attempts++;
       // Codex resolves symlinks, so /tmp → /private/tmp on macOS
       let resolvedCwd = cwd;
       try { resolvedCwd = fs.realpathSync(cwd); } catch { /* cwd may not exist yet */ }
-      const threadId = discoverCodexThreadId(resolvedCwd, spawnTime) || (resolvedCwd !== cwd ? discoverCodexThreadId(cwd, spawnTime) : null);
-      if (!threadId) {
+      const thread = discoverCodexThread(resolvedCwd, spawnTime) || (resolvedCwd !== cwd ? discoverCodexThread(cwd, spawnTime) : null);
+      if (!thread) {
         if (attempts < maxAttempts) {
-          setTimeout(tryDiscover, 2000);
+          setTimeout(tryDiscover, retryMs);
         } else {
-          console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] failed to discover Codex thread ID after ${maxAttempts} attempts`);
+          console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] failed to discover Codex thread after ${maxAttempts} attempts`);
         }
         return;
       }
@@ -384,24 +385,23 @@ class TerminalManager {
       // Store thread ID in DB for future resume
       try {
         const db = getDB();
-        db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(threadId, ccuiSessionId);
+        db.prepare('UPDATE sessions SET claude_session_id = ? WHERE id = ?').run(thread.id, ccuiSessionId);
       } catch { /* best effort */ }
 
-      // Find rollout file
-      const rolloutPath = findCodexRolloutPath(threadId);
+      // Newer Codex stores rollout_path directly in threads; keep a DB lookup fallback.
+      const rolloutPath = thread.rolloutPath || findCodexRolloutPath(thread.id);
       if (rolloutPath) {
         this.startUsageFileWatch(ccuiSessionId, rolloutPath, 'codex', true);
       } else {
-        console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] Codex thread ${threadId.slice(0, 8)} found but no rollout file yet`);
-        // Retry finding the rollout file
+        console.log(`[terminal:${ccuiSessionId.slice(0, 8)}] Codex thread ${thread.id.slice(0, 8)} found but no rollout file yet`);
         if (attempts < maxAttempts) {
-          setTimeout(tryDiscover, 2000);
+          setTimeout(tryDiscover, retryMs);
         }
       }
     };
 
-    // Start discovery after a delay to let Codex initialize
-    setTimeout(tryDiscover, 3000);
+    // Start discovery after a short delay to let Codex initialize its state DB entry.
+    setTimeout(tryDiscover, 1000);
   }
 
   /**
